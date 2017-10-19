@@ -1,0 +1,466 @@
+---
+title: 'Exploratory data analysis: Heterogeneity by age'
+author: "Darcy Rao"
+date: "October 12, 2017"
+output: html_document
+---
+
+```{r setup, include=TRUE, echo=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r, echo=FALSE, eval=FALSE}
+    #Install packages
+    install.packages("kableExtra")
+    library("knitr")
+    library("kableExtra")
+    options(knitr.table.format = "html")
+    
+    #install.packages("tidyverse")
+    library("tidyverse")
+
+    #install.packages("psych") #To use "describe" function for continuous vars
+    library("psych")
+
+    #install.packages("nnet") #For multinomial logistic regression
+    library("nnet")
+
+    #install.packages("lmtest") #For likelihood ratio test
+    library("lmtest")
+
+    #install.packages("ggplot2")
+    library("ggplot2")
+    
+    #install.packages("survey")
+    library("survey")
+
+##Load and filter dataset--------------------------------------------------------------------------------------------
+prepsurvey <- read.csv("D:/prepsurvey_clean4R.csv",
+       header=TRUE, sep=",", row.names = "id", na.strings = c("NA", "", "."))
+
+sample_18to64 <- filter(prepsurvey, invalid==0
+                 & is.na(remove_qa)
+                 & !is.na(region)
+                 & gender=="Male"
+                 & malessexwith==1 & (numpartners!=0 | is.na(numpartners))
+                 & age>17 & age<65
+                 & (statuscalc=="Complete" | statuscalc=="Partial"))
+
+## Generate new variables / modify variables for this analysis ------------------------------------------------------
+    #redefine age_cat
+    sample_18to64$age_cat <- cut(sample_18to64$age, c(17, 24, 34, 44, 54, 64), labels=c("18-24", "25-34", "35-44", 
+                                                                                        "45-54", "55-64"))    
+    sample_18to64$age_bin <- cut(sample_18to64$age, c(17, 39, 64), labels=c("18-39", "40-64")) 
+    
+    #reorder the levels of race_eth_r and mrp_race_eth_r
+    sample_18to64$race_eth_r <- factor(sample_18to64$race_eth_r, levels(sample_18to64$race_eth_r)[c(3,6,2,1,5,4)])
+    sample_18to64$mrp_race_eth_r <- factor(sample_18to64$mrp_race_eth_r, levels(sample_18to64$mrp_race_eth_r)[c(4,7,2,1,6,5,3)])
+    
+    #Redefine race_eth_cat as Hispanic, black (alone or in combination), and all others
+    sample_18to64$hbo[!is.na(sample_18to64$race_eth_r)] <- "Other"
+    sample_18to64$hbo[sample_18to64$race_eth_r %in% "Black" | sample_18to64$blackafricanamericanrace %in% 1] <- "Black"
+    sample_18to64$hbo[sample_18to64$race_eth_r %in% "Hispanic"] <- "Hispanic"
+    sample_18to64$hbo <- factor(sample_18to64$hbo)
+    sample_18to64$hbo <- factor(sample_18to64$hbo, levels(sample_18to64$hbo)[c(2, 1, 3)])
+    
+    sample_18to64$mrp_hbo[!is.na(sample_18to64$mrp_race_eth_r) & sample_18to64$mrp_race_eth_r!="Dont know"] <- "Other"
+    sample_18to64$mrp_hbo[sample_18to64$mrp_race_eth_r %in% "Black" | sample_18to64$blackafricanamericanmrp_race %in% 1] <- "Black"
+    sample_18to64$mrp_hbo[sample_18to64$mrp_race_eth_r %in% "Hispanic"] <- "Hispanic"
+    sample_18to64$mrp_hbo <- factor(sample_18to64$mrp_hbo)
+    sample_18to64$mrp_hbo <- factor(sample_18to64$mrp_hbo, levels(sample_18to64$mrp_hbo)[c(2, 1, 3)])
+    
+    #Reorder levels of region
+    sample_18to64$region <- factor(sample_18to64$region, levels(sample_18to64$region)[c(2,3,1)])
+    
+    #Change referent values for race and region for regression
+    sample_18to64$race_eth_r.bW <- relevel(sample_18to64$race_eth_r, ref="White")
+    sample_18to64$hbo.bO <- relevel(sample_18to64$hbo, ref="Other") 
+    sample_18to64$region.bKC <- relevel(sample_18to64$region, ref="King County")
+    
+    #degree
+    #Unrestricted definition for casual (count if ongoing regardless of sex freq)
+    sample_18to64$deg_matrix[sample_18to64$degree_main==0 & sample_18to64$degreecat_cas=="None"] <- "0 main 0 pers"
+    sample_18to64$deg_matrix[sample_18to64$degree_main==0 & sample_18to64$degreecat_cas=="One"] <- "0 main 1 pers"
+    sample_18to64$deg_matrix[sample_18to64$degree_main==0 & sample_18to64$degreecat_cas=="Two or more"] <- "0 main 2+ pers"
+    sample_18to64$deg_matrix[sample_18to64$degree_main==1 & sample_18to64$degreecat_cas=="None"] <- "1 main 0 pers"
+    sample_18to64$deg_matrix[sample_18to64$degree_main==1 & sample_18to64$degreecat_cas=="One"] <- "1 main 1 pers"
+    sample_18to64$deg_matrix[sample_18to64$degree_main==1 & sample_18to64$degreecat_cas=="Two or more"] <- "1 main 2+ pers"
+    sample_18to64$deg_matrix[is.na(sample_18to64$degree_main) | is.na(sample_18to64$degreecat_cas)] <- NA
+    sample_18to64$deg_matrix <- as.factor(sample_18to64$deg_matrix)
+    
+    #Any concurrent partnerships
+    sample_18to64$concurrent <- ifelse((sample_18to64$deg_matrix %in% c("0 main 2+ pers", "1 main 1 pers") | 
+                                     sample_18to64$deg_matrix %in% "1 main 2+ pers") & !is.na(sample_18to64$deg_matrix), 1,
+                                ifelse(!is.na(sample_18to64$deg_matrix), 0, NA))
+    
+    #Redefine MRP type to set "unspecified" to NA and reorder levels so main is first
+    sample_18to64$mrp_type_r[sample_18to64$mrp_type_r=="Unspecified"] <- NA
+    sample_18to64$mrp_type_r <- factor(sample_18to64$mrp_type_r)
+    
+    sample_18to64$mrp_type_r <- factor(sample_18to64$mrp_type_r, levels(sample_18to64$mrp_type_r)[c(2,1,3)])
+    
+    #Ongoing most recent partners
+    sample_18to64$mrp_type_ongoing[sample_18to64$mrp_type_r %in% "Main" & sample_18to64$mrp_ongoing %in% 1] <- "Main"
+    sample_18to64$mrp_type_ongoing[sample_18to64$mrp_type_r %in% "Casual" & sample_18to64$mrp_ongoing %in% 1] <- "Persistent"
+    sample_18to64$mrp_type_ongoing[is.na(sample_18to64$mrp_type_r) | is.na(sample_18to64$mrp_ongoing)] <- NA
+    sample_18to64$mrp_type_ongoing <- as.factor(sample_18to64$mrp_type_ongoing)
+    
+    #AI rate - using data from all partnerships (not just ongoing)
+    sample_18to64$airate_main <- ifelse(sample_18to64$mrp_type_r=="Main" & !is.na(sample_18to64$mrp_type_r), sample_18to64$airate, NA)
+    sample_18to64$airate_pers <- ifelse(sample_18to64$mrp_type_r=="Casual" & !is.na(sample_18to64$mrp_type_r), sample_18to64$airate, NA)
+    
+    #Rate of instantaneous (one-time) partners
+    sample_18to64$rate_inst <- sample_18to64$numonetime_r / 365.25
+    
+    #Quantiles of instantaneous partnership rates
+    meanbyqnt <- function(x, y) {
+        qnts <- c((mean(x[x>=0 & x<=y[1]], na.rm=TRUE)),
+                  (ifelse(y[1]<y[2], mean(x[x>y[1] & x<=y[2]], na.rm=TRUE), ifelse(y[1]==y[2], y[2], NA))),
+                  (ifelse(y[2]<y[3], mean(x[x>y[2] & x<=y[3]], na.rm=TRUE), ifelse(y[2]==y[3], y[3], NA))),
+                  (ifelse(y[3]<y[4], mean(x[x>y[3] & x<=y[4]], na.rm=TRUE), ifelse(y[3]==y[4], y[4], NA))),
+                  (ifelse(y[4]<y[5], mean(x[x>y[4] & x<=y[5]], na.rm=TRUE), ifelse(y[4]==y[5], y[5], NA))))
+        return(qnts)
+    }
+    
+    qnt_limits.H <- quantile(sample_18to64$rate_inst[sample_18to64$race_eth_r=="Hispanic"], probs=seq(0.2, 1, 0.2), na.rm=TRUE)
+    rate_inst.H <- ifelse(sample_18to64$race_eth_r=="Hispanic" & !is.na(sample_18to64$race_eth_r), sample_18to64$rate_inst, NA)
+    qnts.H <- meanbyqnt(rate_inst.H, qnt_limits.H)
+    
+    qnt_limits.W <- quantile(sample_18to64$rate_inst[sample_18to64$race_eth_r=="White"], probs=seq(0.2, 1, 0.2), na.rm=TRUE)
+    rate_inst.W <- ifelse(sample_18to64$race_eth_r=="White" & !is.na(sample_18to64$race_eth_r), sample_18to64$rate_inst, NA)
+    qnts.W <- meanbyqnt(rate_inst.W, qnt_limits.W)
+    
+    qnt_limits.B <- quantile(sample_18to64$rate_inst[sample_18to64$race_eth_r=="Black"], probs=seq(0.2, 1, 0.2), na.rm=TRUE)
+    rate_inst.B <- ifelse(sample_18to64$race_eth_r=="Black" & !is.na(sample_18to64$race_eth_r), sample_18to64$rate_inst, NA)
+    qnts.B <- meanbyqnt(rate_inst.B, qnt_limits.B)
+    
+    qnt_limits.A <- quantile(sample_18to64$rate_inst[sample_18to64$race_eth_r=="Asian"], probs=seq(0.2, 1, 0.2), na.rm=TRUE)
+    rate_inst.A <- ifelse(sample_18to64$race_eth_r=="Asian" & !is.na(sample_18to64$race_eth_r), sample_18to64$rate_inst, NA)
+    qnts.A <- meanbyqnt(rate_inst.A, qnt_limits.A)
+    
+    qnt_limits.O <- quantile(sample_18to64$rate_inst[sample_18to64$race_eth_r=="Other"], probs=seq(0.2, 1, 0.2), na.rm=TRUE)
+    rate_inst.O <- ifelse(sample_18to64$race_eth_r=="Other" & !is.na(sample_18to64$race_eth_r), sample_18to64$rate_inst, NA)
+    qnts.O <- meanbyqnt(rate_inst.O, qnt_limits.O)
+    
+    qnt_limits.M <- quantile(sample_18to64$rate_inst[sample_18to64$race_eth_r=="Multiple"], probs=seq(0.2, 1, 0.2), na.rm=TRUE)
+    rate_inst.M <- ifelse(sample_18to64$race_eth_r=="Multiple" & !is.na(sample_18to64$race_eth_r), sample_18to64$rate_inst, NA)
+    qnts.M <- meanbyqnt(rate_inst.M, qnt_limits.M)
+    
+    #Partnership age
+    sample_18to64$pship_age[sample_18to64$pship_age<0] <- NA
+    sample_18to64$pship_age_main <- ifelse(sample_18to64$mrp_type_ongoing=="Main" & !is.na(sample_18to64$mrp_type_ongoing), sample_18to64$pship_age, NA)
+    sample_18to64$pship_age_pers <- ifelse(sample_18to64$mrp_type_ongoing=="Persistent" & !is.na(sample_18to64$mrp_type_ongoing), sample_18to64$pship_age, NA)
+    
+    #Coital frequency - look at unreasonable values
+    #sample_18to64 %>% select(mrp_type_r, mrp_morethanonce, mrp_aitimeslte10, duration_p12_days, mrp_aifreq_monthly, airate) %>% filter(airate>1 & !is.na(airate))
+    
+    #Condoms - among dyads where both partners are negative or unknown status. Using data from all dyads (not just ongoing)
+    #first gen variable for condoms probability
+    sample_18to64$condoms_prob[sample_18to64$mrp_condoms_once %in% 1] <- 1
+    sample_18to64$condoms_prob[sample_18to64$mrp_condoms_once %in% c(0, 98)] <- 0
+    sample_18to64$condoms_prob[sample_18to64$mrp_condoms_mtonce %in% "Every time"] <- 1
+    sample_18to64$condoms_prob[sample_18to64$mrp_condoms_mtonce %in% "More than half the time"] <- 0.75
+    sample_18to64$condoms_prob[sample_18to64$mrp_condoms_mtonce %in% "About half the time"] <- 0.5
+    sample_18to64$condoms_prob[sample_18to64$mrp_condoms_mtonce %in% "Less than half the time"] <- 0.25
+    sample_18to64$condoms_prob[sample_18to64$mrp_condoms_mtonce %in% c("Never", "I don't remember")] <- 0
+    sample_18to64$condoms_prob[(is.na(sample_18to64$mrp_condoms_mtonce) & is.na(sample_18to64$mrp_condoms_once))
+                        | sample_18to64$mrp_condoms_mtonce %in% "I prefer not to answer"] <- NA
+    
+    sample_18to64$condoms_main <- ifelse(sample_18to64$mrp_type_r=="Main" & !is.na(sample_18to64$mrp_type_r) & 
+                                      (sample_18to64$mrp_statuscat_now=="HIV-negative" | sample_18to64$mrp_statuscat_now=="Unknown")
+                                  & !is.na(sample_18to64$mrp_statuscat_now), sample_18to64$condoms_prob, NA)
+    sample_18to64$condoms_pers <- ifelse(sample_18to64$mrp_type_r=="Casual" & !is.na(sample_18to64$mrp_type_r) & 
+                                      (sample_18to64$mrp_statuscat_now=="HIV-negative" | sample_18to64$mrp_statuscat_now=="Unknown")
+                                  & !is.na(sample_18to64$mrp_statuscat_now), sample_18to64$condoms_prob, NA)
+    sample_18to64$condoms_inst <- ifelse(sample_18to64$mrp_type_r=="One time" & !is.na(sample_18to64$mrp_type_r) & 
+                                      (sample_18to64$mrp_statuscat_now=="HIV-negative" | sample_18to64$mrp_statuscat_now=="Unknown")
+                                  & !is.na(sample_18to64$mrp_statuscat_now), sample_18to64$condoms_prob, NA)
+    
+    #Difference in SQRT of ages
+    sample_18to64$sqrt_agediff <- abs(sqrt(sample_18to64$age) - sqrt(sample_18to64$mrp_ageinyears_approx))
+    
+    #Never tested for HIV by age XX
+    ##???
+    
+    #Intertest interval
+    #Fix variable for days since last test
+    #If tested in the month of the survey, set days ago to half as many days as have elapsed in the month
+    extract.day <- function(x) {
+        char_x <- as.character(x)
+        split_x <- strsplit(char_x, "[a-z]")
+        day_x <- lapply(split_x, `[[`, 1)
+        day_x_num <- as.numeric(unlist(day_x))
+        
+        return(day_x_num)
+    }
+    
+    sample_18to64$day.of.survey <- extract.day(sample_18to64$dtstart_td)
+    
+    samemonth <- which(sample_18to64$month_lasttestdate_lasttest == sample_18to64$monthsurvey & sample_18to64$year_lasttestdate_lasttest == sample_18to64$yearsurvey &
+                           !is.na(sample_18to64$month_lasttestdate_lasttest) & !is.na(sample_18to64$year_lasttestdate_lasttest))   
+    sample_18to64$daysago_lasttest[samemonth] <- ceiling(sample_18to64$day.of.survey[samemonth] / 2)
+    
+    #Set to missing for the one person who indicated a date in the future
+    sample_18to64$daysago_lasttest[sample_18to64$daysago_lasttest<0] <- NA
+    
+    #Set to missing if month was unknown or not provided - could keep them b/c most tested >2 years ago so won't really matter
+    sample_18to64$daysago_lasttest[sample_18to64$month_lasttestdate_lasttest==98 | sample_18to64$month_lasttestdate_lasttest==99] <- NA
+    
+    #replace to 6570 (18 years) if they indicated last test was before 2000
+    sample_18to64$daysago_lasttest[sample_18to64$year_lasttestdate_lasttest=="1999"] <- 6570
+    
+    #Test interval
+    #If we assume it's an interval process - set to 2x time since last test
+    #sample_18to64$iti <- 2*sample_18to64$daysago_lasttest
+    #Assuming it's a memoryless process
+    sample_18to64$iti <- sample_18to64$daysago_lasttest
+    
+#General settings
+    #Set digits to show 3 decimal places
+    options(digits=3)
+    #Set options for dplyr to print all rows
+    options(dplyr.print_min = Inf)
+    
+    #save plot settings for white background and light grey lines and darkening the colors a bit
+    plot_background <- theme(panel.background = element_rect(fill="white", colour = "black")) +
+        theme(panel.grid.major = element_line(colour = "grey90"))
+    darken_color <- scale_colour_hue(l=50)
+    theme_title <- theme(plot.title = element_text(hjust = 0.5, size=12))  
+    
+```
+
+In this analysis, the sample is restricted to cisgender males who reported oral or anal sex with a man in the past 12 months, and the age range is restricted to 18 to 64. Age is analyzed as a continuous variable, a categorical variable with levels 18-24, 25-34, 35-44, 45-54, and 55-64, and as a binary variable with levels 18-39 and 40-64. The histogram and table below show the distribution of age in the sample.
+
+```{r, echo=FALSE, fig.align='center'}
+library(ggplot2)
+ggplot(sample_18to64, aes(x=age)) + geom_histogram(binwidth=1) 
+```
+```{r, echo=FALSE, results='asis', strip.white=TRUE}
+agetable <- sample_18to64 %>% group_by(age_cat) %>% summarise(Frequency=n()) %>% mutate(Percent=(Frequency / sum(Frequency))*100)
+kable(agetable, col.names=c("Age group", "Freq", "Percent")) %>% kable_styling(full_width=F, position="center")
+```
+
+##Degree distribution
+To better visualize patterns by degree distribution, I broke the degree distribution into two binary variables: the percent with 1 or more partners, and the percent with a concurrent partner. Adjusting for race and region, the percent with one or more partners was not associated with age (p=0.680 for the association with age as a continuous variable, p=0.110 for age as categorical, and p=0.99 for age as binary). The percent reporting concurrent partners was associated with age (p=0.065 for continuous, p=0.045 for categorical, and p=0.025 for age as binary).
+
+```{r, echo=FALSE, eval=FALSE}
+  #Percent with 1+ partners
+    sample_18to64$somepartners[!is.na(sample_18to64$deg_matrix)] <- 1
+    sample_18to64$somepartners[sample_18to64$deg_matrix %in% "0 main 0 pers"] <- 0
+            
+glm.somepartners_age <- glm(somepartners ~ age + race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, family=binomial(link="logit"), data=sample_18to64)
+glm.somepartners_agecat <- glm(somepartners ~ age_cat + race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, family=binomial(link="logit"), data=sample_18to64)
+glm.somepartners_agebin <- glm(somepartners ~ age_bin + race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, family=binomial(link="logit"), data=sample_18to64)
+glm.somepartners_noage <- glm(somepartners ~ race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, family=binomial(link="logit"), data=sample_18to64)
+
+lrtest(glm.somepartners_age, glm.somepartners_noage)
+lrtest(glm.somepartners_agecat, glm.somepartners_noage)
+lrtest(glm.somepartners_agebin, glm.somepartners_noage)
+```
+```{r, echo=FALSE,  eval=FALSE}
+  #Percent concurrent
+glm.concurrent_age <- glm(concurrent ~ age + race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, family=binomial(link="logit"), data=sample_18to64)
+glm.concurrent_agecat <- glm(concurrent ~ age_cat + race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, family=binomial(link="logit"), data=sample_18to64)
+glm.concurrent_agebin <- glm(concurrent ~ age_bin + race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, family=binomial(link="logit"), data=sample_18to64)
+glm.concurrent_noage <- glm(concurrent ~ race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, family=binomial(link="logit"), data=sample_18to64)
+
+lrtest(glm.concurrent_age, glm.concurrent_noage)
+lrtest(glm.concurrent_agecat, glm.concurrent_noage)
+lrtest(glm.concurrent_agebin, glm.concurrent_noage)
+```
+```{r, fig.align="center"}
+concurrentXage <- sample_18to64 %>% filter(!is.na(concurrent)) %>% group_by(age_cat, concurrent) %>% summarise(n=n()) %>% group_by(age_cat) %>% mutate(Percent=(n / sum(n))*100) %>% filter(concurrent==1)
+library(ggplot2)
+ggplot(concurrentXage, aes(x=age_cat, y=Percent)) + geom_col() + plot_background + theme_title + 
+  labs(x="Age group", y="Percent", title="Percent reporting concurrent partners by age")
+```
+
+##Rate of instantaneous partnerships
+Age as a categorical variable is significantly associated with the rate of one-off partnerships in a linear model adjusting for race, region, and current main/persistent partnership status (p=0.986 for continuous, p=0.003 for categorical, p=0.150 for binary). 
+
+```{r, echo=FALSE, eval=FALSE}
+lm.rate_inst_age <- lm(rate_inst ~ age +  race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC + deg_matrix, data=sample_18to64)
+lm.rate_inst_agecat <- lm(rate_inst ~ age_cat +  race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC + deg_matrix, data=sample_18to64)
+lm.rate_inst_agebin <- lm(rate_inst ~ age_bin +  race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC + deg_matrix, data=sample_18to64)
+lm.rate_inst_noage <- lm(rate_inst ~ race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC + deg_matrix, data=sample_18to64)
+      
+lrtest(lm.rate_inst_age, lm.rate_inst_noage)
+lrtest(lm.rate_inst_agecat, lm.rate_inst_noage)
+lrtest(lm.rate_inst_agebin, lm.rate_inst_noage)
+
+```
+
+```{r, fig.align="center"}
+rate_instXage <- sample_18to64 %>% filter(!is.na(deg_matrix) & !is.na(rate_inst)) %>% group_by(deg_matrix, age_cat) %>% 
+                summarise(mean = mean(rate_inst, na.rm=TRUE), median=median(rate_inst, na.rm=TRUE), n=n())
+ggplot(rate_instXage, aes(x=deg_matrix, y=mean, color=age_cat)) + geom_point(shape=16, size=3) + plot_background + scale_x_discrete(labels=c("0 main 0 pers \n (n=373)", "0 main 1 pers \n (n=71)", "0 main 2+ pers \n (n=56)", "1 main 0 pers \n (n=343)", "1 main 1 pers \n (n=41)", "1 main 2+ pers \n (n=42)")) + labs(x="Momentary degree", y="Mean rate per day", title="Mean rate of instant partnerships by momentary degree and age group") + theme_title + scale_color_brewer(type="qual", palette=2)
+```
+
+##Partnership age
+The age of main partnerships is significantly associated with respondent age after adjusting for race and region (p<0.001 for all parameterizations of age). The age of persistent partnerships is associated with being over age 39 (p=0.034), but was not associated with age as a continuous (p=0.070) or categorical variable (p=0.110). 
+```{r, echo=FALSE, eval=FALSE}
+lm.pship_age_main_age <- lm(pship_age_main ~ age + race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, data=sample_18to64)
+lm.pship_age_main_agecat <- lm(pship_age_main ~ age_cat + race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, data=sample_18to64)
+lm.pship_age_main_agebin <- lm(pship_age_main ~ age_bin + race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, data=sample_18to64)
+lm.pship_age_main_noage <- lm(pship_age_main ~ race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, data=sample_18to64)
+
+lrtest(lm.pship_age_main_age, lm.pship_age_main_noage)
+lrtest(lm.pship_age_main_agecat, lm.pship_age_main_noage)
+lrtest(lm.pship_age_main_agebin, lm.pship_age_main_noage)
+
+```
+```{r, echo=FALSE, eval=FALSE}
+lm.pship_age_pers_age <- lm(pship_age_pers ~ age + race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, data=sample_18to64)
+lm.pship_age_pers_agecat <- lm(pship_age_pers ~ age_cat + race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, data=sample_18to64)
+lm.pship_age_pers_agebin <- lm(pship_age_pers ~ age_bin + race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, data=sample_18to64)
+lm.pship_age_pers_noage <- lm(pship_age_pers ~ race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, data=sample_18to64)
+
+lrtest(lm.pship_age_pers_age, lm.pship_age_pers_noage)
+lrtest(lm.pship_age_pers_agecat, lm.pship_age_pers_noage)
+lrtest(lm.pship_age_pers_agebin, lm.pship_age_pers_noage)
+
+```
+```{r, fig.align="center"}
+pshipage_mainXage <- sample_18to64 %>% filter(!is.na(pship_age_main)) %>% group_by(age_cat) %>% 
+                summarise(mean = mean(pship_age_main, na.rm=TRUE), median=median(pship_age_main, na.rm=TRUE), n=n())
+pshipage_persXage <- sample_18to64 %>% filter(!is.na(pship_age_pers)) %>% group_by(age_cat) %>% 
+                summarise(mean = mean(pship_age_pers, na.rm=TRUE), median=median(pship_age_pers, na.rm=TRUE), n=n())
+
+ggplot(pshipage_mainXage, aes(x=age_cat, y=median)) + geom_point(shape=16, size=3) + plot_background + scale_x_discrete(labels=c("18-24 \n (n=99)", "25-34 \n (n=146)", "35-44 \n (n=52)", "45-54 \n (n=49)", "55-64 \n (n=25)")) + labs(x="Age group", y="Median age (days)", title="Median age of ongoing main partnerships by age group") + theme_title + ylim(0, 3100)
+
+ggplot(pshipage_persXage, aes(x=age_cat, y=median)) + geom_point(shape=16, size=3) + plot_background + scale_x_discrete(labels=c("18-24 \n (n=25)", "25-34 \n (n=38)", "35-44 \n (n=22)", "45-54 \n (n=18)", "55-64 \n (n=7)")) + labs(x="Age group", y="Median age (days)", title="Median age of ongoing persistent partnerships by age group") + theme_title + ylim(0, 500)
+```
+
+##Time since last HIV test
+Age is significantly associated with the time since the last HIV test in models adjusting for race and region (p<0.001 for all parameterizations of age). This association is driven largely by a substantially higher time since the last test for men aged 55-64.
+```{r, echo=FALSE, eval=FALSE}
+lm.iti_age <- lm(iti ~ age + race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, data=sample_18to64)
+lm.iti_agecat <- lm(iti ~ age_cat + race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, data=sample_18to64)
+lm.iti_agebin <- lm(iti ~ age_bin + race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, data=sample_18to64)
+lm.iti_noage <- lm(iti ~ race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, data=sample_18to64)
+
+lrtest(lm.iti_age, lm.iti_noage)
+lrtest(lm.iti_agecat, lm.iti_noage)
+lrtest(lm.iti_agebin, lm.iti_noage)
+
+```
+```{r, fig.align="center"}
+itiXage <- sample_18to64 %>% filter(!is.na(iti)) %>% group_by(age_cat) %>% 
+                summarise(mean = mean(iti, na.rm=TRUE), median=median(iti, na.rm=TRUE), n=n())
+ggplot(itiXage, aes(x=age_cat, y=median)) + geom_point(shape=16, size=3) + plot_background + scale_x_discrete(labels=c("18-24 \n (n=188)", "25-34 \n (n=273)", "35-44 \n (n=152)", "45-54 \n (n=114)", "55-64 \n (n=82)")) + labs(x="Age group", y="Median days since last test", title="Median days since last HIV test by age group") + theme_title + ylim(0, 180)
+```
+
+##Coital frequency
+In models adjusting for race and region, age was not associated with coital frequency in main partnerships (p=0.59, p=0.14, p=0.2 for continuous, categorical, and binary versions, respectively). Age was also not associated with coital frequency in persistent partnerships (p=0.36, 0.56, 0.86).
+
+```{r, echo=FALSE, eval=FALSE}
+#Drop unreasonable values
+  sample_18to64$airate_main[sample_18to64$airate_main>=2] <- NA
+  sample_18to64$airate_pers[sample_18to64$airate_pers>=2] <- NA
+  
+lm.airate_main_age <- lm(airate_main ~ age + race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, data=sample_18to64)
+lm.airate_main_agecat <- lm(airate_main ~ age_cat + race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, data=sample_18to64)
+lm.airate_main_agebin <- lm(airate_main ~ age_bin + race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, data=sample_18to64)
+lm.airate_main_noage <- lm(airate_main ~ race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, data=sample_18to64)
+
+lrtest(lm.airate_main_age, lm.airate_main_noage)
+lrtest(lm.airate_main_agecat, lm.airate_main_noage)
+lrtest(lm.airate_main_agebin, lm.airate_main_noage)
+
+lm.airate_pers_age <- lm(airate_pers ~ age + race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, data=sample_18to64)
+lm.airate_pers_agecat <- lm(airate_pers ~ age_cat + race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, data=sample_18to64)
+lm.airate_pers_agebin <- lm(airate_pers ~ age_bin + race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, data=sample_18to64)
+lm.airate_pers_noage <- lm(airate_pers ~ race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, data=sample_18to64)
+
+lrtest(lm.airate_pers_age, lm.airate_pers_noage)
+lrtest(lm.airate_pers_agecat, lm.airate_pers_noage)
+lrtest(lm.airate_pers_agebin, lm.airate_pers_noage)
+```
+
+```{r, fig.align="center"}
+airate_mainXage <- sample_18to64 %>% filter(!is.na(airate_main)) %>% group_by(age_cat) %>% 
+                summarise(mean = mean(airate_main, na.rm=TRUE), median=median(airate_main, na.rm=TRUE), n=n())
+ggplot(airate_mainXage, aes(x=age_cat, y=mean)) + geom_point(shape=16, size=3) + plot_background + scale_x_discrete(labels=c("18-24 \n (n=110)", "25-34 \n (n=150)", "35-44 \n (n=53)", "45-54 \n (n=51)", "55-64 \n (n=27)")) + labs(x="Age group", y="Mean coital frequency", title="Mean coital frequency per day in main partnerships by age group") + theme_title + ylim(0, 0.25)
+
+airate_persXage <- sample_18to64 %>% filter(!is.na(airate_pers)) %>% group_by(age_cat) %>% 
+                summarise(mean = mean(airate_pers, na.rm=TRUE), median=median(airate_pers, na.rm=TRUE), n=n())
+ggplot(airate_persXage, aes(x=age_cat, y=mean)) + geom_point(shape=16, size=3) + plot_background + scale_x_discrete(labels=c("18-24 \n (n=53)", "25-34 \n (n=69)", "35-44 \n (n=44)", "45-54 \n (n=20)", "55-64 \n (n=14)")) + labs(x="Age group", y="Mean coital frequency", title="Mean coital frequency per day in persistent partnerships by age group") + theme_title + ylim(0, 0.20)
+```
+
+##Sex role
+Age is significantly associated with the sex role preference for only topping in models adjusting for race and region (p=<0.001, p=0.025, p=0.02 for continuous, categorical, and binary parameterizations of age). Age as a categorical variable was associated with being a bottom (p=0.012), but other parameterizations were not (p=0.81, p=0.39 for continuous and binary, respectively).
+
+```{r, echo=FALSE, eval=FALSE}
+#first define vars for yes/no top and yes/no bottom
+    sample_18to64$position_top <- ifelse(sample_18to64$position_cat=="Exclusively top", 1, 
+                                  ifelse(!is.na(sample_18to64$position_cat), 0, NA))
+    sample_18to64$position_bottom <- ifelse(sample_18to64$position_cat=="Exclusively bottom", 1, 
+                                  ifelse(!is.na(sample_18to64$position_cat), 0, NA))
+
+glm.top_age <- glm(position_top ~ age + race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, family=binomial(link="logit"), data=sample_18to64)
+glm.top_agecat <- glm(position_top ~ age_cat + race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, family=binomial(link="logit"), data=sample_18to64)
+glm.top_agebin <- glm(position_top ~ age_bin + race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, family=binomial(link="logit"), data=sample_18to64)
+glm.top_noage <- glm(position_top ~ race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, family=binomial(link="logit"), data=sample_18to64)
+
+lrtest(glm.top_age, glm.top_noage)
+lrtest(glm.top_agecat, glm.top_noage)
+lrtest(glm.top_agebin, glm.top_noage)
+
+glm.bottom_age <- glm(position_bottom ~ age + race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, family=binomial(link="logit"), data=sample_18to64)
+glm.bottom_agecat <- glm(position_bottom ~ age_cat + race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, family=binomial(link="logit"), data=sample_18to64)
+glm.bottom_agebin <- glm(position_bottom ~ age_bin + race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, family=binomial(link="logit"), data=sample_18to64)
+glm.bottom_noage <- glm(position_bottom ~ race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, family=binomial(link="logit"), data=sample_18to64)
+
+lrtest(glm.bottom_age, glm.bottom_noage)
+lrtest(glm.bottom_agecat, glm.bottom_noage)
+lrtest(glm.bottom_agebin, glm.bottom_noage)
+  
+```
+```{r, fig.align="center"}
+positionXage <- (as.data.frame(prop.table(table(sample_18to64$age_cat, sample_18to64$position_cat), 1))) 
+ggplot(positionXage, aes(x=Var1, y=Freq, color=Var2)) + 
+  geom_point(shape=16, size=3) +  plot_background + theme_title +
+  scale_x_discrete(labels=c("18-24 \n (n=230)", "25-34 \n (n=310)", "35-44 \n (n=142)", "45-54 \n (n=109)", "55-64 \n (n=66)")) + scale_colour_brewer(type="qual", palette=2) +labs(x="Age group", y="Percent", title="Position by age group")  + ylim(0, 0.7)
+```
+
+##Condom use in negative/unknown status dyads
+Age is associated with condom use in main (p<0.001 for all parameterizations of age) and persistent partnerships (p=0.029, p=0.014, and p=0.0015 for continuous, categorical, and binary parameterizations, repsectively). Age is not associated with condom use in instantaneous partnerships (p=0.91, p=0.72, p=0.79).
+```{r, echo=FALSE, eval=FALSE}
+lm.condoms_main_age <- lm(condoms_main ~ age + race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, data=sample_18to64)
+lm.condoms_main_agecat <- lm(condoms_main ~ age_cat + race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, data=sample_18to64)
+lm.condoms_main_agebin <- lm(condoms_main ~ age_bin + race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, data=sample_18to64)
+lm.condoms_main_noage <- lm(condoms_main ~ race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, data=sample_18to64)
+
+lrtest(lm.condoms_main_age, lm.condoms_main_noage)
+lrtest(lm.condoms_main_agecat, lm.condoms_main_noage)
+lrtest(lm.condoms_main_agebin, lm.condoms_main_noage)
+
+lm.condoms_pers_age <- lm(condoms_pers ~ age + race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, data=sample_18to64)
+lm.condoms_pers_agecat <- lm(condoms_pers ~ age_cat + race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, data=sample_18to64)
+lm.condoms_pers_agebin <- lm(condoms_pers ~ age_bin + race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, data=sample_18to64)
+lm.condoms_pers_noage <- lm(condoms_pers ~ race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, data=sample_18to64)
+
+lrtest(lm.condoms_pers_age, lm.condoms_pers_noage)
+lrtest(lm.condoms_pers_agecat, lm.condoms_pers_noage)
+lrtest(lm.condoms_pers_agebin, lm.condoms_pers_noage)
+
+lm.condoms_inst_age <- lm(condoms_inst ~ age + race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, data=sample_18to64)
+lm.condoms_inst_agecat <- lm(condoms_inst ~ age_cat + race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, data=sample_18to64)
+lm.condoms_inst_agebin <- lm(condoms_inst ~ age_bin + race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, data=sample_18to64)
+lm.condoms_inst_noage <- lm(condoms_inst ~ race_eth_r.bW + region.bKC + race_eth_r.bW*region.bKC, data=sample_18to64)
+
+lrtest(lm.condoms_inst_age, lm.condoms_inst_noage)
+lrtest(lm.condoms_inst_agecat, lm.condoms_inst_noage)
+lrtest(lm.condoms_inst_agebin, lm.condoms_inst_noage)
+```
+```{r, fig.align="center"}
+condomsXage <- sample_18to64 %>% filter(!is.na(condoms_prob)) %>% group_by(age_cat) %>% 
+summarise(main_mean = mean(condoms_main, na.rm=TRUE), pers_mean=mean(condoms_pers, na.rm=TRUE), inst_mean=mean(condoms_inst, na.rm=TRUE), n=n())
+
+ggplot(condomsXage) + geom_point(aes(x=age_cat, y=main_mean, colour="main"), shape=16, size=3) + geom_point(aes(x=age_cat, y=pers_mean, colour="pers"), shape=16, size=3) + geom_point(aes(x=age_cat, y=inst_mean, colour="inst"), shape=16, size=3) + plot_background + theme_title +
+scale_x_discrete(labels=c("18-24 \n (n=216)", "25-34 \n (n=299)", "35-44 \n (n=137)", "45-54 \n (n=103)", "55-64 \n (n=59)")) + labs(x="Age group", y="Probability of using condoms", title="Probability of condom use by age and partnership type") + scale_color_manual(name="Partner type", breaks=c("main", "pers", "inst"), values=c(main="blue", pers="red", inst="darkgreen"), labels=c("Main", "Persistent", "Instantaneous")) + ylim(0, 0.55)
+
+```
+    
+rmarkdown::render("\\\\netid.washington.edu/csde/homes/udrive/Internet survey analysis/Associations with age.Rmd")
+rmarkdown::render("/Users/darcywhite/Dropbox/Dissertation (Dropbox)/Network Modeling/Associations with age.Rmd")
