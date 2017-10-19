@@ -281,7 +281,7 @@
     # Washington State Office of Financial Management, Forecasting and Research Division
     # Version: 20161203_R03_VM)
     detach(package:plyr)
-    wa_census <- read.csv("Washington pop by county.csv", header=TRUE, sep=",")
+    wa_census <- read.csv("Washington population.csv", header=TRUE, sep=",")
     wa_census2016_15up <- filter(wa_census, Year=="2016" & !is.na(Year) 
                                  & Age.Group %in% c("15-19", "20-24", "25-29", "30-34", "35-39" ) #,"40-44", "45-49", "50-54", "55-59")
                                  & !is.na(Age.Group))
