@@ -1,2 +1,2 @@
-# WHAMP
-Parameter estimation and code development for the Washington HIV Applied Modeling Project
+# Washington HIV Model for MSM
+Parameter estimation and code development for the Washington HIV Model for MSM
