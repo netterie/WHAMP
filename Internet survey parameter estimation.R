@@ -278,59 +278,59 @@
 
 
 #Compare main/persistent most recent partners reported by those with 0 vs 1+ persistent/main partner------------
-    sample$degbin_cas <- ifelse(sample$degreecat_cas %in% c("One", "Two or more"), 1, 
-                                ifelse(sample$degreecat_cas %in% "None", 0, NA))
-    sample$same_race <- ifelse(sample$mrp_race_eth_m %in% "Dont know", NA,
-                               ifelse(sample$race_eth_m==sample$mrp_race_eth_m, 1, 
-                                      ifelse(!is.na(sample$race_eth_m) & !is.na(sample$mrp_race_eth_m), 0,
-                                             NA)))
-    sample$mrp_statuscat_now_clean <- sample$mrp_statuscat_now
-    sample$mrp_statuscat_now_clean[sample$mrp_statuscat_now_clean=="I prefer not to answer"] <- NA
-    sample$mrp_statuscat_now_clean <- factor(sample$mrp_statuscat_now_clean)
-    
-    #Main partners among those with/without a persistent ongoing partner
+        sample$degbin_cas <- ifelse(sample$degreecat_cas %in% c("One", "Two or more"), 1, 
+                                    ifelse(sample$degreecat_cas %in% "None", 0, NA))
+        sample$same_race <- ifelse(sample$mrp_race_eth_m %in% "Dont know", NA,
+                                   ifelse(sample$race_eth_m==sample$mrp_race_eth_m, 1, 
+                                          ifelse(!is.na(sample$race_eth_m) & !is.na(sample$mrp_race_eth_m), 0,
+                                                 NA)))
+        sample$mrp_statuscat_now_clean <- sample$mrp_statuscat_now
+        sample$mrp_statuscat_now_clean[sample$mrp_statuscat_now_clean=="I prefer not to answer"] <- NA
+        sample$mrp_statuscat_now_clean <- factor(sample$mrp_statuscat_now_clean)
+        
+        #Main partners among those with/without a persistent ongoing partner
         describe <- sample %>%
-                #filter(mrp_type_ongoing=="Main") %>%
-                group_by(degbin_cas) %>%
-                summarise_at(vars(pship_age_main, airate_main, sqrt_agediff, condoms_main), funs(mean(., na.rm=TRUE), median(., na.rm=TRUE), sum(!is.na(.))))
+            filter(mrp_type_ongoing %in% "Main") %>%
+            group_by(degbin_cas) %>%
+            summarise_at(vars(pship_age_main, airate_main, sqrt_agediff, condoms_main), funs(mean(., na.rm=TRUE), median(., na.rm=TRUE), sum(!is.na(.))))
         t(describe)
-            kruskal.test(pship_age_main ~ degbin_cas, sample)
-            kruskal.test(airate_main ~ degbin_cas, sample)
-            kruskal.test(sqrt_agediff ~ degbin_cas, sample)
-            kruskal.test(condoms_main ~ degbin_cas, sample)
+        kruskal.test(pship_age_main ~ degbin_cas, sample[sample$mrp_type_ongoing %in% "Main",])
+        kruskal.test(airate_main ~ degbin_cas, sample[sample$mrp_type_ongoing %in% "Main",])
+        kruskal.test(sqrt_agediff ~ degbin_cas, sample[sample$mrp_type_ongoing %in% "Main",])
+        kruskal.test(condoms_main ~ degbin_cas, sample[sample$mrp_type_ongoing %in% "Main",])
         
         catvars_main <- function(x) {
-            tbl <- table(sample$degbin_cas[sample$mrp_type_ongoing=="Main"], x)
+            tbl <- table(sample$degbin_cas[sample$mrp_type_ongoing %in% "Main"], x)
             X2 <- chisq.test(tbl)
             fisher <- fisher.test(tbl)
             return(list(tbl, X2, fisher))
         }
         
-        catvars_main(sample$same_race[sample$mrp_type_ongoing=="Main"])
-        catvars_main(sample$mrp_statuscat_now_clean[sample$mrp_type_ongoing=="Main"])
-     
-    #Persistent partners among those with/without a main ongoing partner
+        catvars_main(sample$same_race[sample$mrp_type_ongoing %in% "Main"])
+        catvars_main(sample$mrp_statuscat_now_clean[sample$mrp_type_ongoing %in% "Main"])
+        
+        #Persistent partners among those with/without a main ongoing partner
         describe <- sample %>%
-            #filter(mrp_type_ongoing=="Persistent") %>%
+            filter(mrp_type_ongoing %in% "Persistent") %>%
             group_by(degree_main) %>%
             summarise_at(vars(pship_age_pers, airate_pers, sqrt_agediff, condoms_pers), funs(mean(., na.rm=TRUE), median(., na.rm=TRUE), sum(!is.na(.))))
         t(describe)
         
-        kruskal.test(pship_age_pers ~ degree_main, sample)
-        kruskal.test(airate_pers ~ degree_main, sample)
-        kruskal.test(sqrt_agediff ~ degree_main, sample)
-        kruskal.test(condoms_pers ~ degree_main, sample)
+        kruskal.test(pship_age_pers ~ degree_main, sample[sample$mrp_type_ongoing %in% "Persistent",])
+        kruskal.test(airate_pers ~ degree_main, sample[sample$mrp_type_ongoing %in% "Persistent",])
+        kruskal.test(sqrt_agediff ~ degree_main, sample[sample$mrp_type_ongoing %in% "Persistent",])
+        kruskal.test(condoms_pers ~ degree_main, sample[sample$mrp_type_ongoing %in% "Persistent",])
         
         catvars_pers <- function(x) {
-            tbl <- table(sample$degree_main[sample$mrp_type_ongoing=="Persistent"], x)
+            tbl <- table(sample$degree_main[sample$mrp_type_ongoing %in% "Persistent"], x)
             X2 <- chisq.test(tbl)
             fisher <- fisher.test(tbl)
             return(list(tbl, X2, fisher))
         }
         
-        catvars_pers(sample$same_race[sample$mrp_type_ongoing=="Persistent"])
-        catvars_pers(sample$mrp_statuscat_now_clean[sample$mrp_type_ongoing=="Persistent"])
-    
+        catvars_pers(sample$same_race[sample$mrp_type_ongoing %in% "Persistent"])
+        catvars_pers(sample$mrp_statuscat_now_clean[sample$mrp_type_ongoing %in% "Persistent"])
+        
         
 ##Analyze data--------------------------------------------------------------------------------------------------    
 #General settings
