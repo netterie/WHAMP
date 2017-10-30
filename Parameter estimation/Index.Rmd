@@ -24,6 +24,8 @@ This document presents the results of data analyses for estimation of parameters
 * Concurrency
 * Duration
 * Age mixing
+* Race mixing
+* Regional mixing
 * One-time network
 * Summary
 * Appendix
