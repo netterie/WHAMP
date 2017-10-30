@@ -1,0 +1,320 @@
+#Internet survey data preparation
+
+```{r, include=FALSE}
+####################################################################################
+# Setup
+####################################################################################
+
+#-----------------------------------------------------------------------------------
+# Load packages
+#-----------------------------------------------------------------------------------
+    #install.packages("plyr")
+    #library("plyr")
+
+    #install.packages("tidyverse")
+    library("tidyverse")
+
+    #install.packages("psych") #To use "describe" function for continuous vars
+    library("psych")
+
+    #install.packages("nnet") #For multinomial logistic regression
+    library("nnet")
+
+    #install.packages("lmtest") #For likelihood ratio test
+    library("lmtest")
+
+    #install.packages("ggplot2")
+    library("ggplot2")
+    
+    #install.packages("survey")
+    library("survey")
+
+    #install.packages("kableExtra")
+    library("knitr")
+    library("kableExtra")
+
+#-----------------------------------------------------------------------------------
+# Import data 
+#-----------------------------------------------------------------------------------
+
+    prepsurvey <- read.csv("/Volumes/Survey data_manipulated/prepsurvey_clean4R.csv",
+                         header=TRUE, sep=",", row.names = "id", na.strings = c("NA", "", "."))
+    # Use this version if workign from the remote desktop
+        # prepsurvey <- read.csv("D:/prepsurvey_clean4R.csv",
+        #                        header=TRUE, sep=",", row.names = "id", na.strings = c("NA", "", "."))
+
+#-----------------------------------------------------------------------------------
+# Restrict sample 
+#-----------------------------------------------------------------------------------
+    #' drop if invalid, remove_qa=1, not cisgender male, reported no sex with males 
+    #' in the past 12 months or 0 sex partners, age<18 (set max age below), status disqualified or did not 
+    #' get past screener
+    sample_allages <- filter(prepsurvey, invalid==0
+                      & is.na(remove_qa)
+                      & !is.na(region)
+                      & gender=="Male"
+                      & malessexwith==1 & (numpartners!=0 | is.na(numpartners))
+                      & (statuscalc=="Complete" | statuscalc=="Partial"))
+
+#-----------------------------------------------------------------------------------
+# Generate new variables / modify variables for this analysis
+#-----------------------------------------------------------------------------------
+
+#redefine age_cat
+    sample_allages$age_cat <- cut(sample_allages$age, c(17, 24, 29, 34, 39, 44, 49, 54, 59), labels=c("18-24", "25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59"))     
+
+#reorder the levels of race_eth_r and mrp_race_eth_r
+    sample_allages$race_eth_r <- factor(sample_allages$race_eth_r, levels(sample_allages$race_eth_r)[c(3,6,2,1,5,4)])
+    sample_allages$mrp_race_eth_r <- factor(sample_allages$mrp_race_eth_r, levels(sample_allages$mrp_race_eth_r)[c(4,7,2,1,6,5,3)])
+    
+#Define version of race_eth_r with white as referent value for use in regression analyses
+    sample_allages$race_eth_r.bW <- relevel(sample_allages$race_eth_r, ref="White")
+        
+#Redefine race_eth_cat and mrp_race_eth_cat as Hispanic, black (alone or in combination), and all others
+    sample_allages$hbo[!is.na(sample_allages$race_eth_r)] <- "Other"
+    sample_allages$hbo[sample_allages$race_eth_r %in% "Black" | sample_allages$blackafricanamericanrace %in% 1] <- "Black"
+    sample_allages$hbo[sample_allages$race_eth_r %in% "Hispanic"] <- "Hispanic"
+    sample_allages$hbo <- factor(sample_allages$hbo)
+    sample_allages$hbo <- factor(sample_allages$hbo, levels(sample_allages$hbo)[c(2, 1, 3)])
+
+    sample_allages$mrp_hbo[!is.na(sample_allages$mrp_race_eth_r) & sample_allages$mrp_race_eth_r!="Dont know"] <- "Other"
+    sample_allages$mrp_hbo[sample_allages$mrp_race_eth_r %in% "Black" |     sample_allages$blackafricanamericanmrp_race %in% 1] <- "Black"
+    sample_allages$mrp_hbo[sample_allages$mrp_race_eth_r %in% "Hispanic"] <- "Hispanic"
+    sample_allages$mrp_hbo <- factor(sample_allages$mrp_hbo)
+    sample_allages$mrp_hbo <- factor(sample_allages$mrp_hbo, levels(sample_allages$mrp_hbo)[c(2, 1, 3)])
+
+#Define version with Other as referent value for regression
+    sample_allages$hbo.bO <- relevel(sample_allages$hbo, ref="Other") 
+
+#Dyad race
+    sample_allages$dyad_race_r[(sample_allages$race_eth_r %in% "Hispanic" & sample_allages$mrp_race_eth_r=="Hispanic")] <- "HH"
+    sample_allages$dyad_race_r[(sample_allages$race_eth_r %in% "Hispanic" & sample_allages$mrp_race_eth_r=="White") | (sample_allages$race_eth_r %in% "White" & sample_allages$mrp_race_eth_r=="Hispanic")] <- "HW"
+    sample_allages$dyad_race_r[(sample_allages$race_eth_r %in% "Hispanic" & sample_allages$mrp_race_eth_r=="Black") | (sample_allages$race_eth_r %in% "Black" & sample_allages$mrp_race_eth_r=="Hispanic")] <- "HB"
+    sample_allages$dyad_race_r[(sample_allages$race_eth_r %in% "Hispanic" & sample_allages$mrp_race_eth_r=="Asian") | (sample_allages$race_eth_r %in% "Asian" & sample_allages$mrp_race_eth_r=="Hispanic")] <- "HA"
+    sample_allages$dyad_race_r[(sample_allages$race_eth_r %in% "Hispanic" & sample_allages$mrp_race_eth_r=="Other") | (sample_allages$race_eth_r %in% "Other" & sample_allages$mrp_race_eth_r=="Hispanic")] <- "HO"
+    sample_allages$dyad_race_r[(sample_allages$race_eth_r %in% "Hispanic" & sample_allages$mrp_race_eth_r=="Multiple") | (sample_allages$race_eth_r %in% "Multiple" & sample_allages$mrp_race_eth_r=="Hispanic")] <- "HM"
+    sample_allages$dyad_race_r[(sample_allages$race_eth_r %in% "Hispanic" & sample_allages$mrp_race_eth_r=="Hispanic")] <- "WW"
+    sample_allages$dyad_race_r[(sample_allages$race_eth_r %in% "White" & sample_allages$mrp_race_eth_r=="Black") | (sample_allages$race_eth_r %in% "Black" & sample_allages$mrp_race_eth_r=="White")] <- "WB"
+    sample_allages$dyad_race_r[(sample_allages$race_eth_r %in% "White" & sample_allages$mrp_race_eth_r=="Asian") | (sample_allages$race_eth_r %in% "Asian" & sample_allages$mrp_race_eth_r=="White")] <- "WA"
+    sample_allages$dyad_race_r[(sample_allages$race_eth_r %in% "White" & sample_allages$mrp_race_eth_r=="Other") | (sample_allages$race_eth_r %in% "Other" & sample_allages$mrp_race_eth_r=="White")] <- "WO"
+    sample_allages$dyad_race_r[(sample_allages$race_eth_r %in% "White" & sample_allages$mrp_race_eth_r=="Multiple") | (sample_allages$race_eth_r %in% "Multiple" & sample_allages$mrp_race_eth_r=="White")] <- "WM"
+    sample_allages$dyad_race_r[(sample_allages$race_eth_r %in% "Black" & sample_allages$mrp_race_eth_r=="Black")] <- "BB"
+    sample_allages$dyad_race_r[(sample_allages$race_eth_r %in% "Black" & sample_allages$mrp_race_eth_r=="Asian") | (sample_allages$race_eth_r %in% "Asian" & sample_allages$mrp_race_eth_r=="Black")] <- "BA"
+    sample_allages$dyad_race_r[(sample_allages$race_eth_r %in% "Black" & sample_allages$mrp_race_eth_r=="Other") | (sample_allages$race_eth_r %in% "Other" & sample_allages$mrp_race_eth_r=="Black")] <- "BO"
+    sample_allages$dyad_race_r[(sample_allages$race_eth_r %in% "Black" & sample_allages$mrp_race_eth_r=="Multiple") | (sample_allages$race_eth_r %in% "Mulitple" & sample_allages$mrp_race_eth_r=="Black")] <- "BM"
+    sample_allages$dyad_race_r[(sample_allages$race_eth_r %in% "Asian" & sample_allages$mrp_race_eth_r=="Asian")] <- "AA"
+    sample_allages$dyad_race_r[(sample_allages$race_eth_r %in% "Asian" & sample_allages$mrp_race_eth_r=="Other") | (sample_allages$race_eth_r %in% "Other" & sample_allages$mrp_race_eth_r=="Asian")] <- "AO"
+    sample_allages$dyad_race_r[(sample_allages$race_eth_r %in% "Asian" & sample_allages$mrp_race_eth_r=="Multiple") | (sample_allages$race_eth_r %in% "Multiple" & sample_allages$mrp_race_eth_r=="Asian")] <- "AM"
+    sample_allages$dyad_race_r[(sample_allages$race_eth_r %in% "Other" & sample_allages$mrp_race_eth_r=="Other")] <- "OO"
+    sample_allages$dyad_race_r[(sample_allages$race_eth_r %in% "Other" & sample_allages$mrp_race_eth_r=="Multiple") | (sample_allages$race_eth_r %in% "Multiple" & sample_allages$mrp_race_eth_r=="Other")] <- "OM"
+    sample_allages$dyad_race_r[(sample_allages$race_eth_r %in% "Multiple" & sample_allages$mrp_race_eth_r=="Multiple")] <- "MM"
+    sample_allages$dyad_race_r <- factor(sample_allages$dyad_race_r)
+
+    sample_allages$dyad_race_hbo[(sample_allages$hbo %in% "Hispanic" & sample_allages$mrp_hbo=="Hispanic")] <- "HH"
+    sample_allages$dyad_race_hbo[(sample_allages$hbo %in% "Hispanic" & sample_allages$mrp_hbo=="Black") | (sample_allages$hbo %in% "Black" & sample_allages$mrp_hbo=="Hispanic")] <- "HB"
+    sample_allages$dyad_race_hbo[(sample_allages$hbo %in% "Hispanic" & sample_allages$mrp_hbo=="Other") | (sample_allages$hbo %in% "Other" & sample_allages$mrp_hbo=="Hispanic")] <- "HO"
+    sample_allages$dyad_race_hbo[(sample_allages$hbo %in% "Black" & sample_allages$mrp_hbo=="Black")] <- "BB"
+    sample_allages$dyad_race_hbo[(sample_allages$hbo %in% "Black" & sample_allages$mrp_hbo=="Other") | (sample_allages$hbo %in% "Other" & sample_allages$mrp_hbo=="Black")] <- "BO"
+    sample_allages$dyad_race_hbo[(sample_allages$hbo %in% "Other" & sample_allages$mrp_hbo=="Other")] <- "OO"
+    sample_allages$dyad_race_hbo <- factor(sample_allages$dyad_race_hbo)
+    sample_allages$dyad_race_hbo <- factor(sample_allages$dyad_race_hbo, levels(sample_allages$dyad_race_hbo)[c(4, 3, 5, 1, 2, 6)])
+        
+#Reorder levels of region
+    sample_allages$region <- factor(sample_allages$region, levels(sample_allages$region)[c(2,3,1)])
+
+#Define version of region with King County as referent value for use in regression analyses
+    sample_allages$region.bKC <- relevel(sample_allages$region, ref="King County")
+        
+#Degree distribution
+    #Unrestricted definition for casual (count if ongoing regardless of sex freq)
+    sample_allages$deg_matrix[sample_allages$degree_main %in% 0 & sample_allages$degreecat_cas %in% "None"] <- "0 main 0 pers"
+    sample_allages$deg_matrix[sample_allages$degree_main %in% 0 & sample_allages$degreecat_cas %in% "One"] <- "0 main 1 pers"
+    sample_allages$deg_matrix[sample_allages$degree_main %in% 0 & sample_allages$degreecat_cas %in% "Two or more"] <- "0 main 2+ pers"
+    sample_allages$deg_matrix[sample_allages$degree_main %in% 1 & sample_allages$degreecat_cas %in% "None"] <- "1 main 0 pers"
+    sample_allages$deg_matrix[sample_allages$degree_main %in% 1 & sample_allages$degreecat_cas %in% "One"] <- "1 main 1 pers"
+    sample_allages$deg_matrix[sample_allages$degree_main %in% 1 & sample_allages$degreecat_cas %in% "Two or more"] <- "1 main 2+ pers"
+    sample_allages$deg_matrix[is.na(sample_allages$degree_main) | is.na(sample_allages$degreecat_cas)] <- NA
+    sample_allages$deg_matrix <- as.factor(sample_allages$deg_matrix)
+    
+#Any ongoing partnership
+    sample_allages$somepartners[!is.na(sample_allages$deg_matrix)] <- 1
+    sample_allages$somepartners[sample_allages$deg_matrix %in% "0 main 0 pers"] <- 0
+    
+#Any concurrent partnerships
+    sample_allages$concurrent <- ifelse(sample_allages$deg_matrix %in% c("0 main 2+ pers", "1 main 1 pers", "1 main 2+ pers") & !is.na(sample_allages$deg_matrix), 1, ifelse(!is.na(sample_allages$deg_matrix), 0, NA))
+    
+#Redefine MRP type to change "unspecified" to NA and reorder levels so main is first
+    sample_allages$mrp_type_r[sample_allages$mrp_type_r %in% "Unspecified"] <- NA
+    sample_allages$mrp_type_r <- factor(sample_allages$mrp_type_r)
+    sample_allages$mrp_type_r <- factor(sample_allages$mrp_type_r, levels(sample_allages$mrp_type_r)[c(2,1,3)])
+    
+#Ongoing most recent partners
+    sample_allages$mrp_type_ongoing[sample_allages$mrp_type_r %in% "Main" & sample_allages$mrp_ongoing %in% 1] <- "Main"
+    sample_allages$mrp_type_ongoing[sample_allages$mrp_type_r %in% "Casual" & sample_allages$mrp_ongoing %in% 1] <- "Persistent"
+    sample_allages$mrp_type_ongoing[is.na(sample_allages$mrp_type_r) | is.na(sample_allages$mrp_ongoing)] <- NA
+    sample_allages$mrp_type_ongoing <- as.factor(sample_allages$mrp_type_ongoing)
+        
+#AI rate - using data from all partnerships (not just ongoing)
+    #Look at unreasonable values
+        #sample_allages %>% select(mrp_type_r, mrp_morethanonce, mrp_aitimeslte10, duration_p12_days, mrp_aifreq_monthly, airate) %>% filter(airate>1 & !is.na(airate))
+
+    #Drop unreasonable values (>=2)
+        sample_allages$airate[sample_allages$airate>=2] <- NA
+    
+    #Define vars for main and persistent partnerships
+        sample_allages$airate_main <- ifelse(sample_allages$mrp_type_r %in% "Main" & !is.na(sample_allages$mrp_type_r), sample_allages$airate, NA)
+        sample_allages$airate_pers <- ifelse(sample_allages$mrp_type_r %in% "Casual" & !is.na(sample_allages$mrp_type_r), sample_allages$airate, NA)
+       
+#Rate of instantaneous (one-time) partners
+    sample_allages$rate_inst <- sample_allages$numonetime_r / 365.25
+
+    #Define function to calculate quantiles of instantaneous partnership rates
+    meanbyqnt <- function(x, y) {
+        qnts <- c((mean(x[x>=0 & x<=y[1]], na.rm=TRUE)),
+                  (ifelse(y[1]<y[2], mean(x[x>y[1] & x<=y[2]], na.rm=TRUE), ifelse(y[1]==y[2], y[2], NA))),
+                  (ifelse(y[2]<y[3], mean(x[x>y[2] & x<=y[3]], na.rm=TRUE), ifelse(y[2]==y[3], y[3], NA))),
+                  (ifelse(y[3]<y[4], mean(x[x>y[3] & x<=y[4]], na.rm=TRUE), ifelse(y[3]==y[4], y[4], NA))),
+                  (ifelse(y[4]<y[5], mean(x[x>y[4] & x<=y[5]], na.rm=TRUE), ifelse(y[4]==y[5], y[5], NA))))
+        return(qnts)
+    }
+
+#Partnership age
+    sample_allages$pship_age[sample_allages$pship_age<0] <- NA
+    sample_allages$pship_age_main <- ifelse(sample_allages$mrp_type_ongoing=="Main" & !is.na(sample_allages$mrp_type_ongoing), sample_allages$pship_age, NA)
+    sample_allages$pship_age_pers <- ifelse(sample_allages$mrp_type_ongoing=="Persistent" & !is.na(sample_allages$mrp_type_ongoing), sample_allages$pship_age, NA)
+
+#Condoms - among dyads where both partners are negative or unknown status. Using data from all dyads (not just ongoing)
+    #first gen variable for condoms probability
+    sample_allages$condoms_prob[sample_allages$mrp_condoms_once %in% 1] <- 1
+    sample_allages$condoms_prob[sample_allages$mrp_condoms_once %in% c(0, 98)] <- 0
+    sample_allages$condoms_prob[sample_allages$mrp_condoms_mtonce %in% "Every time"] <- 1
+    sample_allages$condoms_prob[sample_allages$mrp_condoms_mtonce %in% "More than half the time"] <- 0.75
+    sample_allages$condoms_prob[sample_allages$mrp_condoms_mtonce %in% "About half the time"] <- 0.5
+    sample_allages$condoms_prob[sample_allages$mrp_condoms_mtonce %in% "Less than half the time"] <- 0.25
+    sample_allages$condoms_prob[sample_allages$mrp_condoms_mtonce %in% c("Never", "I don't remember")] <- 0
+    sample_allages$condoms_prob[(is.na(sample_allages$mrp_condoms_mtonce) & is.na(sample_allages$mrp_condoms_once)) | sample_allages$mrp_condoms_mtonce %in% "I prefer not to answer"] <- NA
+    #Define for main and persistent partners
+    sample_allages$condoms_main <- ifelse(sample_allages$mrp_type_r %in% "Main" & !is.na(sample_allages$mrp_type_r) & (sample_allages$mrp_statuscat_now %in% "HIV-negative" | sample_allages$mrp_statuscat_now %in% "Unknown") & !is.na(sample_allages$mrp_statuscat_now), sample_allages$condoms_prob, NA)
+    sample_allages$condoms_pers <- ifelse(sample_allages$mrp_type_r %in% "Casual" & !is.na(sample_allages$mrp_type_r) & (sample_allages$mrp_statuscat_now %in% "HIV-negative" | sample_allages$mrp_statuscat_now %in% "Unknown") & !is.na(sample_allages$mrp_statuscat_now), sample_allages$condoms_prob, NA)
+    sample_allages$condoms_inst <- ifelse(sample_allages$mrp_type_r %in% "One time" & !is.na(sample_allages$mrp_type_r) & (sample_allages$mrp_statuscat_now %in% "HIV-negative" | sample_allages$mrp_statuscat_now %in% "Unknown") & !is.na(sample_allages$mrp_statuscat_now), sample_allages$condoms_prob, NA)
+        
+#Difference in SQRT of ages
+    sample_allages$sqrt_agediff <- abs(sqrt(sample_allages$age) - sqrt(sample_allages$mrp_ageinyears_approx))
+    
+#Never tested for HIV by age X (code in HIV testing file defines the age cutoff)
+    evertested <- sample_allages %>%
+        filter(!is.na(evertest_r) & !is.na(race_eth_r)) %>%
+        group_by(age) %>%
+        summarise(prop = mean(evertest_r, na.rm=TRUE))
+    
+#Intertest interval
+    #Fix variable for days since last test
+        #If tested in the month of the survey, set days ago to half as many days as have elapsed in the month
+        extract.day <- function(x) {
+            char_x <- as.character(x)
+            split_x <- strsplit(char_x, "[a-z]")
+            day_x <- lapply(split_x, `[[`, 1)
+            day_x_num <- as.numeric(unlist(day_x))
+            
+            return(day_x_num)
+            }
+    
+        sample_allages$day.of.survey <- extract.day(sample_allages$dtstart_td)
+    
+        samemonth <- which(sample_allages$month_lasttestdate_lasttest == sample_allages$monthsurvey & sample_allages$year_lasttestdate_lasttest == sample_allages$yearsurvey & !is.na(sample_allages$month_lasttestdate_lasttest) & !is.na(sample_allages$year_lasttestdate_lasttest))   
+        sample_allages$daysago_lasttest[samemonth] <- ceiling(sample_allages$day.of.survey[samemonth] / 2)
+    
+        #Set to missing for the one person who indicated a date in the future
+        sample_allages$daysago_lasttest[sample_allages$daysago_lasttest<0] <- NA
+    
+        #Set to 6570 (18 years) if they indicated last test was before 2000
+        sample_allages$daysago_lasttest[sample_allages$year_lasttestdate_lasttest=="1999"] <- 6570
+    
+    #Test interval
+        #If we assume it's an interval process - set to 2x time since last test
+            #sample_allages$iti <- 2*sample_allages$daysago_lasttest
+        
+        #Assuming it's a memoryless process
+        sample_allages$iti <- sample_allages$daysago_lasttest
+
+    #PrEP adherence
+        sample_allages$prep_adherence_gp <- ifelse(sample_allages$prep_adherence %in% 0, "0 pills", ifelse(sample_allages$prep_adherence %in% 1:8, "<2 pills", ifelse(sample_allages$prep_adherence %in% 9:17, "2-3 pills", ifelse(sample_allages$prep_adherence %in% 18:30, "4+ pills", NA))))
+            
+#-----------------------------------------------------------------------------------
+# Set race groupings and age range to use for model
+#-----------------------------------------------------------------------------------
+
+#Define version of race/eth variables to use in the model
+    sample_allages$race_eth_m <- sample_allages$hbo
+    #Define vesion to use for regression that sets reference value
+    sample_allages$race_eth_m.reg <- sample_allages$hbo.bO 
+    sample_allages$mrp_race_eth_m <- sample_allages$mrp_hbo
+    sample_allages$dyad_race_m <- sample_allages$dyad_race_hbo
+
+#Define sample age limit
+    sample <- sample_allages %>%filter(age>17 & age<60)
+
+#-----------------------------------------------------------------------------------
+# Save datasets
+#-----------------------------------------------------------------------------------
+    
+    save(sample, file="Data/InternetSurveySample.Rdata")
+    save(sample_allages, file="Data/InternetSurveySample_allages.Rdata")
+    
+#-----------------------------------------------------------------------------------
+# General settings
+#-----------------------------------------------------------------------------------
+    
+    #Set digits to show 3 decimal places
+        options(digits=3)
+    #Set options for dplyr to print all rows
+        options(dplyr.print_min = Inf)
+    
+#save plot settings 
+    #White background and light grey lines
+    plot_background <- theme(panel.background = element_rect(fill="white", colour = "black")) +
+        theme(panel.grid.major = element_line(colour = "grey90"))
+    #Darken colors
+    darken_color <- scale_colour_hue(l=50)
+    #Title size to 12 and center it 
+    theme_title <- theme(plot.title = element_text(hjust = 0.5, size=12)) 
+    
+#Define multiplot function to arrange multiple plots
+    multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+        library(grid)
+        
+        # Make a list from the ... arguments and plotlist
+        plots <- c(list(...), plotlist)
+        
+        numPlots = length(plots)
+        
+        # If layout is NULL, then use 'cols' to determine layout
+        if (is.null(layout)) {
+            # Make the panel
+            # ncol: Number of columns of plots
+            # nrow: Number of rows needed, calculated from # of cols
+            layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                             ncol = cols, nrow = ceiling(numPlots/cols))
+        }
+        
+        if (numPlots==1) {
+            print(plots[[1]])
+            
+        } else {
+            # Set up the page
+            grid.newpage()
+            pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+            
+            # Make each plot, in the correct location
+            for (i in 1:numPlots) {
+                # Get the i,j matrix positions of the regions that contain this subplot
+                matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+                
+                print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                                layout.pos.col = matchidx$col))
+            }
+        }
+    }
+    
+```
+    

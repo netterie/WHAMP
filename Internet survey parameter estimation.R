@@ -47,11 +47,8 @@
 ##Generate new variables / modify variables for this analysis -----------------------------------------------------
     
     #redefine age_cat
-        sample_allages$age_cat <- cut(sample_allages$age, c(17, 19, 29, 39, 49, 59), labels=c("18-19", "20-29", "30-39", 
-                                                                              "40-49", "50-59"))     
-        sample_allages$age_cat2 <- cut(sample_allages$age, breaks=c(17, 39, 44, 49, 54, 59, 82), 
-                                               labels=c("18-39", "40-44", "45-49", "50-54", "55-59", "60-max"))
-        
+        sample_allages$age_cat <- cut(sample_allages$age, c(17, 24, 29, 34, 39, 44, 49, 54, 59, 64, 69), labels=c("18-24", "25-29", "30-34", 
+                                                                              "35-39", "40-44", "45-49", "50-54", "55-59", "60-64", "65-69"))     
     #reorder the levels of race_eth_r and mrp_race_eth_r
         sample_allages$race_eth_r <- factor(sample_allages$race_eth_r, levels(sample_allages$race_eth_r)[c(3,6,2,1,5,4)])
         sample_allages$mrp_race_eth_r <- factor(sample_allages$mrp_race_eth_r, levels(sample_allages$mrp_race_eth_r)[c(4,7,2,1,6,5,3)])
@@ -770,13 +767,13 @@
             labs(x="Age", y="Percent ever tested", title="Percent ever tested by age")        
     
     sample_18to64 %>%
-        filter(!is.na(evertest_r) & !is.na(age_cat2) & !is.na(race_eth_m)) %>%
-        group_by(race_eth_m, age_cat2) %>%
+        filter(!is.na(evertest_r) & !is.na(age_cat) & !is.na(race_eth_m)) %>%
+        group_by(race_eth_m, age_cat) %>%
         summarise(n=n(), prop = mean(evertest_r, na.rm=TRUE))
     
     sample_18to64 %>%
-        filter(!is.na(evertest_r) & !is.na(age_cat2)) %>%
-        group_by(age_cat2) %>%
+        filter(!is.na(evertest_r) & !is.na(age_cat)) %>%
+        group_by(age_cat) %>%
         summarise(n=n(), prop = mean(evertest_r, na.rm=TRUE))
     
 #Last test interval
