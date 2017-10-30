@@ -1,0 +1,7 @@
+rmd_files: [ "_Washington_census_data_prep.Rmd",
+"_Internet_survey_data_prep.Rmd",
+"index.Rmd",
+"01-Network_composition.Rmd",
+"References.Rmd"
+]
+

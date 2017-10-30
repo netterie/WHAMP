@@ -1,0 +1,29 @@
+---
+title: "Washington HIV Model for MSM Parameter Estimation"
+author: "Darcy Rao"
+site: bookdown::bookdown_site
+documentclass: book
+output:
+    bookdown::gitbook: 
+        config:
+            toc:
+                collapse: section
+    bookdown::pdf_book: default
+bibliography: [refs.bib]
+pandoc_args: [ "--csl", "national-institute-of-health-research.csl" ]
+link-citations: yes
+---
+
+# Overview
+
+This document presents the results of data analyses for estimation of parameters for the Washington HIV Model for MSM and records the assumptions made in that process. The document is organized into the following sections:
+
+* Network composition (Demographics)
+* Number of relationships
+* Degree
+* Concurrency
+* Duration
+* Age mixing
+* One-time network
+* Summary
+* Appendix

@@ -1,0 +1,140 @@
+```{r, include=FALSE}
+####################################################################################
+# Setup
+####################################################################################
+
+#-----------------------------------------------------------------------------------
+# Load packages
+#-----------------------------------------------------------------------------------
+
+    library("tidyverse")
+    library("psych") #To use "describe" function for continuous vars
+    library("nnet") #For multinomial logistic regression
+    library("lmtest") #For likelihood ratio test
+    library("ggplot2")
+    library("survey")
+    library("knitr")
+    library("kableExtra")
+    library("reshape2")
+
+#-----------------------------------------------------------------------------------
+# Load data
+#-----------------------------------------------------------------------------------
+    load(file="Data/InternetSurveySample.Rdata")
+    load(file="Data/InternetSurveySample_allages.Rdata")
+    load(file="Data/census_agebyregion.Rdata")
+    load(file="Data/census_racebyregion.Rdata")
+    load(file="Data/census_totalbyregion.Rdata")
+    
+# Set options
+    opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
+    options(knitr.table.format = "html") 
+    
+```
+
+# Network composition by nodal attribute {#composition}
+
+The key nodal attributes on which this model will be stratified are age, race/ethnicity, and region. The distribution of these attributes in the network and the way in which they will be categorized in the model are noted below. Except where otherwise noted, we will assume that the effects of each of these attributes on model parameters are independent.
+
+## Region {#region}
+### Regional divisions {#regiondiv}
+Prior to launching the Washington HIV Prevention Project (hereafter referred to as the internet survey), the majority of data on HIV-related behaviors focused on King County. The Department of Health was interested in gathering data from men in other regions to understand how their prevention needs and behaviors may be different. For the internet survey, we defined three regions: King County, other counties in western Washington, and Eastern Washington^[Western Washington outside of King County was defined to include the following counties: Clallam, Clark, Cowlitz, Grays Harbor, Island, Jefferson, Kitsap, Lewis, Mason, Pacific, Pierce, San Juan, Skagit, Skamania, Snohomish, Thurston, and Whatcom. Eastern Washington includes Adams, Asotin, Benton, Chelan, Douglas, Ferry, Franklin, Grant, Kittitas, Klickitat, Okanogan, Pend Oreille, Spokane, Stevens, Walla Walla, Whitman, and Yakima Counties.] In the course of descriptive analyses of the internet survey data, we observed that there were notable differences by region on factors such as PrEP utilization and HIV testing. As such, we felt it would be important to represent regional heterogeneity in the model. <span style="color:green">To identify parameters that vary by region independent of age and race effects, we conducted regression analyses, using the Bonferroni correction to adjust for multiple comparisons. These analyses indicated significant regional variability in</span><span style="color:green">XXXX, XXXX, and XXXX</span><span style="color:green"> (see section @ref(ADDLABEL)), so these parameters will be stratified by region.</span>.
+
+### Regional distribution
+To define the distribution of nodes in the network by region, we need to know the distribution of MSM by region in the population. The proportion of respondents to the internet survey could provide some indication of this distribution, but there are likely factors that may have differntially influenced whether men saw and clicked the ads and completed the survey by region. However, the distribution of males in Washington recorded by the census also likely doesn't reflect the distribution of MSM; I would expect more MSM to preferentially migrate to King County than heterosexual men. An alternative source of information on the regional distribution of MSM is a 6201 analysis by Jeremy Grey et al. [@Grey2016] that estimated the sizes of the MSM population by state and county. County-level data are not published, but <span style="color:green">I may be able to obtain these data for Washington</span>. Table @ref(tab:region) shows the differences between the regional composition of the internet sample, and the regional distribution of males in Washington based on the 2011-2015 American Community Survey 5-year Estimates [@WA-census]^[Data were downloaded from the American FactFinder using the Guided Search. I selected the option "I'm looking for information about people", then under topics I selected Age and Sex from the "Age & Sex" menu. For Geographies, I selected County as the geographic type, Washington as the state, clicked "All counties within Washington," and added my selection. For Race/Ethnic Groups, I clicked "Select from detailed groups", and added the following to my selection: Total population (code 001), Hispanic or Latino (of any race)(200-299) (code 400), White alone, not Hispanic or Latino (code 451), Black or African American alone, not Hispanic or Latino (code 453), Black or African American alone or in combination with one or more other races, not Hispanic or Latino (code 454), American Indian and Alaska Native alone, not Hispanic or Latino (code 455), Asian alone, not Hispanic or Latino (code 457), Native Hawaiian and Other Pacific Islander alone, not Hispanic or Latino (code 459), Some other race alone, not Hispanic or Latino (code 461), Two or more races, not Hispanic or Latino (code 463), Black or African American alone, Hispanic or Latino (code 466), and Black or African American alone or in combination with one or more other races, Hispanic or Latino (code 467). I selected the latter two to look at how many men identified as Hispanic and reported black race. From the available tables, I clicked "SEX BY AGE", table ID B01001, and downloaded it with the option to use the data, with both options selected.], <span style="color:green">and the distribution implied by the estimates from @Grey2016.</span> 
+
+```{r region}
+    #Census
+    census_region <- wa_acs_totalbyregion %>% select(region, Percent)
+    census_region <- cbind.data.frame(region=c("King County", "Other Western WA", "Eastern WA"), percent=c(census_region[[2,2]], census_region[[3,2]],census_region[[1,2]]))
+    
+    #Sample data
+    sample_region <- as.vector(prop.table(table(sample$region)))
+    sample_region <- cbind.data.frame(region=c("King County", "Other Western WA", "Eastern WA"), percent=sample_region)
+    
+    #Grey et al.
+    
+    #Combine columns
+    region <- cbind.data.frame("Age group" = sample_region$region,  "Census" = (census_region$percent), "Sample" = (sample_region$percent), "Grey et al." = c("TBD", "TBD", "TBD"))
+    
+    #make table
+    kable(region, col.names=c("Region", "Census", "Sample", "Grey et al."), digits=c(0, 3, 3, 3), caption="Regional distribution: Census, interent survey sample, and Grey et al. 2016") %>% kable_styling(full_width=F, position="center")
+```
+
+## Age {#age}
+### Age range {#agerange}
+
+The survey sample ranged in age from `r min(sample_allages$age)` to `r max(sample_allages$age)`. But other sources from which we might want to estimate parameters (e.g. NHBS and the Medical Monitoring Project) have a minimum age of 18. To aligns with these data sources, we decided to define the minimum age for the model as 18. Other MSM network models have defined a maximum age of 39, largely driven by the ages represented in the studies from which parameters were drawn. However, such a model would miss a substantial fraction of HIV transmission events. [King County data (Table 7)](http://www.kingcounty.gov/depts/health/communicable-diseases/hiv-std/patients/epidemiology/~/media/depts/health/communicable-diseases/documents/hivstd/2016-hiv-aids-epidemiology-annual-report.ashx) from 2016 indicate that 15% of MSM with a new HIV diagnosis 2011-2015 were aged 45-54 at the time of diagnosis, and 7% were 55+. While age at diagnosis does not necessarily reflect age at infection, those diagnosed in the age range 45-54 most likely acquired infection after age 40.  
+  
+Additionally, several local data sources indicate that around 1/3 of PrEP users are above the age of 40. In the PrEP internet survey, `r (sum(sample_allages$age>39 & sample_allages$prep_use_r=="Currently taking PrEP", na.rm=TRUE) / sum(sample_allages$prep_use_r=="Currently taking PrEP", na.rm = TRUE))*100`% of PrEP users are above the age of 40, and `r (sum(sample_allages$age>59 & sample_allages$prep_use_r=="Currently taking PrEP", na.rm=TRUE) / sum(sample_allages$prep_use_r=="Currently taking PrEP", na.rm = TRUE))*100`% are above the age of 59. In the 2017 Pride survey, 30% are aged 40+, and 1.4% aged above 59. The age distribution of clients who have ever used the WADOH PrEP DAP program shows that 65% of clients are 40 and under, leaving 35% over 40. Only 3.8% are over the age of 60 (data provided in an email from Kelly Naismith 10/20/17).  
+  
+A challenge with representing a wider age range is that it becomes important for the model to represent heterogeneity in modeled parameters by age. Previous MSM network models have assumed that most behaviors and attributes do not vary by age. However, there is reason to believe that partnership patterns and sexual behaviors differ even within the 18-39 age range. <span style="color:green">See section @ref(ADDLABEL) for the results of an exploratory analysis looking at differences in network structure and behavior by age </span>. While the data become very thin when stratifying by age and race/ethnicity, we believe that it is reasonable to assume that age heterogeneity is similar across racial/ethnic groups.  
+  
+A limitation is that fewer men above the age of 40 responded to the internet survey, and those who did may not be representative of most men in their age group (of course issues of representativeness from internet samples also apply to younger ages, but perhaps to a lesser degree). However, we believe that it is better to try to include these ages in the model, and the number of respondents at older ages is sufficient to support inference. __For this model, we will cap age at 59, such that the model will represent MSM aged 18-59.__
+
+```{r, echo=FALSE, results='asis', strip.white=TRUE}
+agetable <- sample %>% group_by(age_cat) %>% summarise(Frequency=n()) %>% mutate(Percent=(Frequency / sum(Frequency))*100)
+kable(agetable, col.names=c("Age group", "Frequency", "Percent"), digits=c(0, 0, 1), caption="Age distribution of PrEP Internet Survey respondents") %>% kable_styling(full_width=F, position="center")
+```
+  
+### Age distribution {#agedist}
+The age distribution of sample respondents likely does not correspond to the distribution of MSM in the population: I would expect the sample to under-represent men in older ages. Unfortunately, there is no population-based information on the age distribution of MSM, so we will use census data, assuming that the age composition of MSM is similar to the age composition of all males. Of course, there may be differences due to migration patterns, but we lack reliable data to inform this. Table \@ref(tab:agebyregion) presents the age distribution of survey respondents by region alongside the age distribution of all Washington males, based on the 2011-2015 American Community Survey 5-year Estimates [@WA-census]. We can see that the internet survey sample is proportionately younger, <span style="color:red">and will need to be re-weighted</span>.
+
+```{r agebyregion}
+#Define age distribution by region and combine columns
+    census_ageKC <- wa_acs_agebyregion %>% select(Age_group, Percent, region) %>% filter(region %in% "King County")
+    census_ageOW <- wa_acs_agebyregion %>% select(Age_group, Percent, region) %>% filter(region %in% "Other Western")
+    census_ageE <- wa_acs_agebyregion %>% select(Age_group, Percent, region) %>% filter(region %in% "Eastern")
+    
+    #Sample data
+    sample_ageXregion <- sample %>% group_by(region, age_cat) %>% summarise(count = n()) %>% group_by(region) %>% mutate(percent = count / sum(count))
+    sample_ageKC <- sample_ageXregion %>% select(region, age_cat, percent) %>% filter(region %in% "King County")
+    sample_ageOW <- sample_ageXregion %>% select(region, age_cat, percent) %>% filter(region %in% "Western WA")
+    sample_ageE <- sample_ageXregion %>% select(region, age_cat, percent) %>% filter(region %in% "Eastern WA")
+    
+    #Combine columns
+    ageXregion <- cbind.data.frame("Age group" = sample_ageKC$age_cat,  "KC Census" = (census_ageKC$Percent), "KC Sample" = (sample_ageKC$percent), "OW Census" = (census_ageOW$Percent), "OW Sample" = (sample_ageOW$percent), "E Census" = (census_ageE$Percent), "E Sample" = (sample_ageE$percent))
+    
+    #make table
+    kable(ageXregion, col.names=c("Age Group", "Census", "Sample", "Census", "Sample", "Census", "Sample"), digits=c(0, 3, 3, 3, 3, 3, 3), caption="Age distribution by region: Census and interent survey samples") %>% kable_styling(full_width=F, position="center") %>% add_header_above(c("", "King County" = 2, "Other Western WA" = 2, "Eastern WA" = 2)) %>% column_spec(c(3, 5, 7), background = "gray")
+
+```
+
+## Race/ethnicity {#race}
+### Racial/ethnic groups {#racegroups}
+In light of observed disparities in HIV prevalence by racial/ethnic group, it is important to consider how to represent racial/ethnic heterogeneity in the model. Figure \@ref(fig:hivbyrace) shows the estimated prevalence of HIV among MSM in King County.^[From page 43 of the [2016 Washington State/Seattle-King County HIV/AIDS Epidemiology Report](http://www.kingcounty.gov/depts/health/communicable-diseases/hiv-std/patients/epidemiology/~/media/depts/health/communicable-diseases/documents/hivstd/2016-hiv-aids-epidemiology-annual-report.ashx)] From this, it is evident that black and Hispanic MSM have a markedly higher prevalence than MSM of other racial/ethnic groups, and the difference between black and Hispanic MSM is not as pronounced as in other parts of the United States. Asians appear to have lower prevalence, but we believe it is more important for the model to represent patterns of transmission among blacks and Hispanics than to capture patterns specific to Asians.
+  
+```{r hivbyrace, out.width='50%', fig.align='center'}
+knitr::include_graphics(rep("Images/HIV prevalence by race.png"))
+```
+  
+The challenges with representing racial/ethnic heterogeneity in the model are that the model complexity grows with each additional attribute level defined by the model, and there are small numbers of observations in the internet survey and other datasets for minority racial groups. However, exploratory analysis of the data from the internet survey revealed potentially important differences in network structure and behavior between black, Hispanic, and other men <span style="color:green">(see section @ref(ADDLABEL)</span>. From these exploratory analyses, we decided to define the following race/ethnicity groups: Hispanic (of all races), non-Hispanic black (including men who reported black race alone or in combination with another race)^[While men who report black race in combination with another race may be distinct from men who report black race alone, we decided to combine these two groups as there is not enough data to support defining them separately, and the alternative is to categorize men who reported black race in combination with one or more other races in the group with whites and men of other non-Hispanic races. In support of this decision, there is evidence in the literature that multiracial men with some black/African American ancestry identify more closely with and have experiences more similar to black men than to their other racial groups. @Gullickson2011 used data from the 1990 and 2000 US census to look at the racial identity reported by individuals who reported ancestral descent from two or more groups. In 1990, individuals could only choose one race group, and in 2000 they could choose more than one. In the 2000 census, those who reported part-black ancestry were more likely to identify as black alone, followed by identification as multiracial. They authors argue that this provides evidence of a pattern of "hypodescent," meaning that individuals are assigned/identify with the 'lower-status' of their ancestral groups. In 1990, when individuals could choose only one race group, the vast majority of those with part-black ancestry identified as black. Additionally, a Pew Research Center Survey [@pew2015] reported that 69% of multiracial adults with a black background think most people would view them as black, and they generally report experiences and attitudes more similar to blacks than others. Persons who report a multiracial background including black report experiences of discrimination similar to those who report black race alone. Among those who report black and white races in combination, 58% say they have more in common with blacks and 18% say they have more in common with whites. They are also more likely to report feeling accepted by blacks than whites, and having more contact with black relatives], and non-Hispanic other (including men who listed any other non-Hispanic race). For the remainder of this document, these groups will be referred to as Hispanic, black, and other. 
+
+### Racial/ethnic distribution {#racedist}
+As with age, we lack population-based data on the racial/ethnic distribution of the MSM population in Washington, so we assume the distribution of all males in Washington corresponds to the distribution of MSM. Because the regions in Washington are demographically diverse, we will look at the distirbution separately in each region. Table \@ref(tab:racebyregion) presents the racial/ethnic distribution of survey respondents by region alongside the racial/ethnic distribution by region for males based on the 2011-2015 American Community Survey 5-year Estimates [@WA-census].^[Data were obtained from the same download as for age, described above. The Hispanic group was defined as men of Hispanic/Latino ethnicity of any race, and the black group includes Non-Hispanic men who reported black race alone or in combination with one or more other races. Likely due to imprecision in the estimation algorithm for small areas, the sum of all race groups is slightly less than the total. As such, to define the 'other' race group, we subtracted the number of Hispanic and black men from the total in each region.] We can see that the internet survey sample is proportionately younger, <span style="color:red">and will need to be re-weighted</span>.
+
+```{r racebyregion}
+#Define race/ethnic distribution by region and combine columns
+    wa_acs_racebyregion_melt <- melt(wa_acs_racebyregion, id="region")
+    wa_acs_racebyregion_melt$hbo <- ifelse(wa_acs_racebyregion_melt$variable %in% "Percent_Hispanic", "Hispanic",
+                                           ifelse(wa_acs_racebyregion_melt$variable %in% "Percent_black", "black",
+                                                  "other"))
+    names(wa_acs_racebyregion_melt)[names(wa_acs_racebyregion_melt)=="value"] <- "percent"
+    
+    census_raceKC <- wa_acs_racebyregion_melt %>% select(region, hbo, percent) %>% filter(region %in% "King County")
+    census_raceOW <- wa_acs_racebyregion_melt %>% select(region, hbo, percent) %>% filter(region %in% "Other Western")
+    census_raceE <- wa_acs_racebyregion_melt %>% select(region, hbo, percent) %>% filter(region %in% "Eastern")
+    
+    #Sample data
+    sample_raceXregion <- sample %>% filter(!is.na(hbo)) %>% group_by(region, hbo) %>% summarise(count = n()) %>% group_by(region) %>% mutate(percent = count / sum(count))
+    sample_raceKC <- sample_raceXregion %>% select(region, hbo, percent) %>% filter(region %in% "King County")
+    sample_raceOW <- sample_raceXregion %>% select(region, hbo, percent) %>% filter(region %in% "Western WA")
+    sample_raceE <- sample_raceXregion %>% select(region, hbo, percent) %>% filter(region %in% "Eastern WA")
+    
+    #Combine columns
+    raceXregion <- cbind.data.frame("Race/ethnicity" = sample_raceKC$hbo,  "KC Census" = (census_raceKC$percent), "KC Sample" = (sample_raceKC$percent), "OW Census" = (census_raceOW$percent), "OW Sample" = (sample_raceOW$percent), "E Census" = (census_raceE$percent), "E Sample" = (sample_raceE$percent))
+    
+    #make table
+    kable(raceXregion, col.names=c("Race/ethnicity", "Census", "Sample", "Census", "Sample", "Census", "Sample"), digits=c(0, 3, 3, 3, 3, 3, 3), caption="Racial/ethnic distribution by region: Census and interent survey samples") %>% kable_styling(full_width=F, position="center") %>% add_header_above(c("", "King County" = 2, "Other Western WA" = 2, "Eastern WA" = 2)) %>% column_spec(c(3, 5, 7), background = "gray")
+
+```
