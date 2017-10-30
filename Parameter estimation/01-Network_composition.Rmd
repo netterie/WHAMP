@@ -1,6 +1,8 @@
-```{r, include=FALSE}
+# Network composition by nodal attribute {#composition}
+
+```{r, echo=FALSE, include=FALSE}
 ####################################################################################
-# Setup
+# 
 ####################################################################################
 
 #-----------------------------------------------------------------------------------
@@ -31,8 +33,6 @@
     options(knitr.table.format = "html") 
     
 ```
-
-# Network composition by nodal attribute {#composition}
 
 The key nodal attributes on which this model will be stratified are age, race/ethnicity, and region. The distribution of these attributes in the network and the way in which they will be categorized in the model are noted below. Except where otherwise noted, we will assume that the effects of each of these attributes on model parameters are independent.
 
