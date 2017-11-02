@@ -1,0 +1,50 @@
+# Washington MSM estimates data prep
+
+```{r, include=FALSE}
+####################################################################################
+# Setup
+####################################################################################
+#-----------------------------------------------------------------------------------
+# Load packages
+#-----------------------------------------------------------------------------------
+
+    library("tidyverse")
+    library("knitr")
+    library("data.table")
+    library("reshape2")
+    detach(package:plyr)
+
+#-----------------------------------------------------------------------------------
+# Knitr options
+#-----------------------------------------------------------------------------------
+opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
+options(knitr.table.format = "html") 
+
+####################################################################################
+# 2013 MSM estimates from Emory's Coalition for Applied Modeling for Prevention
+# url: http://www.emorycamp.org/item.php?i=48
+# citation: Grey JA, Bernstein KT, Sullivan PS, Purcell DW, Chesson HW, Gift TL, Rosenberg ES. Estimating the population sizes of men who have sex with men in US states and counties using data from the American Community Survey. JMIR Public Health Surveill 2016;2(1):e14. DOI: 10.2196/publichealth.5365
+####################################################################################
+#-----------------------------------------------------------------------------------
+# Load data on population composition and define variables
+#-----------------------------------------------------------------------------------
+
+us_msm_est2013 <- read.csv("Parameter estimation/Data/Emory CAMP_US MSM Estimates Data 2013.csv",
+                       header=TRUE, sep=",")
+
+#Filter to Washington State and limit to variables of interest
+wa_msm_est2013 <- us_msm_est2013 %>% select(STATEFP, COUNTYFP, ADULTMEN, MSM12MTH, MSM5YEAR) %>% filter(STATEFP %in% 53)
+
+#Define variable for region (couty codes here: Parameter estimation/Data/Emory CAMP_US MSM Estimates Data Dictionary 2013.doc)
+wa_msm_est2013$region <- ifelse(wa_msm_est2013$COUNTYFP %in% 033, "King County", ifelse(wa_msm_est2013$COUNTYFP %in% c(009, 011, 015, 027, 029, 031, 035, 041, 045, 049, 053, 055, 057, 059, 061, 067, 069, 073), "Other Western WA", ifelse(wa_msm_est2013$COUNTYFP %in% c(001, 003, 005, 007, 013, 017, 019, 021, 023, 025, 037, 039, 043, 047, 051, 063, 065, 071, 075, 077), "Eastern WA", NA)))
+
+#Calculate the proportion of males who are MSM in each region
+wa_msm_est2013 %>% group_by(region) %>% summarise(propmsm = sum(MSM5YEAR) / sum(ADULTMEN))
+
+#Look at distribution of the MSM population based on their data on population size (note this is men 18+)
+wa_msm_est2013 %>% group_by(region) %>% summarise(totMSM = sum(MSM5YEAR)) %>% mutate(distMSM = totMSM / sum(totMSM))
+
+#-----------------------------------------------------------------------------------
+# Save datasets
+#-----------------------------------------------------------------------------------
+save(wa_msm_est2013, file="Data/wa_msm_est2013.Rdata")
