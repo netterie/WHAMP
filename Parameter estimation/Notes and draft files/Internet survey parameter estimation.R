@@ -593,7 +593,7 @@
     table(sample$race_eth_m[!is.na(sample$mrp_race_eth_m) & sample$mrp_race_eth_m!="Dont know"], 
           sample$mrp_type_r[!is.na(sample$mrp_race_eth_m) & sample$mrp_race_eth_m!="Dont know"]) #look at Ns by race and mrp_type
     
-    prop.table(table(sample$race_eth_m[sample$mrp_race_eth_m!="Dont know" & sample$mrp_type_r %in% "Main"], 
+    prop.table(table(sample$race_eth_m[sample$mrp_race_eth_m!="Dont know" & sample$mrp_type_r %in% "Main"],
                      sample$mrp_race_eth_m[sample$mrp_race_eth_m!="Dont know" & sample$mrp_type_r %in% "Main"]), 1)
     prop.table(table(sample$race_eth_m[sample$mrp_race_eth_m!="Dont know" & sample$mrp_type_r %in% "Casual"], 
                      sample$mrp_race_eth_m[sample$mrp_race_eth_m!="Dont know" & sample$mrp_type_r %in% "Casual"]), 1)
