@@ -1,0 +1,80 @@
+# Regional variability
+
+This section documents the results of regression analyses aimed at identifying parameters that vary by region after adjusting for age and race/ethnicity. Bonferonni correction was used to adjust for multiple comparisons. Specifically, since we evaluated associations with `r 20` parameters, each hypothesis was tested against a significance level of `r 0.05/20`.
+
+```{r, include=FALSE}
+####################################################################################
+# Setup
+####################################################################################
+#-----------------------------------------------------------------------------------
+# Load packages
+#-----------------------------------------------------------------------------------
+
+    library("tidyverse")
+    library("knitr")
+    library("data.table")
+
+#-----------------------------------------------------------------------------------
+# Knitr options
+#-----------------------------------------------------------------------------------
+opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
+options(knitr.table.format = "html") 
+
+#-----------------------------------------------------------------------------------
+# Load data
+#-----------------------------------------------------------------------------------
+
+load(file="Data/InternetSurveySample.Rdata")
+```
+
+## Degree distribution
+
+### One or more partners 
+
+### Concurrency
+
+## Rate of instantaneous partners
+
+## Race mixing
+
+### Main partners
+
+### Persistent partners
+
+### Instantaneous partners
+
+## Age mixing
+
+### Main partners
+
+### Persistent partners
+
+### Instantaneous partners
+
+## Partnership age
+
+### Main partners
+
+### Persistent partners
+
+## Proportion never tested
+
+## Last test interval
+
+## Coital frequency
+
+### Main partners
+
+### Persistent partners
+
+## Sex role
+
+## Condom use
+
+### Main partners
+
+### Persistent partners
+
+### Instantaneous partners
+
+## PrEP use
