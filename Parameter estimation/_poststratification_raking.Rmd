@@ -1,0 +1,57 @@
+# Post-stratification and raking
+
+```{r, include=FALSE}
+####################################################################################
+# Setup
+####################################################################################
+#-----------------------------------------------------------------------------------
+# Load packages
+#-----------------------------------------------------------------------------------
+
+    library("tidyverse")
+    library("knitr")
+    library("data.table")
+    library("survey")
+
+#-----------------------------------------------------------------------------------
+# Knitr options
+#-----------------------------------------------------------------------------------
+opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
+options(knitr.table.format = "html") 
+
+#-----------------------------------------------------------------------------------
+# Load data
+#-----------------------------------------------------------------------------------
+    load(file="Data/InternetSurveySample.Rdata")
+    load(file="Data/InternetSurveySample_allages.Rdata")
+    load(file="Data/census_agebyregion.Rdata")
+    load(file="Data/census_racebyregion.Rdata")
+    load(file="Data/census_totalbyregion.Rdata")
+    load(file="Data/wa_msm_est2013.Rdata")
+    load(file="Data/msmbyregion.Rdata")
+
+####################################################################################
+# Analyses
+####################################################################################
+
+#-----------------------------------------------------------------------------------
+# Define survey object - set it up as though SRS
+#-----------------------------------------------------------------------------------
+    samplesvy <- svydesign(id=~1, data=sample)
+    
+#-----------------------------------------------------------------------------------
+# Define "population" totals from census data and Jeremy Grey's analysis
+#-----------------------------------------------------------------------------------
+
+    pop.region <- MSMbyregion %>% select(region, numMSM) %>% mutate(numMSM = round(numMSM))
+    levels(pop.region$region)[levels(pop.region$region)=="Other Western WA"] <- "Western WA"
+    
+    pop.raceregion <- cbind.data.frame(region=c(rep("King County", 3), rep("Western WA", 3), rep("Eastern WA", 3)), hbo=c(rep(c("Hispanic", "Black", "Other"), 3)), Freq=c(round(wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "King County"]*pop.region$numMSM[pop.region$region %in% "King County"]), round(wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "King County"]*pop.region$numMSM[pop.region$region %in% "King County"]), round(wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "King County"]*pop.region$numMSM[pop.region$region %in% "King County"]), round(wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "Other Western"]*pop.region$numMSM[pop.region$region %in% "Western WA"]), round(wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "Other Western"]*pop.region$numMSM[pop.region$region %in% "Western WA"]), round(wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "Other Western"]*pop.region$numMSM[pop.region$region %in% "Western WA"]), round(wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "Eastern"]*pop.region$numMSM[pop.region$region %in% "Eastern WA"]), round(wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "Eastern"]*pop.region$numMSM[pop.region$region %in% "Eastern WA"]), round(wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "Eastern"]*pop.region$numMSM[pop.region$region %in% "Eastern WA"])))
+    
+    pop.hbo <- (pop.raceregion %>% group_by(hbo) %>% summarise(Freq=sum(Freq)))
+
+    
+    samplesvy_noNA <- samplesvy[!is.na(samplesvy$variables$hbo),]
+    sample_psraceregion <- postStratify(samplesvy_noNA, ~hbo + region, pop.raceregion)
+    
+    sample_rakeraceregion <- rake(samplesvy_noNA, list(~region, ~hbo), list(pop.region, pop.hbo))
