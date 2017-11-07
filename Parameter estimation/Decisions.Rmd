@@ -1,0 +1,16 @@
+# Decisions {#decisions}
+
+This file summarizes the decisions made about parameter estimation and model structure.
+
+##Racial/ethnic groups
+Hispanic, black, other [fill me in]
+
+## Age range
+18-59
+
+## Region
+
+## Using data from ongoing vs all partnerships
+We decided to use data only from ongoing partnerships to inform parameters relating to race and age mixing. This is because the formation model, to which these parameters are relevant, aims to recreate the network we observe at the cross-section.
+
+For parameters relating to condom use and coital frequency, we decided to use data from all partnerships. The analysis in section \@ref(coitfreq_condoms) revealed that, for all comparisons but coital frequency in persistent partnerships among Hispanic men, the estimates were comparable when using data from all vs. only ongoing partnerships. Because the sample sizes are considerably smaller when restricting to ongoing partnerships and there is not a good reason to do so, we decided to use data from all partnerships.
