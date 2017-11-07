@@ -1,4 +1,4 @@
-# Coital frequency and condom use: ongoing or all partnerships?
+# Coital frequency and condom use: ongoing or all partnerships? {#coitfreq_condoms}
 
 ```{r, include=FALSE}
 ####################################################################################
