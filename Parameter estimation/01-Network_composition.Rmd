@@ -56,15 +56,7 @@ Table @ref(tab:region) shows the differences between the regional composition of
     sample_region <- cbind.data.frame(region=c("King County", "Other Western WA", "Eastern WA"), percent=sample_region)
     
     #Grey et al.
-        #proportion MSM by region
-        propMSMbyregion <- wa_msm_est2013 %>% group_by(region) %>% summarise(propmsm = sum(MSM5YEAR) / sum(ADULTMEN))
-        #Calculate number of MSM by region using 2011-2015 ACS data
-        MSMbyregion <- cbind.data.frame(region = c("Eastern WA", "King County", "Other Western WA"), numMSM = wa_acs_totalbyregion$total*propMSMbyregion$propmsm)
-        MSMbyregion$percentMSM <- MSMbyregion$numMSM / sum(MSMbyregion$numMSM) 
-        #Reorder rows
-        MSMbyregion$region <- factor(MSMbyregion$region, levels(factor(MSMbyregion$region))[c(2,3,1)])
-        MSMbyregion <- MSMbyregion %>% arrange(region)
-        save(MSMbyregion, file="Data/msmbyregion.Rdata")
+    MSMbyregion
 
     #Combine columns
     region <- cbind.data.frame("Age group" = sample_region$region,  "Census" = (census_region$percent), "Sample" = (sample_region$percent), "Grey et al." = c(MSMbyregion$percentMSM))
