@@ -39,12 +39,28 @@ wa_msm_est2013 <- us_msm_est2013 %>% select(STATEFP, COUNTYFP, ADULTMEN, MSM12MT
 wa_msm_est2013$region <- ifelse(wa_msm_est2013$COUNTYFP %in% 033, "King County", ifelse(wa_msm_est2013$COUNTYFP %in% c(009, 011, 015, 027, 029, 031, 035, 041, 045, 049, 053, 055, 057, 059, 061, 067, 069, 073), "Other Western WA", ifelse(wa_msm_est2013$COUNTYFP %in% c(001, 003, 005, 007, 013, 017, 019, 021, 023, 025, 037, 039, 043, 047, 051, 063, 065, 071, 075, 077), "Eastern WA", NA)))
 
 #Calculate the proportion of males who are MSM in each region
-wa_msm_est2013 %>% group_by(region) %>% summarise(propmsm = sum(MSM5YEAR) / sum(ADULTMEN))
+propMSMbyregion <- wa_msm_est2013 %>% group_by(region) %>% summarise(propmsm = sum(MSM5YEAR) / sum(ADULTMEN))
 
 #Look at distribution of the MSM population based on their data on population size (note this is men 18+)
 wa_msm_est2013 %>% group_by(region) %>% summarise(totMSM = sum(MSM5YEAR)) %>% mutate(distMSM = totMSM / sum(totMSM))
 
 #-----------------------------------------------------------------------------------
+# Load dataset for 2011-2015 ACS data on population size of men 18-59
+#-----------------------------------------------------------------------------------
+load(file="Data/census_totalbyregion.Rdata")
+
+#-----------------------------------------------------------------------------------
+#Calculate number of MSM by region using 2011-2015 ACS data
+#-----------------------------------------------------------------------------------
+
+    MSMbyregion <- cbind.data.frame(region = c("Eastern WA", "King County", "Other Western WA"), numMSM = wa_acs_totalbyregion$total*propMSMbyregion$propmsm)
+    MSMbyregion$percentMSM <- MSMbyregion$numMSM / sum(MSMbyregion$numMSM) 
+    #Reorder rows
+    MSMbyregion$region <- factor(MSMbyregion$region, levels(factor(MSMbyregion$region))[c(2,3,1)])
+    MSMbyregion <- MSMbyregion %>% arrange(region)
+
+#-----------------------------------------------------------------------------------
 # Save datasets
 #-----------------------------------------------------------------------------------
 save(wa_msm_est2013, file="Data/wa_msm_est2013.Rdata")
+save(MSMbyregion, file="Data/msmbyregion.Rdata")
