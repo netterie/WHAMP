@@ -1,0 +1,440 @@
+# Regional variability {#explore_region}
+```{r, include=FALSE}
+####################################################################################
+# Setup
+####################################################################################
+#-----------------------------------------------------------------------------------
+# Load packages
+#-----------------------------------------------------------------------------------
+
+    library("tidyverse")
+    library("knitr")
+    library("data.table")
+    library("lmtest")
+    library("kableExtra")
+    library("logbin")
+
+#-----------------------------------------------------------------------------------
+# Knitr options
+#-----------------------------------------------------------------------------------
+opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
+options(knitr.table.format = "html") 
+
+#-----------------------------------------------------------------------------------
+# Plot settings
+#-----------------------------------------------------------------------------------
+#save plot settings for white background and light grey lines and darkening the colors a bit
+plot_background <- theme(panel.background = element_rect(fill="white", colour = "black")) + theme(panel.grid.major = element_line(colour = "grey90"))
+darken_color <- scale_colour_hue(l=50)
+theme_title <- theme(plot.title = element_text(hjust = 0.5, size=12)) 
+        
+#-----------------------------------------------------------------------------------
+# Load data
+#-----------------------------------------------------------------------------------
+
+load(file="Data/InternetSurveySample.Rdata")
+load(file="Data/InternetSurveySample_allages.Rdata")
+#-----------------------------------------------------------------------------------
+# Define significance threshold based on # of comparisons with bonferroni correction
+#-----------------------------------------------------------------------------------
+numcompare <- 20
+siglevel <- 0.05/20
+
+```
+
+
+This section documents the results of regression analyses aimed at identifying parameters that vary by region after adjusting for age and race/ethnicity. Bonferonni correction was used to adjust for multiple comparisons. Specifically, since we evaluated associations with `r numcompare` parameters, each hypothesis was tested against a significance level of `r siglevel`. We use likelihood ratio tests (package `lmtest`) to compare models with and without adjustment for region for joint significance testing.
+
+_If we decide to do this analysis restricting to factors we specify a priori, I would include degree distribution (both indicators), rate of instantaneous partners, age mixing, partnership age, proportion never tested and last test interval, and PrEP use. I'm unsure about race mixing - I would expect it to be different, but that may just be driven by availability of of partners. But I thnk I would test it._
+
+
+## Degree distribution
+
+To look for differences in the degree distribution, we will break it down to two binary indicators corresponding to whether men have one or more ongoing partner of any type and whether they have any concurrent partners. We use logistic regression to test the null hypothesis that region is not associated with the outcomes after adjusting for ego race and age. These models include interaction terms for race and region and age and region. If the interactions are not significant, we look at the main effects. <span style="color:red"> Should I look at interaction? This means more comparisons, so a further reduction in the significance threshold, right? Or should I compare the full model with both interactions to a model without region as a main effect or interaction? And maybe only if that is significant look at whether the specific interactions are significant?</span> 
+
+### One or more partners 
+```{r somepartners, eval=TRUE}
+
+  #Look at the number of observations by region that are non-missing for this outcome and for model predictors
+  table(sample$region[!is.na(sample$race_eth_m) & !is.na(sample$somepartners)])
+
+  #Full model  
+  glm.somepartners <- glm(somepartners ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, family=binomial(link="logit"), data=sample)
+  #Model without region
+  glm.somepartners_noregion <- glm(somepartners ~ age_cat + race_eth_m.reg, family=binomial(link="logit"), data=sample)
+
+  lrt.somepartners <- lrtest(glm.somepartners, glm.somepartners_noregion)
+  lrt.somepartners
+```
+
+The results of this analysis indicate that region is __`r ifelse(lrt.somepartners$'Pr(>Chisq)'[2]<siglevel, print("significantly"), print("not"))` associated__ with having one or more partners after adjusting for age and race.
+
+### Concurrency
+```{r concurrency, eval=TRUE}
+
+  #Look at the number of observations by region that are non-missing for this outcome and for model predictors
+  table(sample$region[!is.na(sample$race_eth_m) & !is.na(sample$concurrent)])
+
+  #Full model  
+  glm.concurrent <- glm(concurrent ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, family=binomial(link="logit"), data=sample)
+  #Model without region
+  glm.concurrent_noregion <- glm(concurrent ~ age_cat + race_eth_m.reg, family=binomial(link="logit"), data=sample)
+
+  lrt.concurrent <- lrtest(glm.concurrent, glm.concurrent_noregion)
+  lrt.concurrent
+```
+
+The results of this analysis indicate that region is __`r ifelse(lrt.concurrent$'Pr(>Chisq)'[2]<siglevel, print("significantly"), print("not"))` associated__ with having concurrent partners after adjusting for age and race.
+
+## Rate of instantaneous partners
+__Note__: This analysis does not control for men's momentary degree.
+
+```{r rateinst, eval=TRUE}
+  #Look at the number of observations by region that are non-missing for this outcome and for model predictors
+  table(sample$region[!is.na(sample$race_eth_m) & !is.na(sample$rate_inst)])
+
+  #Full model  
+  lm.rateinst <- lm(rate_inst ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, data=sample[!is.na(sample$race_eth_m.reg), ])
+  #Model without region
+  lm.rateinst_noregion <- lm(rate_inst ~ age_cat + race_eth_m.reg, data=sample[!is.na(sample$race_eth_m.reg), ])
+
+  lrt.rateinst <- lrtest(lm.rateinst, lm.rateinst_noregion)
+  lrt.rateinst
+```
+
+The results of this analysis indicate that region is __`r ifelse(lrt.rateinst$'Pr(>Chisq)'[2]<siglevel, print("significantly"), print("not"))` associated__ with the rate of instantaneous partners after adjusting for age and race.
+
+## Race/ethnicity mixing
+To examine differences in mixing by race/ethnicity, we will look at the proportion of men reporting that their most recent partner was in the same racial/ethnic group (Hispanic, black, or other) as themselves. For main and persistent partner types, this analysis is restricted to most recent partners who are _ongoing_. __Note__: <span style="color:red">The outcome is based on ego reports of their partners race and, at this point, does not adjust for imbalances in reported partnering patterns.</span>
+```{r samerace_define}
+
+  #Set to missing if the respondent did not know his partner's race/ethnicity
+  sample$mrp_race_eth_m_removedk <- sample$mrp_race_eth_m[!(sample$mrp_race_eth_m %in% "Dont know")]
+  sample$mrp_race_eth_m_removedk <- factor(sample$mrp_race_eth_m_removedk)
+  
+  #Define indicator of respondent and partner being of the same race/ethnicity
+  sample$samerace <- ifelse(sample$race_eth_m==sample$mrp_race_eth_m_removedk, 1,
+                                   ifelse(!is.na(sample$race_eth_m) & !is.na(sample$mrp_race_eth_m_removedk), 0,
+                                          NA))
+```
+
+### Main partners
+```{r samerace_main, eval=TRUE}
+
+  #Look at the number of observations by region that are non-missing for this outcome and for model predictors
+  table(sample$region[!is.na(sample$race_eth_m) & !is.na(sample$samerace) & sample$mrp_type_ongoing %in% "Main"])
+
+  #Full model  
+  glm.samerace_main <- glm(samerace ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Main", ])
+  #Model without region
+  glm.samerace_main_noregion <- glm(samerace ~ age_cat + race_eth_m.reg, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Main", ])
+
+  lrt.samerace_main <- lrtest(glm.samerace_main, glm.samerace_main_noregion)
+  lrt.samerace_main
+```
+
+Region is __`r ifelse(lrt.samerace_main$'Pr(>Chisq)'[2]<siglevel, print("significantly"), print("not"))` associated__ with having a main partner of the same racial/ethnic group after adjusting for age and race.  
+
+### Persistent partners
+```{r samerace_pers, eval=TRUE}
+  #Look at the number of observations by region that are non-missing for this outcome and for model predictors
+  table(sample$region[!is.na(sample$race_eth_m) & !is.na(sample$samerace) & sample$mrp_type_ongoing %in% "Persistent"])
+
+  #Full model  
+  glm.samerace_pers <- glm(samerace ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
+  #Model without region
+  glm.samerace_pers_noregion <- glm(samerace ~ age_cat + race_eth_m.reg, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
+
+  lrt.samerace_pers <- lrtest(glm.samerace_pers, glm.samerace_pers_noregion)
+  lrt.samerace_pers
+```
+
+Region is __`r ifelse(lrt.samerace_pers$'Pr(>Chisq)'[2]<siglevel, print("significantly"), print("not"))` associated__ with having a persistent partner of the same racial/ethnic group after adjusting for age and race.
+
+### Instantaneous partners
+```{r samerace_inst, eval=TRUE}
+  #Look at the number of observations by region that are non-missing for this outcome and for model predictors
+  table(sample$region[!is.na(sample$race_eth_m) & !is.na(sample$samerace) & sample$mrp_type_r %in% "One time"])
+
+  #Full model  
+  glm.samerace_inst <- glm(samerace ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, family=binomial(link="logit"), data=sample[sample$mrp_type_r %in% "One time", ])
+  #Model without region
+  glm.samerace_inst_noregion <- glm(samerace ~ age_cat + race_eth_m.reg, family=binomial(link="logit"), data=sample[sample$mrp_type_r %in% "One time", ])
+
+  lrt.samerace_inst <- lrtest(glm.samerace_inst, glm.samerace_inst_noregion)
+  lrt.samerace_inst
+```
+
+Region is __`r ifelse(lrt.samerace_inst$'Pr(>Chisq)'[2]<siglevel, print("significantly"), print("not"))` associated__ with having an instantaneous partner of the same racial/ethnic group after adjusting for age and race.
+
+## Age mixing
+As with race/ethnicity, examination of age differences with main and persistent partners is restricted to most recent partners who are _ongoing_. For this analysis, <span style="color:red">we model age mixing using a linear model with the outcome being the absolute difference between the square root of the ego and alter's ages.</span> 
+
+### Main partners
+```{r agemix_main, eval=TRUE}
+  #Look at the number of observations by region that are non-missing for this outcome and for model predictors
+  table(sample$region[!is.na(sample$race_eth_m) & !is.na(sample$sqrt_agediff) & sample$mrp_type_ongoing %in% "Main"])
+
+  #Full model  
+  lm.agemix_main <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, data=sample[sample$mrp_type_ongoing %in% "Main", ])
+  #Model without region
+  lm.agemix_main_noregion <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg, data=sample[sample$mrp_type_ongoing %in% "Main", ])
+
+  lrt.agemix_main <- lrtest(lm.agemix_main, lm.agemix_main_noregion)
+  lrt.agemix_main
+```
+
+Region is __`r ifelse(lrt.agemix_main$'Pr(>Chisq)'[2]<siglevel, print("significantly"), print("not"))` associated__ with age mixing with main partners after adjusting for ego age and race.
+
+### Persistent partners
+```{r agemix_pers, eval=TRUE}
+  #Look at the number of observations by region that are non-missing for this outcome and for model predictors
+  table(sample$region[!is.na(sample$race_eth_m) & !is.na(sample$sqrt_agediff) & sample$mrp_type_ongoing %in% "Persistent"])
+
+  #Full model  
+  lm.agemix_pers <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
+  #Model without region
+  lm.agemix_pers_noregion <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg, data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
+
+  lrt.agemix_pers <- lrtest(lm.agemix_pers, lm.agemix_pers_noregion)
+  lrt.agemix_pers
+```
+
+Region is __`r ifelse(lrt.agemix_pers$'Pr(>Chisq)'[2]<siglevel, print("significantly"), print("not"))` associated__ with age mixing with persistent partners after adjusting for ego age and race.
+
+### Instantaneous partners
+```{r agemix_inst, eval=TRUE}
+  #Look at the number of observations by region that are non-missing for this outcome and for model predictors
+  table(sample$region[!is.na(sample$race_eth_m) & !is.na(sample$sqrt_agediff) & sample$mrp_type_r %in% "One time"])
+
+  #Full model  
+  lm.agemix_inst <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, data=sample[sample$mrp_type_r %in% "One time", ])
+  #Model without region
+  lm.agemix_inst_noregion <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg, data=sample[sample$mrp_type_r %in% "One time", ])
+
+  lrt.agemix_inst <- lrtest(lm.agemix_inst, lm.agemix_inst_noregion)
+  lrt.agemix_inst
+```
+
+Region is __`r ifelse(lrt.agemix_inst$'Pr(>Chisq)'[2]<siglevel, print("significantly"), print("not"))` associated__ with age mixing with instantaneous partners after adjusting for ego age and race.
+
+## Partnership age
+Partnership age was modeled as a linear outcome.
+
+### Main partners
+```{r pshipage_main, eval=TRUE}
+  #Look at the number of observations by region that are non-missing for this outcome and for model predictors
+  table(sample$region[!is.na(sample$race_eth_m) & !is.na(sample$pship_age_main)])
+
+  #Full model  
+  lm.pshipage_main <- lm(pship_age_main ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, data=sample)
+  #Model without region
+  lm.pshipage_main_noregion <- lm(pship_age_main ~ age_cat + race_eth_m.reg, data=sample)
+
+  lrt.pshipage_main <- lrtest(lm.pshipage_main, lm.pshipage_main_noregion)
+  lrt.pshipage_main
+```
+
+Region is __`r ifelse(lrt.pshipage_main$'Pr(>Chisq)'[2]<siglevel, print("significantly"), print("not"))` associated__ with the age of main partnerships after adjusting for ego age and race.
+                
+### Persistent partners
+```{r pshipage_pers, eval=TRUE}
+
+  #Look at the number of observations by region that are non-missing for this outcome and for model predictors
+  table(sample$region[!is.na(sample$race_eth_m) & !is.na(sample$pship_age_pers)])
+
+  #Full model  
+  lm.pshipage_pers <- lm(pship_age_pers ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, data=sample)
+  #Model without region
+  lm.pshipage_pers_noregion <- lm(pship_age_pers ~ age_cat + race_eth_m.reg, data=sample)
+
+  lrt.pshipage_pers <- lrtest(lm.pshipage_pers, lm.pshipage_pers_noregion)
+  lrt.pshipage_pers
+```
+
+Region is __`r ifelse(lrt.pshipage_pers$'Pr(>Chisq)'[2]<siglevel, print("significantly"), print("not"))` associated__ with the age of persistent partnerships after adjusting for ego age and race.
+
+## Proportion never tested
+The parameter indicating the proportion of men who never test is meant to indicate the proportion of men who will not be screened for HIV. In previous network models, this was defined as the proportion who never tested by age 40, since the model was capped at age 39. For this model, that may not be appropriate. In the graph below, it seems that if men don't test by ~age 45, they are unlikely to get tested. It's a bit tricky to interpret, however, because the number of respondents for some ages is small. <span style="color:red">But it may be more appropriate to define the proportion who don't test in a given age range and have men move in and out of the no testing group. For the current analysis, I simply modeled the probability that men had ever tested at their current age.</span>
+
+```{r nevertest}
+  #Construct graph to show ever testing by age
+  evertested <- sample_allages %>%
+              filter(!is.na(evertest_r) & !is.na(race_eth_m)) %>%
+              group_by(age) %>%
+              summarise(prop = mean(evertest_r, na.rm=TRUE))
+  ggplot(evertested, aes(x=age, y=prop)) + geom_point(shape=16, size=3) + geom_smooth(method="loess") +
+              plot_background + theme_title +
+            labs(x="Age", y="Percent ever tested", title="Percent ever tested by age")        
+
+  #Look at the number of observations by region that are non-missing for this outcome and for model predictors
+  table(sample$region[!is.na(sample$race_eth_m) & !is.na(sample$evertest_r)])
+
+  #Full model  
+  glm.evertest <- glm(evertest_r ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, family=binomial(link="logit"), data=sample)
+  #Model without region
+  glm.evertest_noregion <- glm(evertest_r ~ age_cat + race_eth_m.reg, family=binomial(link="logit"), data=sample)
+
+  lrt.evertest <- lrtest(glm.evertest, glm.evertest_noregion)
+  lrt.evertest
+```
+
+Region is __`r ifelse(lrt.evertest$'Pr(>Chisq)'[2]<siglevel, print("significantly"), print("not"))` associated__ with the probability of having ever tested for HIV after adjusting for ego age and race.
+
+## Intertest interval
+The last test interval is estimated as the days since men reported their last HIV test, assuming men have a constant hazard of testing. This analysis is restricted to men who reported having ever tested.
+
+```{r iti, eval=TRUE}
+
+  #Look at the number of observations by region that are non-missing for this outcome and for model predictors
+  table(sample$region[!is.na(sample$race_eth_m) & !is.na(sample$iti)])
+
+  #Full model  
+  lm.iti <- lm(iti ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, data=sample)
+  #Model without region
+  lm.iti_noregion <- lm(iti ~ age_cat + race_eth_m.reg, data=sample)
+
+  lrt.iti <- lrtest(lm.iti, lm.iti_noregion)
+  lrt.iti
+```
+
+Region is __`r ifelse(lrt.iti$'Pr(>Chisq)'[2]<siglevel, print("significantly"), print("not"))` associated__ with the intertest interval after adjusting for ego age and race.
+
+## Coital frequency
+Data on coital frequency are from all most recent partnerships, not just those that are ongoing. 
+
+### Main partners
+```{r coitalfreq_main}
+
+ #Look at the number of observations by region that are non-missing for this outcome and for model predictors
+  table(sample$region[!is.na(sample$race_eth_m) & !is.na(sample$airate_main)])
+
+  #Full model  
+  lm.airate_main <- lm(airate_main ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, data=sample)
+  #Model without region
+  lm.airate_main_noregion <- lm(airate_main ~ age_cat + race_eth_m.reg, data=sample)
+
+  lrt.airate_main <- lrtest(lm.airate_main, lm.airate_main_noregion)
+  lrt.airate_main
+  
+```
+
+Region is __`r ifelse(lrt.airate_main$'Pr(>Chisq)'[2]<siglevel, print("significantly"), print("not"))` associated__ with coital frequency in main partnerships after adjusting for ego age and race.
+
+### Persistent partners
+```{r coitalfreq_pers}
+
+ #Look at the number of observations by region that are non-missing for this outcome and for model predictors
+  table(sample$region[!is.na(sample$race_eth_m) & !is.na(sample$airate_pers)])
+
+  #Full model  
+  lm.airate_pers <- lm(airate_pers ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, data=sample)
+  #Model without region
+  lm.airate_pers_noregion <- lm(airate_pers ~ age_cat + race_eth_m.reg, data=sample)
+
+  lrt.airate_pers <- lrtest(lm.airate_pers, lm.airate_pers_noregion)
+  lrt.airate_pers
+  
+```
+
+Region is __`r ifelse(lrt.airate_pers$'Pr(>Chisq)'[2]<siglevel, print("significantly"), print("not"))` associated__ with coital frequency in persistent partnerships after adjusting for ego age and race.
+
+## Sex role
+Sex role is categorized as exclusively bottom, exclusively top, or versatile, based on men's reported role in anal sex over the past 12 months. Responses of "mostly a botom", "mostly a top", and "equally a bottom and a top" were categorized as versatile. <span style="color:red">For this analysis, a dichotomous indicator was constructed to measure whether men report any bottoming (bottoms and versatile men) or report exclusively topping.</span>
+
+```{r sexrole}
+  sample$position_top <- ifelse(sample$position_cat=="Exclusively top", 1, 
+                                      ifelse(!is.na(sample$position_cat), 0, NA))
+  sample$position_bottom <- ifelse(sample$position_cat=="Exclusively bottom", 1, 
+                                      ifelse(!is.na(sample$position_cat), 0, NA))
+  
+  #Look at the number of observations by region that are non-missing for this outcome and for model predictors
+  table(sample$region[!is.na(sample$race_eth_m) & !is.na(sample$position_top)])
+
+  #Full model  
+  glm.top <- glm(position_top ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, family=binomial(link="logit"), data=sample)
+  #Model without region
+  glm.top_noregion <- glm(position_top ~ age_cat + race_eth_m.reg, family=binomial(link="logit"), data=sample)
+
+  lrt.top <- lrtest(glm.top, glm.top_noregion)
+  lrt.top
+  
+```
+
+Region is __`r ifelse(lrt.top$'Pr(>Chisq)'[2]<siglevel, print("significantly"), print("not"))` associated__ with being a top in anal sex after adjusting for ego age and race.
+
+## Condom use
+Data on condom use are restricted to dyads in which both the respondent and his partner were HIV-negative or of unknown status. This analysis includes data from all such partnerships, not just those that were ongoing. 
+
+### Main partners
+```{r condoms_main}
+
+ #Look at the number of observations by region that are non-missing for this outcome and for model predictors
+  table(sample$region[!is.na(sample$race_eth_m) & !is.na(sample$condoms_main)])
+
+  #Full model  
+  lm.condoms_main <- lm(condoms_main ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, data=sample)
+  #Model without region
+  lm.condoms_main_noregion <- lm(condoms_main ~ age_cat + race_eth_m.reg, data=sample)
+
+  lrt.condoms_main <- lrtest(lm.condoms_main, lm.condoms_main_noregion)
+  lrt.condoms_main
+  
+```
+
+Region is __`r ifelse(lrt.condoms_main$'Pr(>Chisq)'[2]<siglevel, print("significantly"), print("not"))` associated__ with condom use in main partnerships after adjusting for ego age and race.
+
+### Persistent partners
+```{r condoms_pers}
+
+ #Look at the number of observations by region that are non-missing for this outcome and for model predictors
+  table(sample$region[!is.na(sample$race_eth_m) & !is.na(sample$condoms_pers)])
+
+  #Full model  
+  lm.condoms_pers <- lm(condoms_pers ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, data=sample)
+  #Model without region
+  lm.condoms_pers_noregion <- lm(condoms_pers ~ age_cat + race_eth_m.reg, data=sample)
+
+  lrt.condoms_pers <- lrtest(lm.condoms_pers, lm.condoms_pers_noregion)
+  lrt.condoms_pers
+  
+```
+
+Region is __`r ifelse(lrt.condoms_pers$'Pr(>Chisq)'[2]<siglevel, print("significantly"), print("not"))` associated__ with condom use in persistent partnerships after adjusting for ego age and race.
+
+### Instantaneous partners
+```{r condoms_inst}
+
+ #Look at the number of observations by region that are non-missing for this outcome and for model predictors
+  table(sample$region[!is.na(sample$race_eth_m) & !is.na(sample$condoms_inst)])
+
+  #Full model  
+  glm.condoms_inst <- glm(condoms_inst ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, family=binomial(link="logit"), data=sample)
+  #Model without region
+  glm.condoms_inst_noregion <- glm(condoms_inst ~ age_cat + race_eth_m.reg, family=binomial(link="logit"), data=sample)
+
+  lrt.condoms_inst <- lrtest(glm.condoms_inst, glm.condoms_inst_noregion)
+  lrt.condoms_inst
+  
+```
+
+Region is __`r ifelse(lrt.condoms_inst$'Pr(>Chisq)'[2]<siglevel, print("significantly"), print("not"))` associated__ with condom use in instantaneous partnerships after adjusting for ego age and race.
+
+## PrEP use
+To look at differences in PrEP use, the outcome is reported current use of PrEP _among those for whom PrEP is recommended_.
+```{r prep}
+
+ #Look at the number of observations by region that are non-missing for this outcome and for model predictors
+  table(sample$region[!is.na(sample$race_eth_m) & !is.na(sample$prep_use_curr) & sample$prepelig_r %in% "Recommend"])
+
+  #Full model  
+  glm.prep <- glm(prep_use_curr ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, family=binomial(link="logit"), data=sample, subset=prepelig_r %in% "Recommend")
+  #Model without region
+  glm.prep_noregion <- glm(prep_use_curr ~ age_cat + race_eth_m.reg, family=binomial(link="logit"), data=sample, subset=prepelig_r %in% "Recommend")
+
+  lrt.prep <- lrtest(glm.prep, glm.prep_noregion)
+  lrt.prep
+  
+```
+
+Region is __`r ifelse(lrt.prep$'Pr(>Chisq)'[2]<siglevel, print("significantly"), print("not"))` associated__ with PrEP use among those for whom it is recommeneded after adjusting for ego age and race.
