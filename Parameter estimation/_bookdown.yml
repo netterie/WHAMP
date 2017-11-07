@@ -2,7 +2,10 @@ rmd_files: [ "_Washington_census_data_prep.Rmd",
 "_Internet_survey_data_prep.Rmd",
 "index.Rmd",
 "01-Network_composition.Rmd",
-"References.Rmd"
-"Notes on mixing.Rmd"
+"References.Rmd",
+"Notes_on_mixing.Rmd",
+"Notes_on_condom_use_and_coital_frequency.Rmd",
+"Regional_variability.Rmd",
+"Decisions.Rmd"
 ]
 
