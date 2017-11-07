@@ -256,6 +256,9 @@
 
 #Define sample age limit
     sample <- sample_allages %>%filter(age>17 & age<60)
+    
+#Drop 18 observations with missing race/ethnicity -- to reweight the sample, can only use non-missing obs
+    sample <- sample %>% filter(!is.na(hbo))
 
 #-----------------------------------------------------------------------------------
 # Save datasets
