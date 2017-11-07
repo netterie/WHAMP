@@ -1,0 +1,180 @@
+# Coital frequency and condom use: ongoing or all partnerships?
+
+```{r, include=FALSE}
+####################################################################################
+# Setup
+####################################################################################
+#-----------------------------------------------------------------------------------
+# Load packages
+#-----------------------------------------------------------------------------------
+
+    library("tidyverse")
+    library("knitr")
+    library("kableExtra")
+ 
+#-----------------------------------------------------------------------------------
+# Knitr options
+#-----------------------------------------------------------------------------------
+opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
+options(knitr.table.format = "html") 
+
+#-----------------------------------------------------------------------------------
+# Load data
+#-----------------------------------------------------------------------------------
+    load(file="Data/InternetSurveySample.Rdata")
+
+#-----------------------------------------------------------------------------------
+# Plot settings
+#-----------------------------------------------------------------------------------
+plot_background <- theme(panel.background = element_rect(fill="white", colour = "black")) +
+            theme(panel.grid.major = element_line(colour = "grey90"))
+theme_title <- theme(plot.title = element_text(hjust = 0.5, size=12)) 
+
+#Define multiplot function
+    multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+        library(grid)
+        
+        # Make a list from the ... arguments and plotlist
+        plots <- c(list(...), plotlist)
+        
+        numPlots = length(plots)
+        
+        # If layout is NULL, then use 'cols' to determine layout
+        if (is.null(layout)) {
+            # Make the panel
+            # ncol: Number of columns of plots
+            # nrow: Number of rows needed, calculated from # of cols
+            layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                             ncol = cols, nrow = ceiling(numPlots/cols))
+        }
+        
+        if (numPlots==1) {
+            print(plots[[1]])
+            
+        } else {
+            # Set up the page
+            grid.newpage()
+            pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+            
+            # Make each plot, in the correct location
+            for (i in 1:numPlots) {
+                # Get the i,j matrix positions of the regions that contain this subplot
+                matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+                
+                print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                                layout.pos.col = matchidx$col))
+            }
+        }
+    }
+        
+```
+This file examines whether and to what extent estimates of coital frequency and condom use differ when restricted to ongoing partnerships or inclusive of all partnerships.
+
+## Coital frequency
+
+```{r coitalfreq_Nbyrace, include=FALSE}
+
+#First, we'll look at the number of respondents by race/ethnicity when we include all dyads and when we restrict to ongoing only. From this, we see that the numbers for black respondents are small, particularly when restricting to ongoing partners.
+
+    coitalfreq_mainXrace_ongoing <- data.frame(table(sample$race_eth_m[!is.na(sample$airate_main) & sample$mrp_type_ongoing %in% "Main"]))
+    coitalfreq_mainXrace_all <- data.frame(table(sample$race_eth_m[!is.na(sample$airate_main)]))
+    coitalfreq_persXrace_ongoing <- data.frame(table(sample$race_eth_m[!is.na(sample$airate_pers) & sample$mrp_type_ongoing %in% "Persistent"]))
+    coitalfreq_persXrace_all <- data.frame(table(sample$race_eth_m[!is.na(sample$airate_pers)]))
+    
+    coitalfreqXrace <- cbind.data.frame(Race = (coitalfreq_mainXrace_ongoing$Var1), main_all = coitalfreq_mainXrace_all$Freq, main_ongoing = coitalfreq_mainXrace_ongoing$Freq, pers_all = coitalfreq_persXrace_all$Freq, pers_ongoing = coitalfreq_persXrace_ongoing$Freq)
+    
+  kable(coitalfreqXrace, col.names=c("Race/ethnicity", "Main all", "Main ongoing", "Persistent all", "Persistent ongoing"), caption="Number of respondents by race and partner type") %>% kable_styling(full_width=F, position="center")
+```
+
+Table @ref(tab:coitalfreq_compare), below, compares the estimates of coital frequency when restricting to ongoing partnerships to the estimates using data all partnerships (reported as the most recent partner). The column "Sig diff?" indicates whether or not the 95% confidence interval for the mean estimate using all partnerships encompasses the mean estimate restricted to ongoing partnerships. The first thing to note is that the number of respondents is small for blacks and Hispanics, particularly when restricting to ongoint partners. The mean estimates for main partners are fairly similar whether or not the partnership is main, but the estimates for persistent partners seem considerably lower when restricting to ongoing partners. these differences are only significant for Hispanic men, however. 
+```{r coitalfreq_compare}
+#Calculate means and standard errors
+    coitalfreq_main_all <- sample %>% 
+        filter(!is.na(race_eth_m) & !is.na(airate_main)) %>%
+        group_by(race_eth_m) %>% 
+        summarise(n=n(), mean = mean(airate_main, na.rm=TRUE), se = sd(airate_main, na.rm=TRUE)/sqrt(length(airate_main)))
+
+    coitalfreq_main_ongoing <- sample %>% 
+        filter(!is.na(race_eth_m) & !is.na(airate_main) & mrp_type_ongoing %in% "Main") %>%
+        group_by(race_eth_m) %>% 
+        summarise(n=n(), mean = mean(airate_main, na.rm=TRUE), se = sd(airate_main, na.rm=TRUE)/sqrt(length(airate_main)))
+
+    coitalfreq_pers_all <- sample %>% 
+        filter(!is.na(race_eth_m) & !is.na(airate_pers)) %>%
+        group_by(race_eth_m) %>% 
+        summarise(n=n(), mean = mean(airate_pers, na.rm=TRUE), se = sd(airate_pers, na.rm=TRUE)/sqrt(length(airate_pers)))
+
+    coitalfreq_pers_ongoing <- sample %>% 
+        filter(!is.na(race_eth_m) & !is.na(airate_pers) & mrp_type_ongoing %in% "Persistent") %>%
+        group_by(race_eth_m) %>% 
+        summarise(n=n(), mean = mean(airate_pers, na.rm=TRUE), se = sd(airate_pers, na.rm=TRUE)/sqrt(length(airate_pers)))
+
+#Calculate 95% CI for estimates based on all partnerships and compare to mean estamates using ongoing
+    coitalfreq_main_lowerCI <- (coitalfreq_main_all$mean - (1.96*coitalfreq_main_all$se))
+    coitalfreq_main_upperCI <- (coitalfreq_main_all$mean + (1.96*coitalfreq_main_all$se))
+    coitalfreq_sigdiff_main <- ifelse(coitalfreq_main_ongoing$mean>=coitalfreq_main_lowerCI & coitalfreq_main_ongoing$mean<=coitalfreq_main_upperCI, "No", "Yes")
+    
+    coitalfreq_pers_lowerCI <- (coitalfreq_pers_all$mean - (1.96*coitalfreq_pers_all$se))
+    coitalfreq_pers_upperCI <- (coitalfreq_pers_all$mean + (1.96*coitalfreq_pers_all$se))
+    coitalfreq_sigdiff_pers <- ifelse(coitalfreq_pers_ongoing$mean>=coitalfreq_pers_lowerCI & coitalfreq_pers_ongoing$mean<=coitalfreq_pers_upperCI, "No", "Yes")
+
+#Bind estimates into data frame
+    coitalfreq_means <- cbind.data.frame(race = coitalfreq_main_all$race_eth_m, main_all_n = coitalfreq_main_all$n, main_all_mean = coitalfreq_main_all$mean, main_all_se = coitalfreq_main_all$se, main_ongoing_n = coitalfreq_main_ongoing$n, main_ongoing_mean = coitalfreq_main_ongoing$mean, main_ongoing_se = coitalfreq_main_ongoing$se, sigdiff_main = coitalfreq_sigdiff_main, pers_all_n = coitalfreq_pers_all$n, pers_all_mean = coitalfreq_pers_all$mean, pers_all_se = coitalfreq_pers_all$se, pers_ongoing_n = coitalfreq_pers_ongoing$n, pers_ongoing_mean = coitalfreq_pers_ongoing$mean, pers_ongoing_se = coitalfreq_pers_ongoing$se, sigdiff_pers = coitalfreq_sigdiff_pers)
+    
+    kable(coitalfreq_means, col.names=c("Race/ethnicity", "Freq", "Mean", "SE", "Freq", "Mean", "SE", "Sig diff?", "Freq", "Mean", "SE", "Freq", "Mean", "SE", "Sig diff?"), digits = c(0, 0, 3, 3, 0, 3, 3, 0, 0, 3, 3, 0, 3, 3, 0), caption="Coital frequency estimates by partner type and status") %>% kable_styling(full_width=F, position="center") %>% add_header_above(c("", "Main, all" = 3, "Main, ongoing" = 3, "", "Persistent, all" = 3, "Persistent, ongoing" = 3, "")) %>% column_spec(c(3, 6, 10, 13), bold=TRUE)
+
+    
+    #Look at the number of persistent partners with whom men reported sex only once
+    numonce <- table(sample$mrp_morethanonce[!is.na(sample$airate_pers)], sample$race_eth_m[!is.na(sample$airate_pers)])
+```
+
+NOTE: The definition of persistent partners included men with whom respondents reported having sex only once and with whom they expect to have sex with again. Hispanic men reported `r numonce[1]` such partners, black men reported `r numonce[3]`, and other race men reported `r numonce[5]`.
+
+
+
+## Condom use
+
+Data on condom use were restricted to negative/unknown status dyads. The model includes additional parameters to describe the change in condom use when HIV-positive men are diagnosed or when they disclose their status, so the base estimate should correspond to men who do not know they are positive. While some men who report a negative status may have tested recently and may behave differently than those who may be undiagnosed, we believe using data from all men who report themselves and their partnesr to have a negative or unknown HIV status is appropriate.
+
+Table @ref(tab:condoms_compare) provides a comparison of the estimates of condom use in all partnerships and when restricted to ongoing parnerships. The column "Sig diff?" indicates whether or not the 95% confidence interval for the mean estimate using all partnerships encompasses the mean estimate restricted to ongoing partnerships. As with coital frequency, the number of respondents is small for blacks and Hispanics, particularly when restricting to ongoint partners. The mean estimates appear fairly similar when restricting to only ongoing vs. including all dyads, with the possible exception of persistent Hispanic and black main partnerships. None of these differences are significantly different.
+
+```{r condoms_compare}
+#Calculate means and standard errors
+    condoms_main_all <- sample %>% 
+        filter(!is.na(race_eth_m) & !is.na(condoms_main)) %>%
+        group_by(race_eth_m) %>% 
+        summarise(n=n(), mean = mean(condoms_main, na.rm=TRUE), se = sd(condoms_main, na.rm=TRUE)/sqrt(length(condoms_main)))
+
+    condoms_main_ongoing <- sample %>% 
+        filter(!is.na(race_eth_m) & !is.na(condoms_main) & mrp_type_ongoing %in% "Main") %>%
+        group_by(race_eth_m) %>% 
+        summarise(n=n(), mean = mean(condoms_main, na.rm=TRUE), se = sd(condoms_main, na.rm=TRUE)/sqrt(length(condoms_main)))
+
+    condoms_pers_all <- sample %>% 
+        filter(!is.na(race_eth_m) & !is.na(condoms_pers)) %>%
+        group_by(race_eth_m) %>% 
+        summarise(n=n(), mean = mean(condoms_pers, na.rm=TRUE), se = sd(condoms_pers, na.rm=TRUE)/sqrt(length(condoms_pers)))
+
+    condoms_pers_ongoing <- sample %>% 
+        filter(!is.na(race_eth_m) & !is.na(condoms_pers) & mrp_type_ongoing %in% "Persistent") %>%
+        group_by(race_eth_m) %>% 
+        summarise(n=n(), mean = mean(condoms_pers, na.rm=TRUE), se = sd(condoms_pers, na.rm=TRUE)/sqrt(length(condoms_pers)))
+    
+#Calculate 95% CI for estimates based on all partnerships and compare to mean estamates using ongoing
+    condoms_main_lowerCI <- (condoms_main_all$mean - (1.96*condoms_main_all$se))
+    condoms_main_upperCI <- (condoms_main_all$mean + (1.96*condoms_main_all$se))
+    condoms_sigdiff_main <- ifelse(condoms_main_ongoing$mean>=condoms_main_lowerCI & condoms_main_ongoing$mean<=condoms_main_upperCI, "No", "Yes")
+    
+    condoms_pers_lowerCI <- (condoms_pers_all$mean - (1.96*condoms_pers_all$se))
+    condoms_pers_upperCI <- (condoms_pers_all$mean + (1.96*condoms_pers_all$se))
+    condoms_sigdiff_pers <- ifelse(condoms_pers_ongoing$mean>=condoms_pers_lowerCI & condoms_pers_ongoing$mean<=condoms_pers_upperCI, "No", "Yes")
+
+#Bind estimates into data frame
+    condoms_means <- cbind.data.frame(race = condoms_main_all$race_eth_m, main_all_n = condoms_main_all$n, main_all_mean = condoms_main_all$mean, main_all_se = condoms_main_all$se, main_ongoing_n = condoms_main_ongoing$n, main_ongoing_mean = condoms_main_ongoing$mean, main_ongoing_se = condoms_main_ongoing$se, sigdiff_main = condoms_sigdiff_main, pers_all_n = condoms_pers_all$n, pers_all_mean = condoms_pers_all$mean, pers_all_se = condoms_pers_all$se, pers_ongoing_n = condoms_pers_ongoing$n, pers_ongoing_mean = condoms_pers_ongoing$mean, pers_ongoing_se = condoms_pers_ongoing$se, sigdiff_pers = condoms_sigdiff_pers)
+    
+    kable(condoms_means, col.names=c("Race/ethnicity", "Freq", "Mean", "SE", "Freq", "Mean", "SE", "Sig diff?", "Freq", "Mean", "SE", "Freq", "Mean", "SE", "Sig diff?"), digits = c(0, 0, 3, 3, 0, 3, 3, 0, 0, 3, 3, 0, 3, 3, 0), caption="Condom use estimates by partner type and status") %>% kable_styling(full_width=F, position="center") %>% add_header_above(c("", "Main, all" = 3, "Main, ongoing" = 3, "", "Persistent, all" = 3, "Persistent, ongoing" = 3, "")) %>% column_spec(c(3, 6, 10, 13), bold=TRUE)
+
+```
+
+## Conclusions
+From these analyses, we decided not to limit to ongoing parterships. There are some differences in estimates betweeen analyses using all or only ongoing partnerships, but only one (coital frequency in persistent partnerships reported by Hispanic men) are signficantly differnt. Restricting to ongoing partnerships also biases us towards partnerships that are more likely to have a longer duration, and reduces the sample size. 
