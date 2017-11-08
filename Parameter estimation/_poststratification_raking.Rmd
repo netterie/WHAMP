@@ -1,5 +1,11 @@
 # Post-stratification and raking
 
+To adjust the composition of the sample to more closely match the estimated population totals, we would ideally adjust the sample to correspond to the full joint distributions of age, race/ethnicity, and region. However, this would stretch the data very thin, resulting in unstable estimates. We felt it was important to capture the joint distribution of race and region, as the racial/ethnic composition of each region differs, as illustrated in section \@ref(#racedist). There are some differences in the age composition of each region (section \@ref(#agedist)), but these differences are not quite as stark as for the racial/ethnic composition. Furthermore, trying to match the age distribution by region poses challenges in a dynamic model - to preserve the distribution by region, we would need to account for patterns of migration that lead to that distribution. 
+
+Instead, we decided to post-stratify to the joint distribution of race/ethnicity and region, and then rake the post-stratified object to match the marginal distribution by age. For this, we categorized age into the following groups: 18-24, 25-29, 30-34, 35-39, 40-49, 50-59. We grouped ages above 40 into 10-year age groups to increase the stabiltiy of the estimates, as there are fewer respondents in these ages, and because the number of respondents aged 40-44 and 45-49 are roughly equal, as are the number of respondents aged 50-54 and 55-59. 
+
+Post-stratification and raking were both carried out using the `survey` package. This package requires that you first specify a survey design. The package is not designed to work with convenience samples, so the most appropriate option seemed to be to speficy the interet sample as a simple random sample, as we did not implement any stratified or cluster sampling. After creating a survey design object, we specify the population totals for each racial/ethnicy group by region and for the margins of the age distribution. We then use the `postStratify` and `rake` functions to obtain adjusted sampling weights. To adjust the sample to more closely match the target distributions, we re-sample from the original sample dataframe with replacement, with sampling probabilities given by the post-stratification and raking procedures. 
+
 ```{r, include=FALSE}
 ####################################################################################
 # Setup
@@ -12,6 +18,7 @@
     library("knitr")
     library("data.table")
     library("survey")
+    library("kableExtra")
 
 #-----------------------------------------------------------------------------------
 # Knitr options
@@ -29,29 +36,175 @@ options(knitr.table.format = "html")
     load(file="Data/census_totalbyregion.Rdata")
     load(file="Data/wa_msm_est2013.Rdata")
     load(file="Data/msmbyregion.Rdata")
-
+    
+#-----------------------------------------------------------------------------------
+#set plot settings 
+#-----------------------------------------------------------------------------------
+    
+    #White background and light grey lines
+    plot_background_nogrid <- theme(panel.background = element_rect(fill="white", colour = "black")) 
+    #Darken colors
+    darken_color <- scale_colour_hue(l=50)
+    #Title size to 12 and center it 
+    theme_title <- theme(plot.title = element_text(hjust = 0.5, size=12)) 
+    
 ####################################################################################
 # Analyses
 ####################################################################################
 
 #-----------------------------------------------------------------------------------
+# Redefine age groups
+#-----------------------------------------------------------------------------------
+   sample$age_groups <-  cut(sample$age, c(17, 24, 29, 34, 39, 49, 59), labels=c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"))   
+    
+#-----------------------------------------------------------------------------------
 # Define survey object - set it up as though SRS
 #-----------------------------------------------------------------------------------
     samplesvy <- svydesign(id=~1, data=sample)
-    
+
 #-----------------------------------------------------------------------------------
 # Define "population" totals from census data and Jeremy Grey's analysis
 #-----------------------------------------------------------------------------------
 
+#Region
     pop.region <- MSMbyregion %>% select(region, numMSM) %>% mutate(numMSM = round(numMSM))
     levels(pop.region$region)[levels(pop.region$region)=="Other Western WA"] <- "Western WA"
     
+#Race and region
     pop.raceregion <- cbind.data.frame(region=c(rep("King County", 3), rep("Western WA", 3), rep("Eastern WA", 3)), hbo=c(rep(c("Hispanic", "Black", "Other"), 3)), Freq=c(round(wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "King County"]*pop.region$numMSM[pop.region$region %in% "King County"]), round(wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "King County"]*pop.region$numMSM[pop.region$region %in% "King County"]), round(wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "King County"]*pop.region$numMSM[pop.region$region %in% "King County"]), round(wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "Other Western"]*pop.region$numMSM[pop.region$region %in% "Western WA"]), round(wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "Other Western"]*pop.region$numMSM[pop.region$region %in% "Western WA"]), round(wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "Other Western"]*pop.region$numMSM[pop.region$region %in% "Western WA"]), round(wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "Eastern"]*pop.region$numMSM[pop.region$region %in% "Eastern WA"]), round(wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "Eastern"]*pop.region$numMSM[pop.region$region %in% "Eastern WA"]), round(wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "Eastern"]*pop.region$numMSM[pop.region$region %in% "Eastern WA"])))
-    
+
+#Race
     pop.hbo <- (pop.raceregion %>% group_by(hbo) %>% summarise(Freq=sum(Freq)))
 
+
+#Age
+    wa_acs_agebyregion$age_groups <- ifelse(wa_acs_agebyregion$Age_group %in% c("males.40to44", "males.45to49"), "40-49", ifelse(wa_acs_agebyregion$Age_group %in% c("males.50to54", "males.55to59"), "50-59", ifelse(wa_acs_agebyregion$Age_group %in% "males.18to24", "18-24", ifelse(wa_acs_agebyregion$Age_group %in% "males.25to29", "25-29", ifelse(wa_acs_agebyregion$Age_group %in% "males.30to34", "30-34", ifelse(wa_acs_agebyregion$Age_group %in% "males.35to39", "35-39", NA))))))
+    pop.age_groups <- wa_acs_agebyregion %>% group_by(age_groups) %>% summarise(Freq = sum(Frequency))
+
+#-----------------------------------------------------------------------------------
+# Post-stratify and rake
+#-----------------------------------------------------------------------------------
+    sample_psraceregion <- postStratify(samplesvy, ~hbo + region, pop.raceregion)
+    sample_rakeage <- rake(sample_psraceregion, list(~age_groups), list(pop.age_groups))
+
+#-----------------------------------------------------------------------------------
+# Reweight sample
+#-----------------------------------------------------------------------------------
+#Append probabilities to the main dataset, restricted to a version without NAs for race 
+    sample$ps.prob <- sample_psraceregion$prob
+    sample$ps.wt <- 1/(sample_psraceregion$prob)
+    sample$rake.prob <- sample_rakeage$prob
+    sample$rake.wt <- 1/(sample_rakeage$prob)
+
+#Reweight sample - comment out to avoid re-sampling each time the file is run
+    # #Using post-stratification weights on race and region only
+    # reweight_ps <- sample %>% sample_n(5000, replace=TRUE, weight=ps.wt)
+    # #Using weights from raking on age on post-stratified dataset
+    # reweight_ps_rake <- sample %>% sample_n(5000, replace=TRUE, weight=rake.wt)
+    # 
+    # save(reweight_ps, file="Data/InternetSurveySample_poststrat.Rdata")
+    # save(reweight_ps_rake, file="Data/InternetSurveySample_reweighted.Rdata")
+
+```
+
+The weights resulting from post-stratification on race and region are summarized below.
+```{r ps_weights}
+    load(file="Data/InternetSurveySample_poststrat.Rdata")
+    summary(reweight_ps$ps.wt)
     
-    samplesvy_noNA <- samplesvy[!is.na(samplesvy$variables$hbo),]
-    sample_psraceregion <- postStratify(samplesvy_noNA, ~hbo + region, pop.raceregion)
+    # #look at characteristics of those with highest weight
+    # table(reweight_ps$hbo[reweight_ps$ps.wt %in% (max(reweight_ps$ps.wt))], (reweight_ps$region[reweight_ps$ps.wt %in% (max(reweight_ps$ps.wt))]))
+    #     #look at number with these characteristics in original sample
+    #     sample %>% filter(hbo %in% "Black" & region %in% "King County") %>% summarise(Freq = n())
+    #     
+    # #look at characteristics of those with the lowest weight
+    # table(reweight_ps$hbo[reweight_ps$ps.wt %in% (min(reweight_ps$ps.wt))], (reweight_ps$region[reweight_ps$ps.wt %in% (min(reweight_ps$ps.wt))]))
+    #     #look at number with these characteristics in original sample
+    #     sample %>% filter(hbo %in% "Black" & region %in% "Eastern WA") %>% summarise(Freq = n())
+
+```
+
+After raking the post-stratified survey object on age, the weights are considerably higher.
+```{r rake_weights}
+    load(file="Data/InternetSurveySample_reweighted.Rdata")
+    summary(reweight_ps_rake$rake.wt)
     
-    sample_rakeraceregion <- rake(samplesvy_noNA, list(~region, ~hbo), list(pop.region, pop.hbo))
+    # #look at characteristics of those with highest weight
+    # table(reweight_ps_rake$hbo[reweight_ps_rake$rake.wt %in% (max(reweight_ps_rake$rake.wt))], (reweight_ps_rake$region[reweight_ps_rake$rake.wt %in% (max(reweight_ps_rake$rake.wt))]))
+    # table(reweight_ps_rake$age_groups[reweight_ps_rake$rake.wt %in% (max(reweight_ps_rake$rake.wt))])
+    #     #look at number with these characteristics in original sample
+    #     sample %>% filter(hbo %in% "Black" & region %in% "King County" & age_groups %in% "50-59") %>% summarise(Freq = n())
+    #     
+    # #look at characteristics of those with the lowest weight
+    # table(reweight_ps_rake$hbo[reweight_ps_rake$rake.wt %in% (min(reweight_ps_rake$rake.wt))], (reweight_ps_rake$region[reweight_ps_rake$rake.wt %in% (min(reweight_ps_rake$rake.wt))]))
+    # table(reweight_ps_rake$age_groups[reweight_ps_rake$rake.wt %in% (min(reweight_ps_rake$rake.wt))])
+    #     #look at number with these characteristics in original sample
+    #     sample %>% filter(hbo %in% "Black" & region %in% "Eastern WA" & age_groups %in% "18-24") %>% summarise(Freq = n())
+
+    
+```
+
+The tables and graphs below show the resulting distribution of the sample by age, race/ethnicity, and region compared to the target population distributions.
+```{r checkdists, fig.align="center"}
+#Make tables to compare margins and joint distributions
+  #Age
+    age_dist_orig <- as.vector(prop.table(table(sample$age_groups)))
+    age_dist_reweighted <- as.vector(prop.table(table(reweight_ps_rake$age_groups)))
+    age_dist_pop <- as.vector(pop.age_groups$Freq / sum(pop.age_groups$Freq))
+    
+    #Table
+    age_compare <- cbind.data.frame("Age_group" = c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"), "Original_sample" = age_dist_orig, "Reweighted_sample" = age_dist_reweighted, "Population" = age_dist_pop)
+    
+    kable(age_compare, col.names=c("Age group", "Original sample", "Reweighted sample", "Population target"), digits=c(0, 3, 3, 3), caption="Checking the age distribution") %>% kable_styling(full_width=F, position="center")
+    
+    #Graph
+     age_compare_graph <- cbind.data.frame("Age_group" = rep(c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"), 3), "Source" = (c(rep("Original sample", 6), rep("Reweighted sample", 6), rep("Population", 6))), "Percentage" = c(age_dist_orig, age_dist_reweighted, age_dist_pop))
+    
+    ggplot(age_compare_graph) + geom_col(aes(x=Age_group, y=Percentage, fill=Source), position="dodge") + scale_fill_brewer(type="qual", palette=2) + plot_background_nogrid + theme_title + labs(x="Age group", y="Percentage", title="Age distribution")
+
+  #Margins of region
+    region_dist_orig <- as.vector(prop.table(table(sample$region)))
+    region_dist_reweighted <- as.vector(prop.table(table(reweight_ps_rake$region)))
+    region_dist_pop <- as.vector(pop.region$numMSM / sum(pop.region$numMSM))
+    
+    #Table
+    region_compare <- cbind.data.frame("Region" = c("King County", "Other Western WA", "Eastern WA"), "Original_sample" = region_dist_orig, "Reweighted_sample" = region_dist_reweighted, "Population" = region_dist_pop)
+    
+    kable(region_compare, col.names=c("Region", "Original sample", "Reweighted sample", "Population target"), digits=c(0, 3, 3, 3), caption="Checking the margins of the regional distribution") %>% kable_styling(full_width=F, position="center")
+    
+    #Graph
+    region_compare_graph <- cbind.data.frame("Region" = rep(c("King County", "Other Western WA", "Eastern WA"), 3), "Source" = (c(rep("Original sample", 3), rep("Reweighted sample", 3), rep("Population", 3))), "Percentage" = c(region_dist_orig, region_dist_reweighted, region_dist_pop))
+    
+    ggplot(region_compare_graph) + geom_col(aes(x=Region, y=Percentage, fill=Source), position="dodge") + scale_fill_brewer(type="qual", palette=2) + plot_background_nogrid + theme_title + labs(x="Region", y="Percentage", title="Regional distribution")
+
+  #Margins of race
+    race_dist_orig <- as.vector(prop.table(table(sample$hbo)))
+    race_dist_reweighted <- as.vector(prop.table(table(reweight_ps_rake$hbo)))
+    race_dist_pop <- as.vector(pop.hbo$Freq / sum(pop.hbo$Freq))
+    
+    #Table
+    race_compare <- cbind.data.frame("Race" = c("Hispanic", "Black", "Other"), "Original_sample" = race_dist_orig, "Reweighted_sample" = race_dist_reweighted, "Population" = race_dist_pop)
+    
+    kable(race_compare, col.names=c("Race/ethnicity", "Original sample", "Reweighted sample", "Population target"), digits=c(0, 3, 3, 3), caption="Checking the margins of the racial/ethnic distribution") %>% kable_styling(full_width=F, position="center")
+    
+    #Graph
+    race_compare_graph <- cbind.data.frame("Race" = rep(c("Hispanic", "Black", "Other"), 3), "Source" = (c(rep("Original sample", 3), rep("Reweighted sample", 3), rep("Population", 3))), "Percentage" = c(race_dist_orig, race_dist_reweighted, race_dist_pop))
+    
+    ggplot(race_compare_graph) + geom_col(aes(x=Race, y=Percentage, fill=Source), position="dodge") + scale_fill_brewer(type="qual", palette=2) + plot_background_nogrid + theme_title + labs(x="Race/ethnicity", y="Percentage", title="Racial/ethnic distribution")
+
+  #Race by region
+    raceregion_dist_orig <- as.vector(prop.table(table(sample$hbo, sample$region), 2))
+    raceregion_dist_reweighted <- as.vector(prop.table(table(reweight_ps_rake$hbo, reweight_ps_rake$region), 2))
+    raceregion_dist_pop <- pop.raceregion %>% group_by(region) %>% mutate(percent = Freq/sum(Freq))
+    
+    #Table
+    raceregion_compare <- cbind.data.frame("Race_ethnicity" = c(rep(c("Hispanic", "Black", "Other"), 3)), "Original_sample" = raceregion_dist_orig, "Reweighted_sample" = raceregion_dist_reweighted, "Population" = as.vector(raceregion_dist_pop$percent))
+    
+    kable(raceregion_compare, col.names=c("Race/ethnicity", "Original sample", "Reweighted sample", "Population target"), digits=c(0, 3, 3, 3), caption="Checking the joint distribution by race/ethnicity and region") %>% kable_styling(full_width=F, position="center") %>% group_rows("King County", 1, 3) %>% group_rows("Other Western WA", 4, 6) %>% group_rows("Eastern WA", 7, 9)
+    
+    #Graph
+    raceregion_compare_graph <- cbind.data.frame("Race" = rep(c(rep(c("Hispanic", "Black", "Other"), 3)), 3), "Region"=rep(c(rep("King County", 3), rep("Other Western WA", 3), rep("Eastern WA", 3)),3), "Source" = (c(rep("Original sample", 9), rep("Reweighted sample", 9), rep("Population", 9))), "Percentage" = c(raceregion_dist_orig, raceregion_dist_reweighted, as.vector(raceregion_dist_pop$percent)))
+    
+    ggplot(raceregion_compare_graph) + geom_col(aes(x=Race, y=Percentage, fill=Source), position="dodge") + facet_grid(.~Region) +  scale_fill_brewer(type="qual", palette=2) + plot_background_nogrid + theme_title + labs(x="Race/ethnicity", y="Percentage", title="Racial/ethnic distribution")
+
+    ```
