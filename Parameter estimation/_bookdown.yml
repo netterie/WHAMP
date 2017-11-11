@@ -3,9 +3,10 @@ rmd_files: [ "_Washington_census_data_prep.Rmd",
 "index.Rmd",
 "01-Network_composition.Rmd",
 "References.Rmd",
+"_poststratification_raking.Rmd",
 "Notes_on_mixing.Rmd",
 "Notes_on_condom_use_and_coital_frequency.Rmd",
-"Regional_variability.Rmd",
+"Associations_with_nodal_attributes.Rmd",
 "Decisions.Rmd"
 ]
 
