@@ -72,7 +72,11 @@ options(knitr.table.format = "html")
     
 #Race and region
     pop.raceregion <- cbind.data.frame(region=c(rep("King County", 3), rep("Western WA", 3), rep("Eastern WA", 3)), hbo=c(rep(c("Hispanic", "Black", "Other"), 3)), Freq=c(round(wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "King County"]*pop.region$numMSM[pop.region$region %in% "King County"]), round(wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "King County"]*pop.region$numMSM[pop.region$region %in% "King County"]), round(wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "King County"]*pop.region$numMSM[pop.region$region %in% "King County"]), round(wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "Other Western"]*pop.region$numMSM[pop.region$region %in% "Western WA"]), round(wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "Other Western"]*pop.region$numMSM[pop.region$region %in% "Western WA"]), round(wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "Other Western"]*pop.region$numMSM[pop.region$region %in% "Western WA"]), round(wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "Eastern"]*pop.region$numMSM[pop.region$region %in% "Eastern WA"]), round(wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "Eastern"]*pop.region$numMSM[pop.region$region %in% "Eastern WA"]), round(wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "Eastern"]*pop.region$numMSM[pop.region$region %in% "Eastern WA"])))
-
+    #Specify order of factors
+    pop.raceregion$hbo <- factor(pop.raceregion$hbo, levels = c("Hispanic", "Black", "Other"))
+    pop.raceregion$region <- factor(pop.raceregion$region, levels = c("King County", "Western WA", "Eastern WA"))
+    pop.raceregion <- pop.raceregion %>% arrange(region, hbo)
+    
 #Race
     pop.hbo <- (pop.raceregion %>% group_by(hbo) %>% summarise(Freq=sum(Freq)))
 
@@ -97,10 +101,10 @@ options(knitr.table.format = "html")
     sample$rake.wt <- 1/(sample_rakeage$prob)
 
 #Reweight sample - comment out to avoid re-sampling each time the file is run
-    # #Using post-stratification weights on race and region only
-    # reweight_ps <- sample %>% sample_n(5000, replace=TRUE, weight=ps.wt)
+    #Using post-stratification weights on race and region only
+    # reweight_ps <- sample %>% sample_n(6000, replace=TRUE, weight=ps.wt)
     # #Using weights from raking on age on post-stratified dataset
-    # reweight_ps_rake <- sample %>% sample_n(5000, replace=TRUE, weight=rake.wt)
+    # reweight_ps_rake <- sample %>% sample_n(6000, replace=TRUE, weight=rake.wt)
     # 
     # save(reweight_ps, file="Data/InternetSurveySample_poststrat.Rdata")
     # save(reweight_ps_rake, file="Data/InternetSurveySample_reweighted.Rdata")
