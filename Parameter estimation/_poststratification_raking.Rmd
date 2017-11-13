@@ -145,6 +145,20 @@ After raking the post-stratified survey object on age, the weights are considera
     #     #look at number with these characteristics in original sample
     #     sample %>% filter(hbo %in% "Black" & region %in% "Eastern WA" & age_groups %in% "18-24") %>% summarise(Freq = n())
 
+    # Plot the weights in the original sample
+    # generate a variable to indicate the race/region combination
+        sample$raceregion <- ifelse(sample$hbo %in% "Hispanic" & sample$region %in% "King County", "King County, Hispanic", 
+                                ifelse(sample$hbo %in% "Hispanic" & sample$region %in% "Western WA", "Other Western WA, Hispanic", 
+                                   (ifelse(sample$hbo %in% "Hispanic" & sample$region %in% "Eastern WA", "Eastern WA, Hispanic", 
+                                       ifelse(sample$hbo %in% "Black" & sample$region %in% "King County", "King County, Black", 
+                                          ifelse(sample$hbo %in% "Black" & sample$region %in% "Western WA", "Other Western WA, Black",
+                                             ifelse(sample$hbo %in% "Black" & sample$region %in% "Eastern WA", "Eastern WA, Black",
+                                                ifelse(sample$hbo %in% "Other" & sample$region %in% "King County", "King County, Other",
+                                                   ifelse(sample$hbo %in% "Other" & sample$region %in% "Western WA", "Other Western WA, Other",
+                                                      ifelse(sample$hbo %in% "Other" & sample$region %in% "Eastern WA", "Eastern WA, Other", NA ))))))))))
+        sample$raceregion <- factor(sample$raceregion, levels = c("King County, Hispanic", "King County, Black", "King County, Other", "Other Western WA, Hispanic", "Other Western WA, Black", "Other Western WA, Other", "Eastern WA, Hispanic", "Eastern WA, Black", "Eastern WA, Other"))
+        
+    ggplot(sample, aes(x=ps.wt, y=rake.wt)) + geom_point(aes(shape = age_groups, colour = raceregion)) + labs(x = "Weight from raking the post-stratified object on age groups", y = "Weight from post-stratifying on race/ethnicity and region", title = "Sampling weights")
     
 ```
 
