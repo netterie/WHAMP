@@ -1,0 +1,695 @@
+# Regional variability {#explore_region}
+```{r, include=FALSE}
+####################################################################################
+# Setup
+####################################################################################
+#-----------------------------------------------------------------------------------
+# Load packages
+#-----------------------------------------------------------------------------------
+
+    library("tidyverse")
+    library("knitr")
+    library("data.table")
+    library("lmtest")
+    library("kableExtra")
+    library("logbin")
+
+#-----------------------------------------------------------------------------------
+# Knitr options
+#-----------------------------------------------------------------------------------
+opts_chunk$set(echo=FALSE, message=FALSE, warning=TRUE, error=TRUE, fig.align = "center")
+options(knitr.table.format = "html") 
+
+#-----------------------------------------------------------------------------------
+# Plot settings
+#-----------------------------------------------------------------------------------
+#save plot settings for white background and light grey lines and darkening the colors a bit
+plot_background <- theme(panel.background = element_rect(fill="white", colour = "black")) + theme(panel.grid.major = element_line(colour = "grey90"))
+darken_color <- scale_colour_hue(l=50)
+theme_title <- theme(plot.title = element_text(hjust = 0.5, size=12)) 
+        
+#-----------------------------------------------------------------------------------
+# Load data
+#-----------------------------------------------------------------------------------
+
+load(file="Data/InternetSurveySample.Rdata")
+load(file="Data/InternetSurveySample_allages.Rdata")
+
+#-----------------------------------------------------------------------------------
+# Define alternate age categorization
+#-----------------------------------------------------------------------------------
+   sample$age_chunks <-  cut(sample$age, c(17, 29, 39, 44, 59), labels=c("18-29", "30-39", "40-49", "50-59"))   
+
+#-----------------------------------------------------------------------------------
+# Write function to streamline analyses
+#-----------------------------------------------------------------------------------
+
+compare.models <- function(full, noreg, norace, noage, full_withint, noraceXreg, noageXreg, noraceXage) {
+    lrt_region <- lrtest(full, noreg)
+    lrt_race <- lrtest(full, norace)
+    lrt_age <- lrtest(full, noage)
+    lrt_summary_main <- cbind.data.frame("Variable" = c("Region", "Race", "Age"), "pvalue" = c(round(lrt_region$'Pr(>Chisq)'[2], 4), round(lrt_race$'Pr(>Chisq)'[2], 4), round(lrt_age$'Pr(>Chisq)'[2], 4)))
+    lrt_summary_main$sig <- ifelse(lrt_summary_main$pvalue<0.001, "***", ifelse(lrt_summary_main$pvalue<0.01, "**", ifelse(lrt_summary_main$pvalue<0.05, "*", "")))
+    
+    lrt_raceXreg <- lrtest(full_withint, noraceXreg)
+    lrt_ageXreg <- lrtest(full_withint, noageXreg)
+    lrt_raceXage <- lrtest(full_withint, noraceXage)
+    lrt_summary_int <- cbind.data.frame("Variable" = c("Race by region", "Age by region", "Race by age"), "pvalue" = c(round(lrt_raceXreg$'Pr(>Chisq)'[2], 4), round(lrt_ageXreg$'Pr(>Chisq)'[2], 4), round(lrt_raceXage$'Pr(>Chisq)'[2], 4)))
+    lrt_summary_int$sig <-  ifelse(lrt_summary_int$pvalue<0.001, "***", ifelse(lrt_summary_int$pvalue<0.01, "**", ifelse(lrt_summary_int$pvalue<0.05, "*", "")))
+
+    results <- list(summary(full), lrt_summary_main, summary(full_withint), lrt_summary_int)
+    
+    return(results)
+}
+
+```
+
+
+This section documents the results of regression analyses aimed at identifying which variables vary by region, race, and/or age to determine the combination of attributes on which to stratify each parameter. P-values are to be used as a guide but not as the sole criteria determining which differences may be worth modeling. The purpose of this analysis is to determine how to specify parameters in order to get the network to reproduce the data. It is not an analysis to determine from the data which parameters differ significantly by region, race, or age in the population (since the sample is not probability-based, this would be difficult to conclude even if it were our goal). As such, corrections for multiple comparisons are not necessary, as these adjust the false discovery rate in analyses attempting to make inference about the population. We use likelihood ratio tests (package `lmtest`) to compare models for joint significance testing.
+
+## Degree distribution
+
+To look for differences in the degree distribution, we will break it down to two binary indicators corresponding to whether men have one or more ongoing partner of any type and whether they have any concurrent partners.
+
+### One or more partners 
+```{r somepartners, eval=TRUE, error=TRUE}
+
+  #Look at the number of observations that are non-missing for this outcome and for model predictors
+  table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$somepartners)], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$somepartners)], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$somepartners)])
+
+ #Main effects
+  somepartners_full <- glm(somepartners ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample)
+  somepartners_noregion <- glm(somepartners ~ age_cat + race_eth_m.reg, family=binomial(link="logit"), data=sample)
+  somepartners_norace <- glm(somepartners ~ age_cat + region.bKC, family=binomial(link="logit"), data=sample)
+  somepartners_noage <- glm(somepartners ~ race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample)
+
+ #Interactions
+  somepartners_full_withint <- glm(somepartners ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample)
+  somepartners_noraceXreg <- glm(somepartners ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample)
+  somepartners_noageXreg <- glm(somepartners ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample)
+  somepartners_noraceXage <- glm(somepartners ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, family=binomial(link="logit"), data=sample)
+  
+  results_somepartners <- compare.models(somepartners_full, somepartners_noregion, somepartners_norace, somepartners_noage, somepartners_full_withint, somepartners_noraceXreg, somepartners_noageXreg, somepartners_noraceXage)
+  results_somepartners
+```
+
+
+### Concurrency
+```{r concurrency, eval=TRUE, error=TRUE}
+
+  #Look at the number of observations that are non-missing for this outcome and for model predictors
+  table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$concurrent)], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$concurrent)], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$concurrent)])
+
+ #Main effects
+  concurrent_full <- glm(concurrent ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample)
+  concurrent_noregion <- glm(concurrent ~ age_cat + race_eth_m.reg, family=binomial(link="logit"), data=sample)
+  concurrent_norace <- glm(concurrent ~ age_cat + region.bKC, family=binomial(link="logit"), data=sample)
+  concurrent_noage <- glm(concurrent ~ race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample)
+
+ #Interactions
+  concurrent_full_withint <- glm(concurrent ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample)
+  concurrent_noraceXreg <- glm(concurrent ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample)
+  concurrent_noageXreg <- glm(concurrent ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample)
+  concurrent_noraceXage <- glm(concurrent ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, family=binomial(link="logit"), data=sample)
+  
+  results_concurrent <- compare.models(concurrent_full, concurrent_noregion, concurrent_norace, concurrent_noage, concurrent_full_withint, concurrent_noraceXreg, concurrent_noageXreg, concurrent_noraceXage)
+  results_concurrent
+```
+
+
+## Rate of instantaneous partners
+__Note__: This analysis does not control for men's momentary degree.
+
+```{r rateinst, eval=TRUE, error=TRUE}
+ 
+ #Look at the number of observations that are non-missing for this outcome and for model predictors
+  table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$rate_inst)], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$rate_inst)], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$rate_inst)])
+
+ #Main effects
+  rate_inst_full <- lm(rate_inst ~ age_cat + race_eth_m.reg + region.bKC, data=sample)
+  rate_inst_noregion <- lm(rate_inst ~ age_cat + race_eth_m.reg, data=sample)
+  rate_inst_norace <- lm(rate_inst ~ age_cat + region.bKC, data=sample)
+  rate_inst_noage <- lm(rate_inst ~ race_eth_m.reg + region.bKC, data=sample)
+
+ #Interactions
+  rate_inst_full_withint <- lm(rate_inst ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, data=sample)
+  rate_inst_noraceXreg <- lm(rate_inst ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, data=sample)
+  rate_inst_noageXreg <- lm(rate_inst ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat, data=sample)
+  rate_inst_noraceXage <- lm(rate_inst ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, data=sample)
+  
+  results_rate_inst <- compare.models(rate_inst_full, rate_inst_noregion, rate_inst_norace, rate_inst_noage, rate_inst_full_withint, rate_inst_noraceXreg, rate_inst_noageXreg, rate_inst_noraceXage)
+    results_rate_inst
+```
+
+
+## Race/ethnicity mixing
+To examine differences in mixing by race/ethnicity, we will look at the proportion of men reporting that their most recent partner was in the same racial/ethnic group (Hispanic, black, or other) as themselves. For main and persistent partner types, this analysis is restricted to most recent partners who are _ongoing_. __Note__: <span style="color:red">The outcome is based on ego reports of their partners race and, at this point, does not adjust for imbalances in reported partnering patterns.</span>
+
+```{r samerace_define}
+
+  #Set to missing if the respondent did not know his partner's race/ethnicity
+  sample$mrp_race_eth_m_removedk <- sample$mrp_race_eth_m[!(sample$mrp_race_eth_m %in% "Dont know")]
+  sample$mrp_race_eth_m_removedk <- factor(sample$mrp_race_eth_m_removedk)
+  
+  #Define indicator of respondent and partner being of the same race/ethnicity
+  sample$samerace <- ifelse(sample$race_eth_m==sample$mrp_race_eth_m_removedk, 1,
+                                   ifelse(!is.na(sample$race_eth_m) & !is.na(sample$mrp_race_eth_m_removedk), 0,
+                                          NA))
+```
+
+### Main partners
+```{r samerace_main, eval=TRUE}
+
+ #Look at the number of observations that are non-missing for this outcome and for model predictors
+  table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$samerace) & sample$mrp_type_ongoing %in% "Main"], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$samerace) & sample$mrp_type_ongoing %in% "Main"], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$samerace) & sample$mrp_type_ongoing %in% "Main"])
+
+ #Main effects
+  samerace_main_full <- glm(samerace ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Main", ])
+  samerace_main_noregion <- glm(samerace ~ age_cat + race_eth_m.reg, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Main", ])
+  samerace_main_norace <- glm(samerace ~ age_cat + region.bKC, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Main", ])
+  samerace_main_noage <- glm(samerace ~ race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Main", ])
+
+ #Interactions
+  samerace_main_full_withint <- glm(samerace ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Main", ])
+  samerace_main_noraceXreg <- glm(samerace ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Main", ])
+  samerace_main_noageXreg <- glm(samerace ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Main", ])
+  samerace_main_noraceXage <- glm(samerace ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Main", ])
+  
+  results_samerace_main <- compare.models(samerace_main_full, samerace_main_noregion, samerace_main_norace, samerace_main_noage, samerace_main_full_withint, samerace_main_noraceXreg, samerace_main_noageXreg, samerace_main_noraceXage)
+  results_samerace_main
+
+```
+
+
+### Persistent partners
+```{r samerace_pers, eval=TRUE}
+ 
+ #Look at the number of observations that are non-missing for this outcome and for model predictors
+  table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$samerace) & sample$mrp_type_ongoing %in% "Persistent"], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$samerace) & sample$mrp_type_ongoing %in% "Persistent"], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$samerace) & sample$mrp_type_ongoing %in% "Persistent"])
+
+ #Main effects
+  samerace_pers_full <- glm(samerace ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
+  samerace_pers_noregion <- glm(samerace ~ age_cat + race_eth_m.reg, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
+  samerace_pers_norace <- glm(samerace ~ age_cat + region.bKC, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
+  samerace_pers_noage <- glm(samerace ~ race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
+
+ #Interactions
+  samerace_pers_full_withint <- glm(samerace ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
+  samerace_pers_noraceXreg <- glm(samerace ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
+  samerace_pers_noageXreg <- glm(samerace ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
+  samerace_pers_noraceXage <- glm(samerace ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
+  
+  results_samerace_pers <- compare.models(samerace_pers_full, samerace_pers_noregion, samerace_pers_norace, samerace_pers_noage, samerace_pers_full_withint, samerace_pers_noraceXreg, samerace_pers_noageXreg, samerace_pers_noraceXage)
+  results_samerace_pers
+
+```
+
+
+### Instantaneous partners
+```{r samerace_inst, eval=TRUE}
+
+ #Look at the number of observations that are non-missing for this outcome and for model predictors
+  table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$samerace) & sample$mrp_type_r %in% "One time"], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$samerace) & sample$mrp_type_r %in% "One time"], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$samerace) & sample$mrp_type_r %in% "One time"])
+
+ #Main effects
+  samerace_inst_full <- glm(samerace ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample[sample$mrp_type_r %in% "One time", ])
+  samerace_inst_noregion <- glm(samerace ~ age_cat + race_eth_m.reg, family=binomial(link="logit"), data=sample[sample$mrp_type_r %in% "One time", ])
+  samerace_inst_norace <- glm(samerace ~ age_cat + region.bKC, family=binomial(link="logit"), data=sample[sample$mrp_type_r %in% "One time", ])
+  samerace_inst_noage <- glm(samerace ~ race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample[sample$mrp_type_r %in% "One time", ])
+
+ #Interactions
+  samerace_inst_full_withint <- glm(samerace ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample[sample$mrp_type_r %in% "One time", ])
+  samerace_inst_noraceXreg <- glm(samerace ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample[sample$mrp_type_r %in% "One time", ])
+  samerace_inst_noageXreg <- glm(samerace ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample[sample$mrp_type_r %in% "One time", ])
+  samerace_inst_noraceXage <- glm(samerace ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, family=binomial(link="logit"), data=sample[sample$mrp_type_r %in% "One time", ])
+  
+  results_samerace_inst <- compare.models(samerace_inst_full, samerace_inst_noregion, samerace_inst_norace, samerace_inst_noage, samerace_inst_full_withint, samerace_inst_noraceXreg, samerace_inst_noageXreg, samerace_inst_noraceXage)
+  results_samerace_inst
+```
+
+
+
+## Age mixing
+As with race/ethnicity, examination of age differences with main and persistent partners is restricted to most recent partners who are _ongoing_. For this analysis, <span style="color:red">we model age mixing using a linear model with the outcome being the absolute difference between the square root of the ego and alter's ages. Does it make sense to adjust for ego age in this model?</span> 
+
+### Main partners
+```{r agemix_main, eval=TRUE}
+
+ #Look at the number of observations that are non-missing for this outcome and for model predictors
+  table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$sqrt_agediff)], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$sqrt_agediff)], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$sqrt_agediff)])
+
+ #Main effects
+  sqrtagediff_main_full <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC, data=sample[sample$mrp_type_ongoing %in% "Main", ])
+  sqrtagediff_main_noregion <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg, data=sample[sample$mrp_type_ongoing %in% "Main", ])
+  sqrtagediff_main_norace <- lm(sqrt_agediff ~ age_cat + region.bKC, data=sample[sample$mrp_type_ongoing %in% "Main", ])
+  sqrtagediff_main_noage <- lm(sqrt_agediff ~ race_eth_m.reg + region.bKC, data=sample[sample$mrp_type_ongoing %in% "Main", ])
+
+ #Interactions
+  sqrtagediff_main_full_withint <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, data=sample[sample$mrp_type_ongoing %in% "Main", ])
+  sqrtagediff_main_noraceXreg <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, data=sample[sample$mrp_type_ongoing %in% "Main", ])
+  sqrtagediff_main_noageXreg <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat, data=sample[sample$mrp_type_ongoing %in% "Main", ])
+  sqrtagediff_main_noraceXage <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, data=sample[sample$mrp_type_ongoing %in% "Main", ])
+  
+  results_adiff_main <- compare.models(sqrtagediff_main_full, sqrtagediff_main_noregion, sqrtagediff_main_norace, sqrtagediff_main_noage, sqrtagediff_main_full_withint, sqrtagediff_main_noraceXreg, sqrtagediff_main_noageXreg, sqrtagediff_main_noraceXage)  
+  results_adiff_main
+
+```
+
+### Persistent partners
+```{r agemix_pers, eval=TRUE}
+
+#Look at the number of observations that are non-missing for this outcome and for model predictors
+  table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$sqrt_agediff)], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$sqrt_agediff)], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$sqrt_agediff)])
+
+ #Main effects
+  sqrtagediff_pers_full <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC, data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
+  sqrtagediff_pers_noregion <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg, data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
+  sqrtagediff_pers_norace <- lm(sqrt_agediff ~ age_cat + region.bKC, data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
+  sqrtagediff_pers_noage <- lm(sqrt_agediff ~ race_eth_m.reg + region.bKC, data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
+
+ #Interactions
+  sqrtagediff_pers_full_withint <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
+  sqrtagediff_pers_noraceXreg <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
+  sqrtagediff_pers_noageXreg <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat, data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
+  sqrtagediff_pers_noraceXage <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
+  
+  results_adiff_pers <- compare.models(sqrtagediff_pers_full, sqrtagediff_pers_noregion, sqrtagediff_pers_norace, sqrtagediff_pers_noage, sqrtagediff_pers_full_withint, sqrtagediff_pers_noraceXreg, sqrtagediff_pers_noageXreg, sqrtagediff_pers_noraceXage)  
+  results_adiff_pers
+```
+
+### Instantaneous partners
+```{r agemix_inst, eval=TRUE}
+ 
+#Look at the number of observations that are non-missing for this outcome and for model predictors
+  table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$sqrt_agediff)], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$sqrt_agediff)], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$sqrt_agediff)])
+
+ #Main effects
+  sqrtagediff_inst_full <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC, data=sample[sample$mrp_type_r %in% "One time", ])
+  sqrtagediff_inst_noregion <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg, data=sample[sample$mrp_type_r %in% "One time", ])
+  sqrtagediff_inst_norace <- lm(sqrt_agediff ~ age_cat + region.bKC, data=sample[sample$mrp_type_r %in% "One time", ])
+  sqrtagediff_inst_noage <- lm(sqrt_agediff ~ race_eth_m.reg + region.bKC, data=sample[sample$mrp_type_r %in% "One time", ])
+
+ #Interactions
+  sqrtagediff_inst_full_withint <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, data=sample[sample$mrp_type_r %in% "One time", ])
+  sqrtagediff_inst_noraceXreg <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, data=sample[sample$mrp_type_r %in% "One time", ])
+  sqrtagediff_inst_noageXreg <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat, data=sample[sample$mrp_type_r %in% "One time", ])
+  sqrtagediff_inst_noraceXage <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, data=sample[sample$mrp_type_r %in% "One time", ])
+  
+  results_adiff_inst <- compare.models(sqrtagediff_inst_full, sqrtagediff_inst_noregion, sqrtagediff_inst_norace, sqrtagediff_inst_noage, sqrtagediff_inst_full_withint, sqrtagediff_inst_noraceXreg, sqrtagediff_inst_noageXreg, sqrtagediff_inst_noraceXage) 
+  results_adiff_inst
+```
+
+## Partnership age
+Partnership age was modeled as a linear outcome.
+
+### Main partners
+```{r pshipage_main, eval=TRUE}
+
+ #Look at the number of observations that are non-missing for this outcome and for model predictors
+  table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$pship_age_main)], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$pship_age_main)], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$pship_age_main)])
+
+ #Main effects
+  pshipage_main_full <- lm(pship_age_main ~ age_cat + race_eth_m.reg + region.bKC, data=sample)
+  pshipage_main_noregion <- lm(pship_age_main ~ age_cat + race_eth_m.reg, data=sample)
+  pshipage_main_norace <- lm(pship_age_main ~ age_cat + region.bKC, data=sample)
+  pshipage_main_noage <- lm(pship_age_main ~ race_eth_m.reg + region.bKC, data=sample)
+
+ #Interactions
+  pshipage_main_full_withint <- lm(pship_age_main ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, data=sample)
+  pshipage_main_noraceXreg <- lm(pship_age_main ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, data=sample)
+  pshipage_main_noageXreg <- lm(pship_age_main ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat, data=sample)
+  pshipage_main_noraceXage <- lm(pship_age_main ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, data=sample)
+  
+  results_pshipage_main <- compare.models(pshipage_main_full, pshipage_main_noregion, pshipage_main_norace, pshipage_main_noage, pshipage_main_full_withint, pshipage_main_noraceXreg, pshipage_main_noageXreg, pshipage_main_noraceXage)  
+  results_pshipage_main
+
+```
+
+                
+### Persistent partners
+```{r pshipage_pers, eval=TRUE}
+
+ #Look at the number of observations that are non-missing for this outcome and for model predictors
+  table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$pship_age_pers)], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$pship_age_pers)], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$pship_age_pers)])
+
+ #Main effects
+  pshipage_pers_full <- lm(pship_age_pers ~ age_cat + race_eth_m.reg + region.bKC, data=sample)
+  pshipage_pers_noregion <- lm(pship_age_pers ~ age_cat + race_eth_m.reg, data=sample)
+  pshipage_pers_norace <- lm(pship_age_pers ~ age_cat + region.bKC, data=sample)
+  pshipage_pers_noage <- lm(pship_age_pers ~ race_eth_m.reg + region.bKC, data=sample)
+
+ #Interactions
+  pshipage_pers_full_withint <- lm(pship_age_pers ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, data=sample)
+  pshipage_pers_noraceXreg <- lm(pship_age_pers ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, data=sample)
+  pshipage_pers_noageXreg <- lm(pship_age_pers ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat, data=sample)
+  pshipage_pers_noraceXage <- lm(pship_age_pers ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, data=sample)
+  
+  results_pshipage_pers <- compare.models(pshipage_pers_full, pshipage_pers_noregion, pshipage_pers_norace, pshipage_pers_noage, pshipage_pers_full_withint, pshipage_pers_noraceXreg, pshipage_pers_noageXreg, pshipage_pers_noraceXage)  
+  results_pshipage_pers
+```
+
+## Proportion never tested
+The parameter indicating the proportion of men who never test is meant to indicate the proportion of men who will not be screened for HIV. In previous network models, this was defined as the proportion who never tested by age 40, since the model was capped at age 39. For this model, that may not be appropriate. In the graph below, it seems that if men don't test by ~age 45, they are unlikely to get tested. It's a bit tricky to interpret, however, because the number of respondents for some ages is small, and this figure represents both age and cohort effects. <span style="color:red">But it may be more appropriate to define the proportion who don't test in a given age range and have men move in and out of the no testing group. For the current analysis, I simply modeled the probability that men had ever tested at their current age.</span>
+
+```{r nevertest}
+  #Construct graph to show ever testing by age
+  evertested <- sample_allages %>%
+              filter(!is.na(evertest_r) & !is.na(race_eth_m)) %>%
+              group_by(age) %>%
+              summarise(prop = mean(evertest_r, na.rm=TRUE))
+  ggplot(evertested, aes(x=age, y=prop)) + geom_point(shape=16, size=3) + geom_smooth(method="loess") +
+              plot_background + theme_title +
+            labs(x="Age", y="Percent ever tested", title="Percent ever tested by age")        
+
+  
+  #Look at the number of observations that are non-missing for this outcome and for model predictors
+  table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$evertest_r)], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$evertest_r)], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$evertest_r)])
+
+ #Main effects
+  evertest_full <- glm(evertest_r ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample)
+  evertest_noregion <- glm(evertest_r ~ age_cat + race_eth_m.reg, family=binomial(link="logit"), data=sample)
+  evertest_norace <- glm(evertest_r ~ age_cat + region.bKC, family=binomial(link="logit"), data=sample)
+  evertest_noage <- glm(evertest_r ~ race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample)
+
+ #Interactions
+  evertest_full_withint <- glm(evertest_r ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample)
+  evertest_noraceXreg <- glm(evertest_r ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample)
+  evertest_noageXreg <- glm(evertest_r ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample)
+  evertest_noraceXage <- glm(evertest_r ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, family=binomial(link="logit"), data=sample)
+  
+  results_evertest <- compare.models(evertest_full, evertest_noregion, evertest_norace, evertest_noage, evertest_full_withint, evertest_noraceXreg, evertest_noageXreg, evertest_noraceXage)
+  results_evertest
+ 
+```
+
+
+## Intertest interval
+The last test interval is estimated as the days since men reported their last HIV test, assuming men have a constant hazard of testing. This analysis is restricted to men who reported having ever tested.
+
+```{r iti, eval=TRUE}
+
+#Look at the number of observations that are non-missing for this outcome and for model predictors
+  table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$iti)], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$iti)], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$iti)])
+
+ #Main effects
+  iti_full <- lm(iti ~ age_cat + race_eth_m.reg + region.bKC, data=sample)
+  iti_noregion <- lm(iti ~ age_cat + race_eth_m.reg, data=sample)
+  iti_norace <- lm(iti ~ age_cat + region.bKC, data=sample)
+  iti_noage <- lm(iti ~ race_eth_m.reg + region.bKC, data=sample)
+
+ #Interactions
+  iti_full_withint <- lm(iti ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, data=sample)
+  iti_noraceXreg <- lm(iti ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, data=sample)
+  iti_noageXreg <- lm(iti ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat, data=sample)
+  iti_noraceXage <- lm(iti ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, data=sample)
+  
+  results_iti <- compare.models(iti_full, iti_noregion, iti_norace, iti_noage, iti_full_withint, iti_noraceXreg, iti_noageXreg, iti_noraceXage)  
+  results_iti
+```
+
+## Coital frequency
+Data on coital frequency are from all most recent partnerships, not just those that are ongoing. 
+
+### Main partners
+```{r coitalfreq_main}
+
+#Look at the number of observations that are non-missing for this outcome and for model predictors
+  table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$airate_main)], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$airate_main)], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$airate_main)])
+
+ #Main effects
+  airate_main_full <- lm(airate_main ~ age_cat + race_eth_m.reg + region.bKC, data=sample)
+  airate_main_noregion <- lm(airate_main ~ age_cat + race_eth_m.reg, data=sample)
+  airate_main_norace <- lm(airate_main ~ age_cat + region.bKC, data=sample)
+  airate_main_noage <- lm(airate_main ~ race_eth_m.reg + region.bKC, data=sample)
+
+ #Interactions
+  airate_main_full_withint <- lm(airate_main ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, data=sample)
+  airate_main_noraceXreg <- lm(airate_main ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, data=sample)
+  airate_main_noageXreg <- lm(airate_main ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat, data=sample)
+  airate_main_noraceXage <- lm(airate_main ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, data=sample)
+  
+  results_coitalfreq_main <- compare.models(airate_main_full, airate_main_noregion, airate_main_norace, airate_main_noage, airate_main_full_withint, airate_main_noraceXreg, airate_main_noageXreg, airate_main_noraceXage)
+  results_coitalfreq_main
+  
+```
+
+
+### Persistent partners
+```{r coitalfreq_pers}
+
+ #Look at the number of observations that are non-missing for this outcome and for model predictors
+  table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$airate_pers)], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$airate_pers)], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$airate_pers)])
+
+ #Main effects
+  airate_pers_full <- lm(airate_pers ~ age_cat + race_eth_m.reg + region.bKC, data=sample)
+  airate_pers_noregion <- lm(airate_pers ~ age_cat + race_eth_m.reg, data=sample)
+  airate_pers_norace <- lm(airate_pers ~ age_cat + region.bKC, data=sample)
+  airate_pers_noage <- lm(airate_pers ~ race_eth_m.reg + region.bKC, data=sample)
+
+ #Interactions
+  airate_pers_full_withint <- lm(airate_pers ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, data=sample)
+  airate_pers_noraceXreg <- lm(airate_pers ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, data=sample)
+  airate_pers_noageXreg <- lm(airate_pers ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat, data=sample)
+  airate_pers_noraceXage <- lm(airate_pers ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, data=sample)
+  
+  results_coitalfreq_pers <- compare.models(airate_pers_full, airate_pers_noregion, airate_pers_norace, airate_pers_noage, airate_pers_full_withint, airate_pers_noraceXreg, airate_pers_noageXreg, airate_pers_noraceXage)
+  results_coitalfreq_pers
+```
+
+## Sex role
+Sex role is categorized as exclusively bottom, exclusively top, or versatile, based on men's reported role in anal sex over the past 12 months. Responses of "mostly a bottom", "mostly a top", and "equally a bottom and a top" were categorized as versatile. <span style="color:red">For this analysis, a dichotomous indicator was constructed to measure whether men report any bottoming (bottoms and versatile men) or report exclusively topping.</span>
+
+```{r sexrole}
+  sample$position_top <- ifelse(sample$position_cat=="Exclusively top", 1, 
+                                      ifelse(!is.na(sample$position_cat), 0, NA))
+  sample$position_bottom <- ifelse(sample$position_cat=="Exclusively bottom", 1, 
+                                      ifelse(!is.na(sample$position_cat), 0, NA))
+  
+  #Look at the number of observations that are non-missing for this outcome and for model predictors
+  table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$position_top)], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$position_top)], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$position_top)])
+
+ #Main effects
+  top_full <- glm(position_top ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample)
+  top_noregion <- glm(position_top ~ age_cat + race_eth_m.reg, family=binomial(link="logit"), data=sample)
+  top_norace <- glm(position_top ~ age_cat + region.bKC, family=binomial(link="logit"), data=sample)
+  top_noage <- glm(position_top ~ race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample)
+
+ #Interactions
+  top_full_withint <- glm(position_top ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample)
+  top_noraceXreg <- glm(position_top ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample)
+  top_noageXreg <- glm(position_top ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample)
+  top_noraceXage <- glm(position_top ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, family=binomial(link="logit"), data=sample)
+  
+  results_sexrole <- compare.models(top_full, top_noregion, top_norace, top_noage, top_full_withint, top_noraceXreg, top_noageXreg, top_noraceXage)
+  results_sexrole
+  
+```
+
+## Condom use
+Data on condom use are restricted to dyads in which both the respondent and his partner were HIV-negative or of unknown status. This analysis includes data from all such partnerships, not just those that were ongoing. 
+
+### Main partners
+```{r condoms_main}
+
+ #Look at the number of observations that are non-missing for this outcome and for model predictors
+  table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$condoms_main)], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$condoms_main)], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$condoms_main)])
+
+ #Main effects
+  condoms_main_full <- lm(condoms_main ~ age_cat + race_eth_m.reg + region.bKC, data=sample)
+  condoms_main_noregion <- lm(condoms_main ~ age_cat + race_eth_m.reg, data=sample)
+  condoms_main_norace <- lm(condoms_main ~ age_cat + region.bKC, data=sample)
+  condoms_main_noage <- lm(condoms_main ~ race_eth_m.reg + region.bKC, data=sample)
+
+ #Interactions
+  condoms_main_full_withint <- lm(condoms_main ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, data=sample)
+  condoms_main_noraceXreg <- lm(condoms_main ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, data=sample)
+  condoms_main_noageXreg <- lm(condoms_main ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat, data=sample)
+  condoms_main_noraceXage <- lm(condoms_main ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, data=sample)
+  
+ results_condoms_main <- compare.models(condoms_main_full, condoms_main_noregion, condoms_main_norace, condoms_main_noage, condoms_main_full_withint, condoms_main_noraceXreg, condoms_main_noageXreg, condoms_main_noraceXage)
+  results_condoms_main
+```
+
+
+### Persistent partners
+```{r condoms_pers}
+
+ #Look at the number of observations that are non-missing for this outcome and for model predictors
+  table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$condoms_pers)], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$condoms_pers)], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$condoms_pers)])
+
+ #Main effects
+  condoms_pers_full <- lm(condoms_pers ~ age_cat + race_eth_m.reg + region.bKC, data=sample)
+  condoms_pers_noregion <- lm(condoms_pers ~ age_cat + race_eth_m.reg, data=sample)
+  condoms_pers_norace <- lm(condoms_pers ~ age_cat + region.bKC, data=sample)
+  condoms_pers_noage <- lm(condoms_pers ~ race_eth_m.reg + region.bKC, data=sample)
+
+ #Interactions
+  condoms_pers_full_withint <- lm(condoms_pers ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, data=sample)
+  condoms_pers_noraceXreg <- lm(condoms_pers ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, data=sample)
+  condoms_pers_noageXreg <- lm(condoms_pers ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat, data=sample)
+  condoms_pers_noraceXage <- lm(condoms_pers ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, data=sample)
+  
+  results_condoms_pers <- compare.models(condoms_pers_full, condoms_pers_noregion, condoms_pers_norace, condoms_pers_noage, condoms_pers_full_withint, condoms_pers_noraceXreg, condoms_pers_noageXreg, condoms_pers_noraceXage)
+  results_condoms_pers
+  
+```
+
+### Instantaneous partners
+```{r condoms_inst}
+
+ #Look at the number of observations that are non-missing for this outcome and for model predictors
+  table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$condoms_inst)], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$condoms_inst)], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$condoms_inst)])
+
+ #Main effects
+  condoms_inst_full <- glm(condoms_inst ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample)
+  condoms_inst_noregion <- glm(condoms_inst ~ age_cat + race_eth_m.reg, family=binomial(link="logit"), data=sample)
+  condoms_inst_norace <- glm(condoms_inst ~ age_cat + region.bKC, family=binomial(link="logit"), data=sample)
+  condoms_inst_noage <- glm(condoms_inst ~ race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample)
+
+ #Interactions
+  condoms_inst_full_withint <- glm(condoms_inst ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample)
+  condoms_inst_noraceXreg <- glm(condoms_inst ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample)
+  condoms_inst_noageXreg <- glm(condoms_inst ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample)
+  condoms_inst_noraceXage <- glm(condoms_inst ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, family=binomial(link="logit"), data=sample)
+  
+  results_condoms_inst <- compare.models(condoms_inst_full, condoms_inst_noregion, condoms_inst_norace, condoms_inst_noage, condoms_inst_full_withint, condoms_inst_noraceXreg, condoms_inst_noageXreg, condoms_inst_noraceXage)
+  results_condoms_inst
+  
+```
+
+
+## PrEP use
+To look at differences in PrEP use, the outcome is reported current use of PrEP _among those for whom PrEP is recommended_.
+```{r prep}
+
+#Look at the number of observations that are non-missing for this outcome and for model predictors
+  table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$prep_use_curr) & sample$prepelig_r %in% "Recommend"], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$prep_use_curr) & sample$prepelig_r %in% "Recommend"], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$prep_use_curr) & sample$prepelig_r %in% "Recommend"])
+
+ #Main effects
+  prep_full <- glm(prep_use_curr ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample, subset=prepelig_r %in% "Recommend")
+  prep_noregion <- glm(prep_use_curr ~ age_cat + race_eth_m.reg, family=binomial(link="logit"), data=sample, subset=prepelig_r %in% "Recommend")
+  prep_norace <- glm(prep_use_curr ~ age_cat + region.bKC, family=binomial(link="logit"), data=sample, subset=prepelig_r %in% "Recommend")
+  prep_noage <- glm(prep_use_curr ~ race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample, subset=prepelig_r %in% "Recommend")
+
+ #Interactions
+  prep_full_withint <- glm(prep_use_curr ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample, subset=prepelig_r %in% "Recommend")
+  prep_noraceXreg <- glm(prep_use_curr ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample, subset=prepelig_r %in% "Recommend")
+  prep_noageXreg <- glm(prep_use_curr ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample, subset=prepelig_r %in% "Recommend")
+  prep_noraceXage <- glm(prep_use_curr ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, family=binomial(link="logit"), data=sample, subset=prepelig_r %in% "Recommend")
+  
+  results_prep <- compare.models(prep_full, prep_noregion, prep_norace, prep_noage, prep_full_withint, prep_noraceXreg, prep_noageXreg, prep_noraceXage)
+  results_prep
+
+```
+
+
+## Summary tables
+
+```{r summaries}
+
+    summary_network <- cbind.data.frame("Parameter" = c("One or more partners", "Any concurrent partners", "Rate of instantaneous partners", "Main partnerships", "Persistent partnerships", "Instantaneous partnerships", "Main partnerships", "Persistent partnerships", "Instantaneous partnerships", "Main partnerships", "Persistent partnerships"), "Region" = c(results_somepartners[[2]][1,3], results_concurrent[[2]][1,3], results_rate_inst[[2]][1,3], results_samerace_main[[2]][1,3], results_samerace_pers[[2]][1,3], results_samerace_inst[[2]][1,3], results_adiff_main[[2]][1,3], results_adiff_pers[[2]][1,3], results_adiff_inst[[2]][1,3], results_pshipage_main[[2]][1,3], results_pshipage_pers[[2]][1,3]), "Race" = c(results_somepartners[[2]][2,3], results_concurrent[[2]][2,3], results_rate_inst[[2]][2,3], results_samerace_main[[2]][2,3], results_samerace_pers[[2]][2,3], results_samerace_inst[[2]][2,3], results_adiff_main[[2]][2,3], results_adiff_pers[[2]][2,3], results_adiff_inst[[2]][2,3], results_pshipage_main[[2]][2,3], results_pshipage_pers[[2]][2,3]), "Age" = c(results_somepartners[[2]][3,3], results_concurrent[[2]][3,3], results_rate_inst[[2]][3,3], results_samerace_main[[2]][3,3], results_samerace_pers[[2]][3,3], results_samerace_inst[[2]][3,3], results_adiff_main[[2]][3,3], results_adiff_pers[[2]][3,3], results_adiff_inst[[2]][3,3], results_pshipage_main[[2]][3,3], results_pshipage_pers[[2]][3,3]), "Race_by_region" = c(results_somepartners[[4]][1,3], results_concurrent[[4]][1,3], results_rate_inst[[4]][1,3], results_samerace_main[[4]][1,3], results_samerace_pers[[4]][1,3], results_samerace_inst[[4]][1,3], results_adiff_main[[4]][1,3], results_adiff_pers[[4]][1,3], results_adiff_inst[[4]][1,3], results_pshipage_main[[4]][1,3], results_pshipage_pers[[4]][1,3]), "Age_by_region" = c(results_somepartners[[4]][2,3], results_concurrent[[4]][2,3], results_rate_inst[[4]][2,3], results_samerace_main[[4]][2,3], results_samerace_pers[[4]][2,3], results_samerace_inst[[4]][2,3], results_adiff_main[[4]][2,3], results_adiff_pers[[4]][2,3], results_adiff_inst[[4]][2,3], results_pshipage_main[[4]][2,3], results_pshipage_pers[[4]][2,3]), "Race_by_age" = c(results_somepartners[[4]][3,3], results_concurrent[[4]][3,3], results_rate_inst[[4]][3,3], results_samerace_main[[4]][3,3], results_samerace_pers[[4]][3,3], results_samerace_inst[[4]][3,3], results_adiff_main[[4]][3,3], results_adiff_pers[[4]][3,3], results_adiff_inst[[4]][3,3], results_pshipage_main[[4]][3,3], results_pshipage_pers[[4]][3,3]))
+
+    kable(summary_network, col.names=c("Parameter", "Region", "Race", "Age", "Race by region", "Age by region", "Race by age"), caption="Summary of regression model findings for associations with network model parameters") %>% kable_styling(full_width=F, position="center") %>% group_rows("Degree distribution", 1, 2) %>% group_rows("Proportion of partnerships same race", 4, 6) %>% group_rows("Age mixing (sqrt of age difference", 7, 9) %>% group_rows("Partnership age", 10, 11) %>% add_header_above(c(" " = 1, "Main effects" = 3, "Interactions" = 3)) %>% add_footnote(c("*p-value<0.05", "**p-value<0.01", "***p-value<0.001"), notation="number") %>% row_spec(3, bold=TRUE)
+    
+    summary_epidemic <- cbind.data.frame("Parameter" = c("Proportion ever tested", "Intertest interval", "Main partnerships", "Persistent partnerships", "Anal sex as top only", "Main partnerships", "Persistent partnerships", "Instantaneous partnerships", "PrEP use among those recommended"), "Region" = c(results_evertest[[2]][1,3], results_iti[[2]][1,3], results_coitalfreq_main[[2]][1,3], results_coitalfreq_pers[[2]][1,3], results_sexrole[[2]][1,3], results_condoms_main[[2]][1,3], results_condoms_pers[[2]][1,3], results_condoms_inst[[2]][1,3], results_prep[[2]][1,3]), "Race" = c(results_evertest[[2]][2,3], results_iti[[2]][2,3], results_coitalfreq_main[[2]][2,3], results_coitalfreq_pers[[2]][2,3], results_sexrole[[2]][2,3], results_condoms_main[[2]][2,3], results_condoms_pers[[2]][2,3], results_condoms_inst[[2]][2,3], results_prep[[2]][2,3]), "Age" = c(results_evertest[[2]][3,3], results_iti[[2]][3,3], results_coitalfreq_main[[2]][3,3], results_coitalfreq_pers[[2]][3,3], results_sexrole[[2]][3,3], results_condoms_main[[2]][3,3], results_condoms_pers[[2]][3,3], results_condoms_inst[[2]][3,3], results_prep[[2]][3,3]), "Race_by_region" = c(results_evertest[[4]][1,3], results_iti[[4]][1,3], results_coitalfreq_main[[4]][1,3], results_coitalfreq_pers[[4]][1,3], results_sexrole[[4]][1,3], results_condoms_main[[4]][1,3], results_condoms_pers[[4]][1,3], results_condoms_inst[[4]][1,3], results_prep[[4]][1,3]), "Age_by_region" = c(results_evertest[[4]][2,3], results_iti[[4]][2,3], results_coitalfreq_main[[4]][2,3], results_coitalfreq_pers[[4]][2,3], results_sexrole[[4]][2,3], results_condoms_main[[4]][2,3], results_condoms_pers[[4]][2,3], results_condoms_inst[[4]][2,3], results_prep[[4]][2,3]), "Race_by_age" = c(results_evertest[[4]][3,3], results_iti[[4]][3,3], results_coitalfreq_main[[4]][3,3], results_coitalfreq_pers[[4]][3,3], results_sexrole[[4]][3,3], results_condoms_main[[4]][3,3], results_condoms_pers[[4]][3,3], results_condoms_inst[[4]][3,3], results_prep[[4]][3,3]))
+
+    kable(summary_epidemic, col.names=c("Parameter", "Region", "Race", "Age", "Race by region", "Age by region", "Race by age"), caption="Summary of regression model findings for associations with epidemic model parameters") %>% kable_styling(full_width=F, position="center") %>% group_rows("Coital frequency", 3, 4) %>% group_rows("Condom use", 6, 8) %>% add_header_above(c(" " = 1, "Main effects" = 3, "Interactions" = 3)) %>% add_footnote(c("*p-value<0.05", "**p-value<0.01", "***p-value<0.001"), notation="number") %>% row_spec(c(1,2,5,9), bold=TRUE)
+    
+    ```
+
+These analyses were intended as a guide to suggest which nodal attributes appear to shape patterns of partnership formation/persistence and behaviors related to transmission and diagnosis. For network model parameters, it seems that we need to represent **racial/ethnic differences in race and age mixing** and look at **age differences in the rate of instantaneous partnerships, race mixing, age mixing, and possibly dissolution (partnership age)**. While there are some significant interactions, they do not suggest a clear pattern that emerges, so we will focus on the main effects. For epidemic model parameters, we will focus on **age effects on HIV testing behavior and condom use**, and **the effects of all three nodal attributes on PrEP use**.
+
+## Plots
+The plots below further explore the associations highlighted in the above section.
+
+### Race mixing by race and age
+
+We would expect the proportion of partnerships that are same race to vary by race merely by chance due to the composition of the population, so the fact that this varies by race is not surprising. The first plot below shows the same race partnerships in blue and additionally examines the distribution of off-diagonal partnerships. Dyad race/ethnicity is listed along the x-axis as reported by the respondent, such that partnerships reported by black men with Hispanics are listed separately from partnerships reported by Hispanic men with blacks. The numbers are small for most of the dyad race categories, making this hard to interpret.
+
+The second plot looks at race mixing by age group. From this, we see that men aged 49-49 are slightly more likely to report partners of the same racial/ethnic group as themselves. The third plot shows race mixing by ego race and age group.
+```{r plots_explore_racemixing}
+
+#Race mixing by race
+    # #Look at race mixing distribution expected by chance based on population distribution if everyone had equal contact rates
+    #     total.hbo <- (pop.raceregion %>% group_by(hbo) %>% summarise(Freq=sum(Freq)))
+    #     racemixing_expected_num <- c("H-H" = ((total.hbo$Freq[total.hbo$hbo %in% "Hispanic"]*total.hbo$Freq[total.hbo$hbo %in% "Hispanic"])/sum(total.hbo$Freq)), "H-B" = ((total.hbo$Freq[total.hbo$hbo %in% "Hispanic"]*total.hbo$Freq[total.hbo$hbo %in% "Black"])/sum(total.hbo$Freq)), "H-O" = ((total.hbo$Freq[total.hbo$hbo %in% "Hispanic"]*total.hbo$Freq[total.hbo$hbo %in% "Other"])/sum(total.hbo$Freq)), "B-H" = ((total.hbo$Freq[total.hbo$hbo %in% "Black"]*total.hbo$Freq[total.hbo$hbo %in% "Hispanic"])/sum(total.hbo$Freq)), "B-B" = ((total.hbo$Freq[total.hbo$hbo %in% "Black"]*total.hbo$Freq[total.hbo$hbo %in% "Black"])/sum(total.hbo$Freq)), "B-O" = ((total.hbo$Freq[total.hbo$hbo %in% "Black"]*total.hbo$Freq[total.hbo$hbo %in% "Other"])/sum(total.hbo$Freq)), "O-H" = ((total.hbo$Freq[total.hbo$hbo %in% "Other"]*total.hbo$Freq[total.hbo$hbo %in% "Hispanic"])/sum(total.hbo$Freq)), "O-B" = ((total.hbo$Freq[total.hbo$hbo %in% "Other"]*total.hbo$Freq[total.hbo$hbo %in% "Black"])/sum(total.hbo$Freq)), "O-O" = ((total.hbo$Freq[total.hbo$hbo %in% "Other"]*total.hbo$Freq[total.hbo$hbo %in% "Other"])/sum(total.hbo$Freq)))
+    #     racemixing_expected_rowprob <- c(racemixing_expected_num[1]/sum(racemixing_expected_num[1:3]), racemixing_expected_num[2]/sum(racemixing_expected_num[1:3]), racemixing_expected_num[3]/sum(racemixing_expected_num[1:3]), racemixing_expected_num[4]/sum(racemixing_expected_num[4:6]), racemixing_expected_num[5]/sum(racemixing_expected_num[4:6]), racemixing_expected_num[6]/sum(racemixing_expected_num[4:6]), racemixing_expected_num[7]/sum(racemixing_expected_num[7:9]), racemixing_expected_num[8]/sum(racemixing_expected_num[7:9]), racemixing_expected_num[9]/sum(racemixing_expected_num[7:9]))
+    #     racemixing_expected <- cbind.data.frame("hbo" = c("H-H", "H-B", "H-O", "B-H", "B-B", "B-O", "O-H", "O-B", "O-O"), "prob" = racemixing_expected_rowprob)
+
+    racemixingXrace <- sample %>% filter(!is.na(mrp_race_eth_m) & !is.na(mrp_type_ongoing)) %>% group_by(mrp_type_ongoing, race_eth_m, mrp_race_eth_m) %>% summarise(Freq=n()) %>% mutate(Percent = Freq/sum(Freq))
+    racemixingXrace$dyadrace <- (c("H-H", "H-B", "H-O", "B-H", "B-B", "B-O", "O-H", "O-B", "O-O", "H-H", "H-B", "H-O", "B-O", "O-H", "O-B", "O-O"))
+    racemixingXrace$samerace <- c("Yes", "No", "No", "No", "Yes", "No", "No", "No", "Yes", "Yes", "No", "No", "No", "No", "No", "Yes")
+    racemixingXrace$dyadrace <- factor(racemixingXrace$dyadrace, levels = c("H-H", "H-B", "H-O", "B-H", "B-B", "B-O", "O-H", "O-B", "O-O"))
+    
+    ggplot(racemixingXrace) + geom_point(aes(x=dyadrace, y=Percent, colour=samerace, size=Freq), shape=16) + facet_grid(mrp_type_ongoing ~.) + plot_background + labs(x="Dyad race/ethnicity (ego-alter)", y="Percent", title="Race mixing as reported by ego") + theme_title + ylim(0, 1)
+
+#Race mixing by age
+    racemixingXage <- sample %>% filter(!is.na(mrp_race_eth_m) & !is.na(mrp_type_ongoing)) %>% mutate(samerace = ifelse(race_eth_m==mrp_race_eth_m, 1, 0)) %>% group_by(mrp_type_ongoing, age_chunks) %>% summarise(freq = n(), percent_samerace = mean(samerace))
+    
+    ggplot(racemixingXage) + geom_point(aes(x=age_chunks, y=percent_samerace, size=freq), shape=16) + facet_grid(mrp_type_ongoing ~.) + plot_background + labs(x="Age group", y="Percent", title="Racial/ethnic homophily by age as reported by ego") + theme_title + ylim(0, 1)
+
+#Race mixing by age and ego race
+    racemixingXageandrace <- sample %>% filter(!is.na(mrp_race_eth_m) & !is.na(mrp_type_ongoing)) %>% group_by(mrp_type_ongoing, age_chunks, race_eth_m, mrp_race_eth_m) %>% summarise(Freq=n()) %>% mutate(Percent = Freq/sum(Freq))
+    racemixingXageandrace$samerace <- factor(ifelse(racemixingXageandrace$race_eth_m==racemixingXageandrace$mrp_race_eth_m, "Yes", "No"))
+    racemixingXageandrace <-  racemixingXageandrace %>% filter(samerace %in% "Yes")
+    
+    ggplot(racemixingXageandrace) + geom_point(aes(x=age_chunks, y=Percent, size=Freq, colour=race_eth_m), shape=16) + facet_grid(mrp_type_ongoing ~.) + plot_background + labs(x="Age group", y="Percent", title="Racial/ethnic homophily by age **and ego race** as reported by ego") + theme_title + ylim(0, 1)
+
+```
+
+### Age mixing by age and race
+
+The first plot shows a scatter plot of respondents ages against the ages reported for their partners in single years. In partnerships below the diagonal line, the ego is older than his partner; in partnerships above the line, the partner is older than the ego. 
+
+The second plot shows age mixinb by age group and race. The points correspond to the mean absolute difference in age between the ego and his partner in each age group.
+
+```{r plots_explore_agemixing}
+
+#Age mixing by age and race
+    sample$agediff <- abs(sample$age - sample$mrp_ageinyears_approx)
+    
+    ggplot(sample[!is.na(sample$mrp_ageinyears_approx) & !is.na(sample$mrp_type_ongoing),]) + geom_point(aes(x=age, y=mrp_ageinyears_approx)) + geom_abline(slope=1, intercept= 0) + facet_grid(mrp_type_ongoing ~.) + labs(x="Ego age", y="Most recent partner age", title="Age differences by single year age")
+    #Look at loess smooth for change in sqrt agediff by age
+    #ggplot(sample[!is.na(sample$sqrt_agediff) & !is.na(sample$mrp_type_ongoing),], aes(x=age, y=sqrt_agediff)) + geom_point() + geom_smooth(method="loess") + facet_grid(mrp_type_ongoing ~.)
+    
+    agemixingXrace <- sample %>% filter(!is.na(agediff) & !is.na(mrp_type_ongoing)) %>% group_by(mrp_type_ongoing, age_cat, race_eth_m) %>% summarise(freq= n(), mean = mean(agediff))
+    ggplot(agemixingXrace) + geom_point(aes(x=age_cat, y=mean, size=freq, colour=race_eth_m)) + facet_grid(mrp_type_ongoing ~.) + geom_hline(yintercept=0) + labs(x="Ego age group", y="Mean difference between ego and partner age (absolute value)", title="Age differences by race and age category")
+
+```
+
+### Rate of instantaneous partnerships by age
+
+The first plot shows the reported rate of instantaneous partnerships by respondent age in single years. From this we see that there are some outliers - 4 respondents who reported >0.25 instantaneous partnerships per day. The second and third plots show the mean rates of instantaneous partnerships by single year age, the third showing the effect of removing the 4 outliers. Both plots show the loess smooth of the data points.
+
+```{r plots_explore_rateinst}
+#Rate of instantaneous partnerships by age
+    ggplot(sample[!is.na(sample$rate_inst),], aes(x=age, y=rate_inst)) + geom_point() + labs(x="Ego age", y="Rate of instantaneous partnerships", title="Rate of instantaneous partnerships by ego age in single years")
+    
+    rateinstXage <- sample %>% filter(!is.na(rate_inst)) %>% group_by(age) %>% summarise(mean = mean(rate_inst)) 
+    
+    ggplot(rateinstXage, aes(x=age, y=mean)) + geom_point() + labs(x="Ego age", y="Mean rate of instantaneous partnerships", title="Mean rate of instantaneous partnerships by ego age in single years") + geom_smooth(method="loess")
+    
+    rateinstXage_rmoutliers <- sample %>% filter(!is.na(rate_inst) & rate_inst < 0.25) %>% group_by(age) %>% summarise(mean = mean(rate_inst)) 
+    ggplot(rateinstXage_rmoutliers, aes(x=age, y=mean)) + geom_point() + labs(x="Ego age", y="Mean rate of instantaneous partnerships", title="Mean rate of instantaneous partnerships by ego age in single years after removing 4 obs with a rate>0.25") + ylim(0, 0.08) + geom_smooth(method="loess")
+    
+```
+
+### Partnership age by respondent age
+
+These plots show the mean partnership age in main and persistent partnerships, respectively, by respondent age.
+
+```{r plotsexplore_pshipage}
+#Partnership age by ego age
+    pshipage_mainXage <- sample %>% filter(!is.na(pship_age_main)) %>% group_by(age) %>% summarise(freq=n(), mean=mean(pship_age_main))
+    ggplot(pshipage_mainXage, aes(x=age, y=mean, size=freq)) + geom_point() + labs(x="Ego age", y="Mean partnership age in days", title = "Mean age of main partnerships by respondent age") 
+    
+    pshipage_persXage <- sample %>% filter(!is.na(pship_age_pers)) %>% group_by(age) %>% summarise(freq=n(), mean=mean(pship_age_pers))
+    ggplot(pshipage_persXage, aes(x=age, y=mean, size=freq)) + geom_point() + labs(x="Ego age", y="Mean partnership age in days", title = "Mean age of persistent partnerships by respondent age") 
+    ```
+    
+### HIV testing by age
+
+### Condom use by age
+
+### PrEP use by age, race, and region
+
