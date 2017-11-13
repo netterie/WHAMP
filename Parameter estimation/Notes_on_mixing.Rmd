@@ -25,6 +25,7 @@ options(knitr.table.format = "html")
 #-----------------------------------------------------------------------------------
     load(file="Data/InternetSurveySample.Rdata")
     load(file="Data/InternetSurveySample_allages.Rdata")
+    load(file="Data/InternetSurveySample_reweighted.Rdata")
    # load(file="Parameter estimation/Data/census_agebyregion.Rdata")
     # load(file="Parameter estimation/Data/census_racebyregion.Rdata")
     # load(file="Parameter estimation/Data/census_totalbyregion.Rdata")
@@ -76,7 +77,7 @@ theme_title <- theme(plot.title = element_text(hjust = 0.5, size=12))
     
         
 ```
-This file explores the implications of different strategies for specifying patterns of mixing and looks at the data from the internet survey in this context.
+This file explores the implications of different strategies for specifying patterns of mixing and looks at the re-weighted data from the internet survey in this context. 
 
 ## Specifying mixing in a dynamic model
 In specifying parameters governing patterns of sexual mixing, one needs to consider balance to ensure that the number of partnerships that members of group _i_ have with members of group _j_ equal the number of partnerships that members of group _j_ have with members of group _i_. Additionally, one needs to consider how patterns of mixing change over time as the size and structure of the population change. The two extremes of the spectrum of how to handle this are:
@@ -181,9 +182,9 @@ oddsratios <- function(prefAB_1, prefBA_2, contactA_1, t){
 ## Observed race mixing
 In the internet survey, we observed the following partnership counts for main, persistent, and one-off partnerships by dyad race. 
 ```{r racemixing}
-    racemix_main <- table(sample$race_eth_m[sample$mrp_race_eth_m!="Dont know" & sample$mrp_type_ongoing %in% "Main"], sample$mrp_race_eth_m[sample$mrp_race_eth_m!="Dont know" & sample$mrp_type_ongoing %in% "Main"])
- racemix_pers <- table(sample$race_eth_m[sample$mrp_race_eth_m!="Dont know" & sample$mrp_type_ongoing %in% "Persistent"], sample$mrp_race_eth_m[sample$mrp_race_eth_m!="Dont know" & sample$mrp_type_ongoing %in% "Persistent"])
- racemix_inst <- table(sample$race_eth_m[sample$mrp_race_eth_m!="Dont know" & sample$mrp_type_r %in% "One time"], sample$mrp_race_eth_m[sample$mrp_race_eth_m!="Dont know" & sample$mrp_type_r %in% "One time"])
+    racemix_main <- table(reweight_ps_rake$race_eth_m[reweight_ps_rake$mrp_race_eth_m!="Dont know" & reweight_ps_rake$mrp_type_ongoing %in% "Main"], reweight_ps_rake$mrp_race_eth_m[reweight_ps_rake$mrp_race_eth_m!="Dont know" & reweight_ps_rake$mrp_type_ongoing %in% "Main"])
+ racemix_pers <- table(reweight_ps_rake$race_eth_m[reweight_ps_rake$mrp_race_eth_m!="Dont know" & reweight_ps_rake$mrp_type_ongoing %in% "Persistent"], reweight_ps_rake$mrp_race_eth_m[reweight_ps_rake$mrp_race_eth_m!="Dont know" & reweight_ps_rake$mrp_type_ongoing %in% "Persistent"])
+ racemix_inst <- table(reweight_ps_rake$race_eth_m[reweight_ps_rake$mrp_race_eth_m!="Dont know" & reweight_ps_rake$mrp_type_r %in% "One time"], reweight_ps_rake$mrp_race_eth_m[reweight_ps_rake$mrp_race_eth_m!="Dont know" & reweight_ps_rake$mrp_type_r %in% "One time"])
 
     kable(racemix_main, caption="Race mixing in main partnerships") %>% kable_styling(full_width=F, position="center") %>% add_header_above(c("Ego race/ethnicity", "Partner race/ethnicity" = 3))
     kable(racemix_pers, caption="Race mixing in persistent partnerships") %>% kable_styling(full_width=F, position="center") %>% add_header_above(c("Ego race/ethnicity", "Partner race/ethnicity" = 3))
@@ -196,12 +197,12 @@ Table \@ref(tab:racemixing) shows that there are some imbalances in the observed
 In the internet survey, we observed the following partnership counts for main, persistent, and one-off partnerships by ego and alter age group.
 
 ```{r agemixing}
-    sample$age_cat_crude <- cut(sample$age, c(17, 24, 34, 44, 59), labels=c("18-24", "25-34", "35-44", "45-59"))
-    sample$mrp_age_cat_crude <- cut(sample$mrp_ageinyears_approx, c(17, 24, 34, 44, 59), labels=c("18-24", "25-34", "35-44", "45-59"))    
+    reweight_ps_rake$age_cat_crude <- cut(reweight_ps_rake$age, c(17, 24, 34, 44, 59), labels=c("18-24", "25-34", "35-44", "45-59"))
+    reweight_ps_rake$mrp_age_cat_crude <- cut(reweight_ps_rake$mrp_ageinyears_approx, c(17, 24, 34, 44, 59), labels=c("18-24", "25-34", "35-44", "45-59"))    
 
-    agemix_main <- table(sample$age_cat_crude[sample$mrp_type_ongoing %in% "Main"], sample$mrp_age_cat_crude[sample$mrp_type_ongoing %in% "Main"])
-    agemix_pers <- table(sample$age_cat_crude[sample$mrp_type_ongoing %in% "Persistent"], sample$mrp_age_cat_crude[sample$mrp_type_ongoing %in% "Persistent"])
-    agemix_inst <- table(sample$age_cat_crude[sample$mrp_type_r %in% "One time"], sample$mrp_age_cat_crude[sample$mrp_type_r %in% "One time"])
+    agemix_main <- table(reweight_ps_rake$age_cat_crude[reweight_ps_rake$mrp_type_ongoing %in% "Main"], reweight_ps_rake$mrp_age_cat_crude[reweight_ps_rake$mrp_type_ongoing %in% "Main"])
+    agemix_pers <- table(reweight_ps_rake$age_cat_crude[reweight_ps_rake$mrp_type_ongoing %in% "Persistent"], reweight_ps_rake$mrp_age_cat_crude[reweight_ps_rake$mrp_type_ongoing %in% "Persistent"])
+    agemix_inst <- table(reweight_ps_rake$age_cat_crude[reweight_ps_rake$mrp_type_r %in% "One time"], reweight_ps_rake$mrp_age_cat_crude[reweight_ps_rake$mrp_type_r %in% "One time"])
 
     kable(agemix_main, caption="Age mixing in main partnerships") %>% kable_styling(full_width=F, position="center") %>% add_header_above(c("Ego age", "Partner age" = 4))
     kable(agemix_pers, caption="Age mixing in persistent partnerships") %>% kable_styling(full_width=F, position="center") %>% add_header_above(c("Ego age", "Partner age" = 4))
