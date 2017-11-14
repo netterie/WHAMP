@@ -1,0 +1,74 @@
+# Notes on rate of instantaneous partnerships (#rateinst_explore)
+```{r}
+####################################################################################
+# Setup
+####################################################################################
+#-----------------------------------------------------------------------------------
+# Load packages
+#-----------------------------------------------------------------------------------
+
+    library("tidyverse")
+    library("knitr")
+    library("kableExtra")
+
+#-----------------------------------------------------------------------------------
+# Knitr options
+#-----------------------------------------------------------------------------------
+opts_chunk$set(echo=FALSE, message=FALSE, warning=TRUE, error=TRUE, fig.align = "center")
+options(knitr.table.format = "html") 
+
+#-----------------------------------------------------------------------------------
+# Plot settings
+#-----------------------------------------------------------------------------------
+#save plot settings for white background and light grey lines and darkening the colors a bit
+plot_background <- theme(panel.background = element_rect(fill="white", colour = "black")) + theme(panel.grid.major = element_line(colour = "grey90"))
+darken_color <- scale_colour_hue(l=50)
+theme_title <- theme(plot.title = element_text(hjust = 0.5, size=12)) 
+        
+#-----------------------------------------------------------------------------------
+# Load data
+#-----------------------------------------------------------------------------------
+
+load(file="Data/InternetSurveySample.Rdata")
+```
+
+This section explores the heterogeneity in the rate of instantaneous partnerships to inform decisions about how many quantiles of heterogeneity to represent and how to stratify it by momentary degree. 
+
+## Quantiles of the rate of instantaneous partnerships
+The statistics and plots below show the distribution of the reported rate of instantaneous partnerships (partnerships per day).
+
+```{r rateinst_quants}
+summary(sample$rate_inst)
+ggplot(sample[!is.na(sample$rate_inst),], aes(rate_inst)) + geom_histogram(binwidth = 0.005) + labs(x="Rate of instantaneous partners", title="Distribution of the rate of instantaneous partners")
+ggplot(sample[sample$rate_inst <0.25 & !is.na(sample$rate_inst),], aes(rate_inst)) + geom_histogram(binwidth = 0.005) + labs(x="Rate of instantaneous partners", title="Distribution of the rate of instantaneous partners, capped at 0.25") + plot_background + theme_title
+
+```
+
+From examining these data, we might group the data into quartiles, with the following distribution.
+```{r rate_inst_quarts}
+quartiles <- quantile(sample$rate_inst, c(0.025, 0.5, 0.75, 1), na.rm=TRUE)
+sample$rate_inst_quart <- cut(sample$rate_inst, c(-0.01, quartiles), labels=c("0", "(0, 0.00274]", "(0.00274, 0.00821]", "(0.00821, 0.931]"))
+table(sample$rate_inst_quart)
+```
+
+If we look at the mean within each quartile, we get the following:
+```{r rate_inst_means}
+    meanbyqrt <- function(x, y) {
+        means <- as.vector(c((mean(x[x>=0 & x<=y[1]], na.rm=TRUE)),
+                  (ifelse(y[1]<y[2], mean(x[x>y[1] & x<=y[2]], na.rm=TRUE), ifelse(y[1]==y[2], y[2], NA))),
+                  (ifelse(y[2]<y[3], mean(x[x>y[2] & x<=y[3]], na.rm=TRUE), ifelse(y[2]==y[3], y[3], NA))),
+                  (ifelse(y[3]<y[4], mean(x[x>y[3] & x<=y[4]], na.rm=TRUE), ifelse(y[3]==y[4], y[4], NA)))))
+        return(means)
+    }
+
+   meanbyqrt(sample$rate_inst, quartiles)
+```
+  
+## Heterogeneity in the rate of instantaneous partnerships by momentary degree
+The statistics and plots below explore heterogeneity in the rate of instantaneous partners by momentary degree. 
+
+```{r rate_inst_degree}
+    sample %>% filter(!is.na(rate_inst) & !is.na(deg_matrix)) %>% group_by(deg_matrix) %>% summarise(freq = n(), Min = min(rate_inst), Q1 = quantile(rate_inst, 0.25), Median=median(rate_inst), Q3 = quantile(rate_inst, 0.75), Max = max(rate_inst))
+
+    ggplot(sample[!is.na(sample$rate_inst) & !is.na(sample$deg_matrix),], aes(rate_inst)) + geom_histogram(binwidth = 0.005) + facet_grid(deg_matrix~.) + labs(x="Rate of instantaneous partnerships", title="Rate of instantaneous partnerships by momentary degree") + plot_background + theme_title
+```
