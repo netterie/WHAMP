@@ -1,0 +1,102 @@
+# Limitations of using most recent partner data {#mrp_limitations}
+
+```{r, include=FALSE}
+####################################################################################
+# Setup
+####################################################################################
+#-----------------------------------------------------------------------------------
+# Load packages
+#-----------------------------------------------------------------------------------
+
+    library("tidyverse")
+    library("knitr")
+    library("kableExtra")
+    library("data.table")
+
+#-----------------------------------------------------------------------------------
+# Knitr options
+#-----------------------------------------------------------------------------------
+opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
+options(knitr.table.format = "html") 
+
+#-----------------------------------------------------------------------------------
+# Load data
+#-----------------------------------------------------------------------------------
+    load(file="Data/InternetSurveySample.Rdata")
+    load(file="Data/InternetSurveySample_allages.Rdata")
+```
+
+## Compare main most recent partners reported by those with 0 vs 1+ persistent partners
+This analysis looks to see whether main partners reported on as the most recent partner by men who report 0 ongoing persistent partners differ from main partners reported on by men who report 1 or more persistent partners. This will inform whether or not we can assume that the main partners reported on are representative of all main partners, and whether we can sample from this full sample of main partners when imputing the characteristics of ongoing main partners who were not described as the most recent partner. This is most directly relevant for parameter estimation using ergm.ego, but any approach to parameter estimation will have to make an implicit assumption about exchangeability.
+
+```{r main_by_persistent_degree}
+
+#Define new variables
+    sample$degbin_cas <- ifelse(sample$degreecat_cas %in% c("One", "Two or more"), 1, 
+                                ifelse(sample$degreecat_cas %in% "None", 0, NA))
+    sample$same_race <- ifelse(sample$mrp_race_eth_m %in% "Dont know", NA,
+                               ifelse(sample$race_eth_m==sample$mrp_race_eth_m, 1, 
+                                      ifelse(!is.na(sample$race_eth_m) & !is.na(sample$mrp_race_eth_m), 0,
+                                             NA)))
+    sample$mrp_statuscat_now_clean <- sample$mrp_statuscat_now
+    sample$mrp_statuscat_now_clean[sample$mrp_statuscat_now_clean=="I prefer not to answer"] <- NA
+    sample$mrp_statuscat_now_clean <- factor(sample$mrp_statuscat_now_clean)
+    
+#Main partners among those with/without a persistent ongoing partner
+    #Analysis of continuous parameters
+        describe <- sample %>%
+            filter(mrp_type_ongoing %in% "Main") %>%
+            group_by(degbin_cas) %>%
+            summarise_at(vars(pship_age_main, airate_main, sqrt_agediff, condoms_main), funs(mean(., na.rm=TRUE), median(., na.rm=TRUE), sum(!is.na(.))))
+        t(describe)
+        kruskal.test(pship_age_main ~ degbin_cas, sample[sample$mrp_type_ongoing %in% "Main",])
+        kruskal.test(airate_main ~ degbin_cas, sample[sample$mrp_type_ongoing %in% "Main",])
+        kruskal.test(sqrt_agediff ~ degbin_cas, sample[sample$mrp_type_ongoing %in% "Main",])
+        kruskal.test(condoms_main ~ degbin_cas, sample[sample$mrp_type_ongoing %in% "Main",])
+
+    #Define function to streamline analysis of differences in categorical parameters
+        catvars_main <- function(x) {
+            tbl <- table(sample$degbin_cas[sample$mrp_type_ongoing %in% "Main"], x)
+            X2 <- chisq.test(tbl)
+            fisher <- fisher.test(tbl)
+            return(list(tbl, X2, fisher))
+        }
+    #Apply function to analyze associations with categorical parameters
+        catvars_main(sample$same_race[sample$mrp_type_ongoing %in% "Main"])
+        catvars_main(sample$mrp_statuscat_now_clean[sample$mrp_type_ongoing %in% "Main"])
+```
+
+## Compare persistent most recent partners reported by those with 0 vs 1 main partners
+This analysis looks to see whether persistent partners reported on as the most recent partner by men who report 0 ongoing main partners differ from persistent partners reported on by men who report 1 current main partner.
+
+```{r persistent_by_main_degree }
+
+#Persistent partners among those with/without a main ongoing partner
+    #Analysis of continuous parameters
+        describe <- sample %>%
+            filter(mrp_type_ongoing %in% "Persistent") %>%
+            group_by(degree_main) %>%
+            summarise_at(vars(pship_age_pers, airate_pers, sqrt_agediff, condoms_pers), funs(mean(., na.rm=TRUE), median(., na.rm=TRUE), sum(!is.na(.))))
+        t(describe)
+        
+        kruskal.test(pship_age_pers ~ degree_main, sample[sample$mrp_type_ongoing %in% "Persistent",])
+        kruskal.test(airate_pers ~ degree_main, sample[sample$mrp_type_ongoing %in% "Persistent",])
+        kruskal.test(sqrt_agediff ~ degree_main, sample[sample$mrp_type_ongoing %in% "Persistent",])
+        kruskal.test(condoms_pers ~ degree_main, sample[sample$mrp_type_ongoing %in% "Persistent",])
+    
+    #Define function to streamline analysis of differences in categorical parameters
+        catvars_pers <- function(x) {
+            tbl <- table(sample$degree_main[sample$mrp_type_ongoing %in% "Persistent"], x)
+            X2 <- chisq.test(tbl)
+            fisher <- fisher.test(tbl)
+            return(list(tbl, X2, fisher))
+        }
+        
+    #Apply function to analyze associations with categorical parameters
+        catvars_pers(sample$same_race[sample$mrp_type_ongoing %in% "Persistent"])
+        catvars_pers(sample$mrp_statuscat_now_clean[sample$mrp_type_ongoing %in% "Persistent"])
+```
+
+## Conclusions
+There do not appear to be any significant differences in the characteristics of most recent partners by momentary degree. As such, it appears that it is appropriate to use data reported on all ongoing partners of a given type to impute the characteristics (implicitly or explicitly) of other ongoing partners who were not the most recent partner.
+        
