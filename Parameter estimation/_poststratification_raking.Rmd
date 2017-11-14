@@ -1,4 +1,4 @@
-# Post-stratification and raking
+# Post-stratification and raking {#reweight}
 
 To adjust the composition of the sample to more closely match the estimated population totals, we would ideally adjust the sample to correspond to the full joint distributions of age, race/ethnicity, and region. However, this would stretch the data very thin, resulting in unstable estimates. We felt it was important to capture the joint distribution of race and region, as the racial/ethnic composition of each region differs, as illustrated in section \@ref(#racedist). There are some differences in the age composition of each region (section \@ref(#agedist)), but these differences are not quite as stark as for the racial/ethnic composition. Furthermore, trying to match the age distribution by region poses challenges in a dynamic model - to preserve the distribution by region, we would need to account for patterns of migration that lead to that distribution. 
 
