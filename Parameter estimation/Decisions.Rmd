@@ -3,14 +3,36 @@
 This file summarizes the decisions made about parameter estimation and model structure.
 
 ##Racial/ethnic groups
-Hispanic, black, other [fill me in]
+- Hispanic, black, other [fill me in]
 
 ## Age range
-18-59
+- 18-59
 
 ## Region
 
 ## Using data from ongoing vs all partnerships
-We decided to use data only from ongoing partnerships to inform parameters relating to race and age mixing. This is because the formation model, to which these parameters are relevant, aims to recreate the network we observe at the cross-section.
+- We decided to use data only from ongoing partnerships to inform parameters relating to race and age mixing. This is because the formation model, to which these parameters are relevant, aims to recreate the network we observe at the cross-section. An issue is that the NHBS and MMP, datasets I will also be using to inform parameters, do not ask whether partnerships are ongoing. But we will just work with what we have.
+- For parameters relating to condom use and coital frequency, we decided to use data from all partnerships. The analysis in section \@ref(coitfreq_condoms) revealed that, for all comparisons but coital frequency in persistent partnerships among Hispanic men, the estimates were comparable when using data from all vs. only ongoing partnerships. Because the sample sizes are considerably smaller when restricting to ongoing partnerships and there is not a good reason to do so, we decided to use data from all partnerships.
 
-For parameters relating to condom use and coital frequency, we decided to use data from all partnerships. The analysis in section \@ref(coitfreq_condoms) revealed that, for all comparisons but coital frequency in persistent partnerships among Hispanic men, the estimates were comparable when using data from all vs. only ongoing partnerships. Because the sample sizes are considerably smaller when restricting to ongoing partnerships and there is not a good reason to do so, we decided to use data from all partnerships.
+## Using data on most recent partners
+- In analyses comparing the characteristics of most recent partners by momentary degree (i.e. comparing main most recent partners described by men with 0 vs. 1+ ongoing persistent partner and comparing persistent most recent partners described by men with 0 vs. 1 ongoing main partners) (\@ref(mrp_limitations)), no significant differences were observed. This suggests that it is appropriate to use data reported on all ongoing partners of a given type to impute the characteristics (implicitly or explicitly) of other ongoing partners who were not reported on as the most recent partner.
+
+## Heterogeneity by age
+- Racial/ethnic mixing: Although racial/ethnic mixing (the proportion of partnerships reported with men of the same racial/ethnic group) appeared to differ significantly by age in regression analyses, examination of the plots did not reveal any meaningful or clear patterns (see \@ref(plots)). As such, we will not stratify this parameter by ego age.
+- Age mixing: This appears to differ by age (see \@ref(plots)). To simplify the model code, we will try to find a corection for age differences that adjusts for this heterogeneity (e.g. taking the difference between the square or cube root of ego and alter ages). <span style="color:red">Update when make final decision</span>.
+- Rate of instantaneous partnerships: Exploratory analyses reveal differences in the rate of instantaneous partnerships by age. <span style="color:red"> Fill in with decisions about how to handle this. We will code this as a transition matrix detailing how men move through quantiles by age group </span>.
+- Partnership age: Exploratory analyses suggest that the age of main partnerships varies by age, but this is a complex phenomenon. For instance, the data are subject to censoring by age, in that the partnerships of younger men can only have persisted a relatively short time simply due to how long it has been since their presumed debut. <span style="color:red">Steve suggests not trying to represent age heterogeneity in duration at this point, but to simulate from the model and plot the distribution by age that it produces to see how well it aligns with what we observe.</span>
+- Intertest interval: The intertest interval does not appear to vary meaningfully by age, so we will not stratify this parameter on age.
+
+## Heterogeneity by race/ethincity
+- Age mixing: There appear to be some racial/ethnic differences in age mixing, though it's difficult to tell due to small numbers of black men. Since the model is already set up to stratify age mixing terms by race, we will keep that structure, but we will not try to represent the interaction between age and race on age mixing (see \@ref(plots)).
+
+## Heterogeneity by region
+- In regression models to test the significance of the main effects of age, race, and region and all three 2-way interactions with model parameters, region did not appear to be an important factor for netowrk parameters. The only factor that appears to vary by region is PrEP use among those indicated to initiate PrEP. <span style="color:red">Note that this analysis did not look at treatment-related parameters, which may be significnat.</span>
+
+## Rate of instantaneous partners
+- <span style="color:red"> Decision about definition of quantiles and how to represent heterogeneity by degree</span>
+
+## Intertest interval
+- <span style="color:red">Model as an interval process. With this setting, the intertest interval is estimated as twice the time since the last test since the survey was not administered in connection with any testing event. The assumption is that the date of survey is randomly distributed throughout men's time between tests, such that on average it will come halfway through their intertest interval. We will use the median as the summary statistic, because for interval data that can be easily skewed by outliers, the median may be more stable. Additionally, using the median we get results that match what we've seen in other studies (~365 days bewteen tests). </span>
+- This parameter should be restricted to men who do not report current use of PrEP, as we expect PrEP to change testing frequency and the model will represnt the change in testing frequency with PrEP.
