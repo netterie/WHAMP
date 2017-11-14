@@ -6,6 +6,7 @@ rmd_files: [ "_Washington_census_data_prep.Rmd",
 "_poststratification_raking.Rmd",
 "Notes_on_mixing.Rmd",
 "Notes_on_condom_use_and_coital_frequency.Rmd",
+"Notes_on_most_recent_partner_limitations.Rmd",
 "Associations_with_nodal_attributes.Rmd",
 "Decisions.Rmd"
 ]
