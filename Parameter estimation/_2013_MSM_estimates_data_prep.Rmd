@@ -12,7 +12,6 @@
     library("knitr")
     library("data.table")
     library("reshape2")
-    detach(package:plyr)
 
 #-----------------------------------------------------------------------------------
 # Knitr options
@@ -29,7 +28,7 @@ options(knitr.table.format = "html")
 # Load data on population composition and define variables
 #-----------------------------------------------------------------------------------
 
-us_msm_est2013 <- read.csv("Parameter estimation/Data/Emory CAMP_US MSM Estimates Data 2013.csv",
+us_msm_est2013 <- read.csv("Data/Emory_CAMP_US_MSM_Estimates_Data_2013.csv",
                        header=TRUE, sep=",")
 
 #Filter to Washington State and limit to variables of interest
@@ -64,3 +63,4 @@ load(file="Data/census_totalbyregion.Rdata")
 #-----------------------------------------------------------------------------------
 save(wa_msm_est2013, file="Data/wa_msm_est2013.Rdata")
 save(MSMbyregion, file="Data/msmbyregion.Rdata")
+```
