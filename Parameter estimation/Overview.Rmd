@@ -1,0 +1,16 @@
+# Overview {#overview}
+
+This document presents the results of data analyses for estimation of parameters for the Washington HIV Model for MSM and records the assumptions made in that process. The document is organized into the following sections:
+
+* Network composition (Demographics)
+* Number of relationships
+* Degree
+* Concurrency
+* Duration
+* Age mixing
+* Race mixing
+* Regional mixing
+* One-time network
+* Summary of decisions made
+* References
+
