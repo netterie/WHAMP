@@ -12,7 +12,6 @@
     library("knitr")
     library("data.table")
     library("reshape2")
-    detach(package:plyr)
 
 #-----------------------------------------------------------------------------------
 # Knitr options
@@ -257,60 +256,60 @@ options(knitr.table.format = "html")
 #-----------------------------------------------------------------------------------
 # Old steps to calculate proportions- may want to delete this
 #-----------------------------------------------------------------------------------
-    
-#Males by region
-    prop.KC <- wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "King County" & !is.na(wa_sade_racebyregion$region)] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Washington"]
-    prop.OW <- wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Other Western" & !is.na(wa_sade_racebyregion$region)] /  wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Washington"]
-    prop.E <- wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Eastern" & !is.na(wa_sade_racebyregion$region)] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Washington"]
-    
-#Males by race/eth
-    #Using detailed race/eth groups
-    prop.H <- wa_sade_racebyregion$total.hispanic[wa_sade_racebyregion$region %in% "Washington"] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Washington"]
-    prop.W <- wa_sade_racebyregion$total.white[wa_sade_racebyregion$region %in% "Washington"] /  wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Washington"]
-    prop.B <- wa_sade_racebyregion$total.black[wa_sade_racebyregion$region %in% "Washington"] /  wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Washington"]
-    prop.A <- wa_sade_racebyregion$total.asian[wa_sade_racebyregion$region %in% "Washington"] /  wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Washington"]
-    prop.O <- wa_sade_racebyregion$total.other[wa_sade_racebyregion$region %in% "Washington"] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Washington"]
-    prop.M <- wa_sade_racebyregion$total.multiple[wa_sade_racebyregion$region %in% "Washington"] /  wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Washington"]
-
-    #Using HBO race/eth groups
-    HBO.prop.H <- wa_sade_racebyregion_hbo$total.hispanic[wa_sade_racebyregion$region %in% "Washington"] / wa_sade_racebyregion_hbo$total.males[wa_sade_racebyregion$region %in% "Washington"]
-    HBO.prop.B <- wa_sade_racebyregion_hbo$total.anyblack[wa_sade_racebyregion$region %in% "Washington"] / wa_sade_racebyregion_hbo$total.males[wa_sade_racebyregion$region %in% "Washington"]
-    HBO.prop.O <- wa_sade_racebyregion_hbo$total.anyother[wa_sade_racebyregion$region %in% "Washington"] / wa_sade_racebyregion_hbo$total.males[wa_sade_racebyregion$region %in% "Washington"]
-
-#Males by race within each region
-    #Using detailed race/eth groups
-    prop.H.KC <- wa_sade_racebyregion$total.hispanic[wa_sade_racebyregion$region %in% "King County" & !is.na(wa_sade_racebyregion$region)] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "King County" & !is.na(wa_sade_racebyregion$region)]
-    prop.W.KC <- wa_sade_racebyregion$total.white[wa_sade_racebyregion$region %in% "King County" & !is.na(wa_sade_racebyregion$region)] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "King County" & !is.na(wa_sade_racebyregion$region)]
-    prop.B.KC <- wa_sade_racebyregion$total.black[wa_sade_racebyregion$region %in% "King County" & !is.na(wa_sade_racebyregion$region)] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "King County" & !is.na(wa_sade_racebyregion$region)]
-    prop.A.KC <- wa_sade_racebyregion$total.asian[wa_sade_racebyregion$region %in% "King County" & !is.na(wa_sade_racebyregion$region)] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "King County" & !is.na(wa_sade_racebyregion$region)]
-    prop.O.KC <- wa_sade_racebyregion$total.other[wa_sade_racebyregion$region %in% "King County" & !is.na(wa_sade_racebyregion$region)] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "King County" & !is.na(wa_sade_racebyregion$region)]
-    prop.M.KC <- wa_sade_racebyregion$total.multiple[wa_sade_racebyregion$region %in% "King County" & !is.na(wa_sade_racebyregion$region)] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "King County" & !is.na(wa_sade_racebyregion$region)]
-
-    prop.H.OW <- wa_sade_racebyregion$total.hispanic[wa_sade_racebyregion$region %in% "Other Western" & !is.na(wa_sade_racebyregion$region)] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Other Western" & !is.na(wa_sade_racebyregion$region)]
-    prop.W.OW <- wa_sade_racebyregion$total.white[wa_sade_racebyregion$region %in% "Other Western" & !is.na(wa_sade_racebyregion$region)] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Other Western" & !is.na(wa_sade_racebyregion$region)]
-    prop.B.OW <- wa_sade_racebyregion$total.black[wa_sade_racebyregion$region %in% "Other Western" & !is.na(wa_sade_racebyregion$region)] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Other Western" & !is.na(wa_sade_racebyregion$region)]
-    prop.A.OW <- wa_sade_racebyregion$total.asian[wa_sade_racebyregion$region %in% "Other Western" & !is.na(wa_sade_racebyregion$region)] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Other Western" & !is.na(wa_sade_racebyregion$region)]
-    prop.O.OW <- wa_sade_racebyregion$total.other[wa_sade_racebyregion$region %in% "Other Western" & !is.na(wa_sade_racebyregion$region)] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Other Western" & !is.na(wa_sade_racebyregion$region)]
-    prop.M.OW <- wa_sade_racebyregion$total.multiple[wa_sade_racebyregion$region %in% "Other Western" & !is.na(wa_sade_racebyregion$region)] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Other Western" & !is.na(wa_sade_racebyregion$region)]
-
-    prop.H.E <- wa_sade_racebyregion$total.hispanic[wa_sade_racebyregion$region %in% "Eastern" & !is.na(wa_sade_racebyregion$region)] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Eastern" & !is.na(wa_sade_racebyregion$region)]
-    prop.W.E <- wa_sade_racebyregion$total.white[wa_sade_racebyregion$region %in% "Eastern" & !is.na(wa_sade_racebyregion$region)] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Eastern" & !is.na(wa_sade_racebyregion$region)]
-    prop.B.E <- wa_sade_racebyregion$total.black[wa_sade_racebyregion$region %in% "Eastern" & !is.na(wa_sade_racebyregion$region)] /  wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Eastern" & !is.na(wa_sade_racebyregion$region)]
-    prop.A.E <- wa_sade_racebyregion$total.asian[wa_sade_racebyregion$region %in% "Eastern" & !is.na(wa_sade_racebyregion$region)] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Eastern" & !is.na(wa_sade_racebyregion$region)]
-    prop.O.E <- wa_sade_racebyregion$total.other[wa_sade_racebyregion$region %in% "Eastern" & !is.na(wa_sade_racebyregion$region)] /  wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Eastern" & !is.na(wa_sade_racebyregion$region)]
-    prop.M.E <- wa_sade_racebyregion$total.multiple[wa_sade_racebyregion$region %in% "Eastern" & !is.na(wa_sade_racebyregion$region)] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Eastern" & !is.na(wa_sade_racebyregion$region)]
-
-#Using HBO race/eth groups
-    HBO.prop.H.KC <- wa_sade_racebyregion_hbo$total.hispanic[wa_sade_racebyregion_hbo$region %in% "King County" & !is.na(wa_sade_racebyregion_hbo$region)] / wa_sade_racebyregion_hbo$total.males[wa_sade_racebyregion_hbo$region %in% "King County" & !is.na(wa_sade_racebyregion_hbo$region)]
-    HBO.prop.B.KC <- wa_sade_racebyregion_hbo$total.anyblack[wa_sade_racebyregion_hbo$region %in% "King County" & !is.na(wa_sade_racebyregion_hbo$region)] / wa_sade_racebyregion_hbo$total.males[wa_sade_racebyregion_hbo$region %in% "King County" & !is.na(wa_sade_racebyregion_hbo$region)]
-    HBO.prop.O.KC <- wa_sade_racebyregion_hbo$total.anyother[wa_sade_racebyregion_hbo$region %in% "King County" & !is.na(wa_sade_racebyregion_hbo$region)] / wa_sade_racebyregion_hbo$total.males[wa_sade_racebyregion_hbo$region %in% "King County" & !is.na(wa_sade_racebyregion_hbo$region)]
-
-    HBO.prop.H.OW <- wa_sade_racebyregion_hbo$total.hispanic[wa_sade_racebyregion_hbo$region %in% "Other Western" & !is.na(wa_sade_racebyregion_hbo$region)] / wa_sade_racebyregion_hbo$total.males[wa_sade_racebyregion_hbo$region %in% "Other Western" & !is.na(wa_sade_racebyregion_hbo$region)]
-    HBO.prop.B.OW <- wa_sade_racebyregion_hbo$total.anyblack[wa_sade_racebyregion_hbo$region %in% "Other Western" & !is.na(wa_sade_racebyregion_hbo$region)] / wa_sade_racebyregion_hbo$total.males[wa_sade_racebyregion_hbo$region %in% "Other Western" & !is.na(wa_sade_racebyregion_hbo$region)]
-    HBO.prop.O.OW <- wa_sade_racebyregion_hbo$total.anyother[wa_sade_racebyregion_hbo$region %in% "Other Western" & !is.na(wa_sade_racebyregion_hbo$region)] / wa_sade_racebyregion_hbo$total.males[wa_sade_racebyregion_hbo$region %in% "Other Western" & !is.na(wa_sade_racebyregion_hbo$region)]
-
-    HBO.prop.H.E <- wa_sade_racebyregion_hbo$total.hispanic[wa_sade_racebyregion_hbo$region %in% "Eastern" & !is.na(wa_sade_racebyregion_hbo$region)] / wa_sade_racebyregion_hbo$total.males[wa_sade_racebyregion_hbo$region %in% "Eastern" & !is.na(wa_sade_racebyregion_hbo$region)]
-    HBO.prop.B.E <- wa_sade_racebyregion_hbo$total.anyblack[wa_sade_racebyregion_hbo$region %in% "Eastern" & !is.na(wa_sade_racebyregion_hbo$region)] / wa_sade_racebyregion_hbo$total.males[wa_sade_racebyregion_hbo$region %in% "Eastern" & !is.na(wa_sade_racebyregion_hbo$region)]
-    HBO.prop.O.E <- wa_sade_racebyregion_hbo$total.anyother[wa_sade_racebyregion_hbo$region %in% "Eastern" & !is.na(wa_sade_racebyregion_hbo$region)] / wa_sade_racebyregion_hbo$total.males[wa_sade_racebyregion_hbo$region %in% "Eastern" & !is.na(wa_sade_racebyregion_hbo$region)]
+#     
+# #Males by region
+#     prop.KC <- wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "King County" & !is.na(wa_sade_racebyregion$region)] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Washington"]
+#     prop.OW <- wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Other Western" & !is.na(wa_sade_racebyregion$region)] /  wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Washington"]
+#     prop.E <- wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Eastern" & !is.na(wa_sade_racebyregion$region)] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Washington"]
+#     
+# #Males by race/eth
+#     #Using detailed race/eth groups
+#     prop.H <- wa_sade_racebyregion$total.hispanic[wa_sade_racebyregion$region %in% "Washington"] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Washington"]
+#     prop.W <- wa_sade_racebyregion$total.white[wa_sade_racebyregion$region %in% "Washington"] /  wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Washington"]
+#     prop.B <- wa_sade_racebyregion$total.black[wa_sade_racebyregion$region %in% "Washington"] /  wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Washington"]
+#     prop.A <- wa_sade_racebyregion$total.asian[wa_sade_racebyregion$region %in% "Washington"] /  wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Washington"]
+#     prop.O <- wa_sade_racebyregion$total.other[wa_sade_racebyregion$region %in% "Washington"] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Washington"]
+#     prop.M <- wa_sade_racebyregion$total.multiple[wa_sade_racebyregion$region %in% "Washington"] /  wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Washington"]
+# 
+#     #Using HBO race/eth groups
+#     HBO.prop.H <- wa_sade_racebyregion_hbo$total.hispanic[wa_sade_racebyregion$region %in% "Washington"] / wa_sade_racebyregion_hbo$total.males[wa_sade_racebyregion$region %in% "Washington"]
+#     HBO.prop.B <- wa_sade_racebyregion_hbo$total.anyblack[wa_sade_racebyregion$region %in% "Washington"] / wa_sade_racebyregion_hbo$total.males[wa_sade_racebyregion$region %in% "Washington"]
+#     HBO.prop.O <- wa_sade_racebyregion_hbo$total.anyother[wa_sade_racebyregion$region %in% "Washington"] / wa_sade_racebyregion_hbo$total.males[wa_sade_racebyregion$region %in% "Washington"]
+# 
+# #Males by race within each region
+#     #Using detailed race/eth groups
+#     prop.H.KC <- wa_sade_racebyregion$total.hispanic[wa_sade_racebyregion$region %in% "King County" & !is.na(wa_sade_racebyregion$region)] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "King County" & !is.na(wa_sade_racebyregion$region)]
+#     prop.W.KC <- wa_sade_racebyregion$total.white[wa_sade_racebyregion$region %in% "King County" & !is.na(wa_sade_racebyregion$region)] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "King County" & !is.na(wa_sade_racebyregion$region)]
+#     prop.B.KC <- wa_sade_racebyregion$total.black[wa_sade_racebyregion$region %in% "King County" & !is.na(wa_sade_racebyregion$region)] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "King County" & !is.na(wa_sade_racebyregion$region)]
+#     prop.A.KC <- wa_sade_racebyregion$total.asian[wa_sade_racebyregion$region %in% "King County" & !is.na(wa_sade_racebyregion$region)] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "King County" & !is.na(wa_sade_racebyregion$region)]
+#     prop.O.KC <- wa_sade_racebyregion$total.other[wa_sade_racebyregion$region %in% "King County" & !is.na(wa_sade_racebyregion$region)] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "King County" & !is.na(wa_sade_racebyregion$region)]
+#     prop.M.KC <- wa_sade_racebyregion$total.multiple[wa_sade_racebyregion$region %in% "King County" & !is.na(wa_sade_racebyregion$region)] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "King County" & !is.na(wa_sade_racebyregion$region)]
+# 
+#     prop.H.OW <- wa_sade_racebyregion$total.hispanic[wa_sade_racebyregion$region %in% "Other Western" & !is.na(wa_sade_racebyregion$region)] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Other Western" & !is.na(wa_sade_racebyregion$region)]
+#     prop.W.OW <- wa_sade_racebyregion$total.white[wa_sade_racebyregion$region %in% "Other Western" & !is.na(wa_sade_racebyregion$region)] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Other Western" & !is.na(wa_sade_racebyregion$region)]
+#     prop.B.OW <- wa_sade_racebyregion$total.black[wa_sade_racebyregion$region %in% "Other Western" & !is.na(wa_sade_racebyregion$region)] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Other Western" & !is.na(wa_sade_racebyregion$region)]
+#     prop.A.OW <- wa_sade_racebyregion$total.asian[wa_sade_racebyregion$region %in% "Other Western" & !is.na(wa_sade_racebyregion$region)] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Other Western" & !is.na(wa_sade_racebyregion$region)]
+#     prop.O.OW <- wa_sade_racebyregion$total.other[wa_sade_racebyregion$region %in% "Other Western" & !is.na(wa_sade_racebyregion$region)] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Other Western" & !is.na(wa_sade_racebyregion$region)]
+#     prop.M.OW <- wa_sade_racebyregion$total.multiple[wa_sade_racebyregion$region %in% "Other Western" & !is.na(wa_sade_racebyregion$region)] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Other Western" & !is.na(wa_sade_racebyregion$region)]
+# 
+#     prop.H.E <- wa_sade_racebyregion$total.hispanic[wa_sade_racebyregion$region %in% "Eastern" & !is.na(wa_sade_racebyregion$region)] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Eastern" & !is.na(wa_sade_racebyregion$region)]
+#     prop.W.E <- wa_sade_racebyregion$total.white[wa_sade_racebyregion$region %in% "Eastern" & !is.na(wa_sade_racebyregion$region)] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Eastern" & !is.na(wa_sade_racebyregion$region)]
+#     prop.B.E <- wa_sade_racebyregion$total.black[wa_sade_racebyregion$region %in% "Eastern" & !is.na(wa_sade_racebyregion$region)] /  wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Eastern" & !is.na(wa_sade_racebyregion$region)]
+#     prop.A.E <- wa_sade_racebyregion$total.asian[wa_sade_racebyregion$region %in% "Eastern" & !is.na(wa_sade_racebyregion$region)] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Eastern" & !is.na(wa_sade_racebyregion$region)]
+#     prop.O.E <- wa_sade_racebyregion$total.other[wa_sade_racebyregion$region %in% "Eastern" & !is.na(wa_sade_racebyregion$region)] /  wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Eastern" & !is.na(wa_sade_racebyregion$region)]
+#     prop.M.E <- wa_sade_racebyregion$total.multiple[wa_sade_racebyregion$region %in% "Eastern" & !is.na(wa_sade_racebyregion$region)] / wa_sade_racebyregion$total.males[wa_sade_racebyregion$region %in% "Eastern" & !is.na(wa_sade_racebyregion$region)]
+# 
+# #Using HBO race/eth groups
+#     HBO.prop.H.KC <- wa_sade_racebyregion_hbo$total.hispanic[wa_sade_racebyregion_hbo$region %in% "King County" & !is.na(wa_sade_racebyregion_hbo$region)] / wa_sade_racebyregion_hbo$total.males[wa_sade_racebyregion_hbo$region %in% "King County" & !is.na(wa_sade_racebyregion_hbo$region)]
+#     HBO.prop.B.KC <- wa_sade_racebyregion_hbo$total.anyblack[wa_sade_racebyregion_hbo$region %in% "King County" & !is.na(wa_sade_racebyregion_hbo$region)] / wa_sade_racebyregion_hbo$total.males[wa_sade_racebyregion_hbo$region %in% "King County" & !is.na(wa_sade_racebyregion_hbo$region)]
+#     HBO.prop.O.KC <- wa_sade_racebyregion_hbo$total.anyother[wa_sade_racebyregion_hbo$region %in% "King County" & !is.na(wa_sade_racebyregion_hbo$region)] / wa_sade_racebyregion_hbo$total.males[wa_sade_racebyregion_hbo$region %in% "King County" & !is.na(wa_sade_racebyregion_hbo$region)]
+# 
+#     HBO.prop.H.OW <- wa_sade_racebyregion_hbo$total.hispanic[wa_sade_racebyregion_hbo$region %in% "Other Western" & !is.na(wa_sade_racebyregion_hbo$region)] / wa_sade_racebyregion_hbo$total.males[wa_sade_racebyregion_hbo$region %in% "Other Western" & !is.na(wa_sade_racebyregion_hbo$region)]
+#     HBO.prop.B.OW <- wa_sade_racebyregion_hbo$total.anyblack[wa_sade_racebyregion_hbo$region %in% "Other Western" & !is.na(wa_sade_racebyregion_hbo$region)] / wa_sade_racebyregion_hbo$total.males[wa_sade_racebyregion_hbo$region %in% "Other Western" & !is.na(wa_sade_racebyregion_hbo$region)]
+#     HBO.prop.O.OW <- wa_sade_racebyregion_hbo$total.anyother[wa_sade_racebyregion_hbo$region %in% "Other Western" & !is.na(wa_sade_racebyregion_hbo$region)] / wa_sade_racebyregion_hbo$total.males[wa_sade_racebyregion_hbo$region %in% "Other Western" & !is.na(wa_sade_racebyregion_hbo$region)]
+# 
+#     HBO.prop.H.E <- wa_sade_racebyregion_hbo$total.hispanic[wa_sade_racebyregion_hbo$region %in% "Eastern" & !is.na(wa_sade_racebyregion_hbo$region)] / wa_sade_racebyregion_hbo$total.males[wa_sade_racebyregion_hbo$region %in% "Eastern" & !is.na(wa_sade_racebyregion_hbo$region)]
+#     HBO.prop.B.E <- wa_sade_racebyregion_hbo$total.anyblack[wa_sade_racebyregion_hbo$region %in% "Eastern" & !is.na(wa_sade_racebyregion_hbo$region)] / wa_sade_racebyregion_hbo$total.males[wa_sade_racebyregion_hbo$region %in% "Eastern" & !is.na(wa_sade_racebyregion_hbo$region)]
+#     HBO.prop.O.E <- wa_sade_racebyregion_hbo$total.anyother[wa_sade_racebyregion_hbo$region %in% "Eastern" & !is.na(wa_sade_racebyregion_hbo$region)] / wa_sade_racebyregion_hbo$total.males[wa_sade_racebyregion_hbo$region %in% "Eastern" & !is.na(wa_sade_racebyregion_hbo$region)]
 
 ```
