@@ -235,10 +235,10 @@
     
     #Test interval
         #If we assume it's an interval process - set to 2x time since last test
-            #sample_allages$iti <- 2*sample_allages$daysago_lasttest
+            sample_allages$iti <- 2*sample_allages$daysago_lasttest
         
-        #Assuming it's a memoryless process
-        sample_allages$iti <- sample_allages$daysago_lasttest
+        #If we assume it's a memoryless process
+            #sample_allages$iti <- sample_allages$daysago_lasttest
 
     #PrEP adherence
         sample_allages$prep_adherence_gp <- ifelse(sample_allages$prep_adherence %in% 0, "0 pills", ifelse(sample_allages$prep_adherence %in% 1:8, "<2 pills", ifelse(sample_allages$prep_adherence %in% 9:17, "2-3 pills", ifelse(sample_allages$prep_adherence %in% 18:30, "4+ pills", NA))))
