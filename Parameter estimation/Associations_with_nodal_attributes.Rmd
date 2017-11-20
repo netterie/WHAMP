@@ -545,19 +545,19 @@ The models and likelihood ratio tests are below.
 ```
 
 ## Proportion never tested
-The parameter indicating the proportion of men who never test is meant to indicate the proportion of men who will not be screened for HIV. In previous network models, this was defined as the proportion who never tested by age 40, since the model was capped at age 39. For this model, that may not be appropriate. For the current analysis, I simply modeled the probability that men had ever tested at their current age.
+The parameter indicating the proportion of men who never test is meant to indicate the proportion of men who will not be screened for HIV. In previous network models, this was defined as the proportion who never tested by age 40, since the model was capped at age 39. For this model, that may not be appropriate. For the current analysis, I simply modeled the probability that men had ever tested at their current age. This analysis excludes men currently taking PrEP, as they will all have tested and their testing patterns will be represented differently in the model.
 
 We first look at the number of observations that re non-missing for this outcome and for model predictors
 ```{r}
    #Look at the number of observations that are non-missing for this outcome and for model predictors
-  table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$evertest_r)], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$evertest_r)], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$evertest_r)])
+  table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$evertest_r) & !(sample$prep_use_r %in% "Currently taking PrEP")], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$evertest_r) & !(sample$prep_use_r %in% "Currently taking PrEP")], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$evertest_r) & !(sample$prep_use_r %in% "Currently taking PrEP")])
 
 ```
 
 Next we will look at how to parameterize age by plotting the ceofficients from the full model with age input as a dummy variable with 5-year age bins
 ```{r}
  #Figure out how to parameterize age
-    evertest_full_testage <- glm(evertest_r ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample)
+    evertest_full_testage <- glm(evertest_r ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample, subset = !(prep_use_r %in% "Currently taking PrEP"))
     plot.age.coefs(evertest_full_testage)
 ```
 
@@ -567,16 +567,16 @@ The models and likelihood ratio tests are below.
 ```{r nevertest}
   
  #Main effects
-  evertest_full <- glm(evertest_r ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample)
-  evertest_noregion <- glm(evertest_r ~ age_cat + race_eth_m.reg, family=binomial(link="logit"), data=sample)
-  evertest_norace <- glm(evertest_r ~ age_cat + region.bKC, family=binomial(link="logit"), data=sample)
-  evertest_noage <- glm(evertest_r ~ race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample)
+  evertest_full <- glm(evertest_r ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample, subset = !(prep_use_r %in% "Currently taking PrEP"))
+  evertest_noregion <- glm(evertest_r ~ age_cat + race_eth_m.reg, family=binomial(link="logit"), data=sample, subset = !(prep_use_r %in% "Currently taking PrEP"))
+  evertest_norace <- glm(evertest_r ~ age_cat + region.bKC, family=binomial(link="logit"), data=sample, subset = !(prep_use_r %in% "Currently taking PrEP"))
+  evertest_noage <- glm(evertest_r ~ race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample, subset = !(prep_use_r %in% "Currently taking PrEP"))
 
  #Interactions
-  evertest_full_withint <- glm(evertest_r ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample)
-  evertest_noraceXreg <- glm(evertest_r ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample)
-  evertest_noageXreg <- glm(evertest_r ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample)
-  evertest_noraceXage <- glm(evertest_r ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, family=binomial(link="logit"), data=sample)
+  evertest_full_withint <- glm(evertest_r ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample, subset = !(prep_use_r %in% "Currently taking PrEP"))
+  evertest_noraceXreg <- glm(evertest_r ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample, subset = !(prep_use_r %in% "Currently taking PrEP"))
+  evertest_noageXreg <- glm(evertest_r ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample, subset = !(prep_use_r %in% "Currently taking PrEP"))
+  evertest_noraceXage <- glm(evertest_r ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, family=binomial(link="logit"), data=sample, subset = !(prep_use_r %in% "Currently taking PrEP"))
   
   results_evertest <- compare.models(evertest_full, evertest_noregion, evertest_norace, evertest_noage, evertest_full_withint, evertest_noraceXreg, evertest_noageXreg, evertest_noraceXage)
   results_evertest
@@ -585,19 +585,19 @@ The models and likelihood ratio tests are below.
 
 
 ## Intertest interval
-The last test interval is estimated as the days since men reported their last HIV test, assuming men have a constant hazard of testing. This analysis is restricted to men who reported having ever tested.
+The last test interval is estimated as the days since men reported their last HIV test, assuming men test as an interval process (see Section \@ref(iti). This analysis is restricted to men who reported having ever tested, and excludes men who reported current use of PrEP, as their testing patterns will be different and will be represented with a separate parameter in the model.
 
 We first look at the number of observations that re non-missing for this outcome and for model predictors
 ```{r}
   #Look at the number of observations that are non-missing for this outcome and for model predictors
-  table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$iti)], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$iti)], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$iti)])
+  table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$iti) & !(sample$prep_use_r %in% "Currently taking PrEP")], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$iti) & !(sample$prep_use_r %in% "Currently taking PrEP")], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$iti) & !(sample$prep_use_r %in% "Currently taking PrEP")])
 
 ```
 
 Next we will look at how to parameterize age by plotting the ceofficients from the full model with age input as a dummy variable with 5-year age bins
 ```{r}
  #Figure out how to parameterize age
-    iti_full_testage <- lm(iti ~ age_cat + race_eth_m.reg + region.bKC, data=sample)
+    iti_full_testage <- lm(iti ~ age_cat + race_eth_m.reg + region.bKC, data=sample, subset = !(prep_use_r %in% "Currently taking PrEP"))
     plot.age.coefs(iti_full_testage)
 ```
 
@@ -607,16 +607,16 @@ The models and likelihood ratio tests are below.
 ```{r iti, eval=TRUE}
 
  #Main effects
-  iti_full <- lm(iti ~ age_cat + race_eth_m.reg + region.bKC, data=sample)
-  iti_noregion <- lm(iti ~ age_cat + race_eth_m.reg, data=sample)
-  iti_norace <- lm(iti ~ age_cat + region.bKC, data=sample)
-  iti_noage <- lm(iti ~ race_eth_m.reg + region.bKC, data=sample)
+  iti_full <- lm(iti ~ age_cat + race_eth_m.reg + region.bKC, data=sample, subset = !(prep_use_r %in% "Currently taking PrEP"))
+  iti_noregion <- lm(iti ~ age_cat + race_eth_m.reg, data=sample, subset = !(prep_use_r %in% "Currently taking PrEP"))
+  iti_norace <- lm(iti ~ age_cat + region.bKC, data=sample, subset = !(prep_use_r %in% "Currently taking PrEP"))
+  iti_noage <- lm(iti ~ race_eth_m.reg + region.bKC, data=sample, subset = !(prep_use_r %in% "Currently taking PrEP"))
 
  #Interactions
-  iti_full_withint <- lm(iti ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, data=sample)
-  iti_noraceXreg <- lm(iti ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, data=sample)
-  iti_noageXreg <- lm(iti ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat, data=sample)
-  iti_noraceXage <- lm(iti ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, data=sample)
+  iti_full_withint <- lm(iti ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, data=sample, subset = !(prep_use_r %in% "Currently taking PrEP"))
+  iti_noraceXreg <- lm(iti ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, data=sample, subset = !(prep_use_r %in% "Currently taking PrEP"))
+  iti_noageXreg <- lm(iti ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat, data=sample, subset = !(prep_use_r %in% "Currently taking PrEP"))
+  iti_noraceXage <- lm(iti ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, data=sample, subset = !(prep_use_r %in% "Currently taking PrEP"))
   
   results_iti <- compare.models(iti_full, iti_noregion, iti_norace, iti_noage, iti_full_withint, iti_noraceXreg, iti_noageXreg, iti_noraceXage)  
   results_iti
@@ -1005,8 +1005,9 @@ __Decision__: The patterns for non-Hispanic other and Hispanic respondents appea
 To capture the age heterogeneity in age mixing, we need to decide how to parameterize the age difference. From plots \@ref(fig:plots_explore_agemixing_3) and \@ref(fig:plots_explore_agemixing_4), taking the difference between the square root of ego and alter ages reduces the heterogeneity by age, but does not fully account for differences by ego age in the age difference with persistent partnerships. Taking the cube root does not lead to a noticeable improvement.
 
 ### Degree distribution by age
+The first plot (\@ref(fig:plots_explore_somepartners)) shows the proportion of men reporting at least one ongoing partner by age. Plot \@ref(fig:plots_explore_concurrent) shows the proportion of men reporting two or more concurrent partners by age.
 
-```{r plots_explore_somepartners_1}
+```{r plots_explore_somepartners}
 #One or more ongoing partners by age
     somepartnersXage <- sample %>% filter(!is.na(somepartners)) %>% group_by(age_cat) %>% summarise(prop = mean(somepartners, na.rm=TRUE), freq=n())
     
@@ -1014,7 +1015,7 @@ To capture the age heterogeneity in age mixing, we need to decide how to paramet
 
 ```
 
-```{r plots_explore_concurrent_1}
+```{r plots_explore_concurrent}
 #One or more ongoing partners by age
     concurrentXage <- sample %>% filter(!is.na(concurrent)) %>% group_by(age_cat) %>% summarise(prop = mean(concurrent, na.rm=TRUE), freq=n())
     
@@ -1077,19 +1078,21 @@ These plots show the mean partnership age in main and persistent partnerships, r
 ### HIV testing by age
 The first graph below looks at the proportion of men who report having ever tested by age group. The graph is a bit tricky to interpret because the figure represents both age and cohort effects, and because the number of respondents for some ages is small. It seems that if men don't test by age 40-45, they are unlikely to get tested. The pattern is similar if age is binned in 5 year groups.
 
+The second figure looks at the mean and median intertest intervals by age group.
+
 ```{r plotsexplore_testing}
 # Ever tested by age
     evertestedXage <- sample_allages %>%
-              filter(!is.na(evertest_r) & !is.na(race_eth_m)) %>%
+              filter(!is.na(evertest_r) & !is.na(race_eth_m) & !(prep_use_r %in% "Currently taking PrEP")) %>%
               group_by(age) %>%
               summarise(prop = mean(evertest_r, na.rm=TRUE), freq=n())
     ggplot(evertestedXage) + geom_point(aes(x=age, y=prop, size=freq)) + geom_smooth(aes(x=age, y=prop), method="loess") + plot_background + theme_title + labs(x="Ego Age", y="Percent ever tested", title="Percent ever tested by age")        
 
 
-#Intertest interval by age (with calculated mean as implied by exponential distribution)
+#Intertest interval by age 
     itiXage <- sample %>% filter(!is.na(iti) & prep_use_r !="Currently taking PrEP") %>% group_by(age) %>% summarise(freq=n(), median=median(iti, na.rm=TRUE), mean=mean(iti, na.rm=TRUE))
     
-    ggplot(itiXage) + geom_point(aes(x=age, y=median, size=freq), colour="blue") + geom_point(aes(x=age, y=mean, size=freq), colour="red") + geom_smooth(aes(x=age, y=median), method="loess") + geom_smooth(aes(x=age, y=mean), method="loess") + labs(x="Ego age", y="Median days since last test", title="Median intertest interval by age, assuming testing is an inteval process")
+   ggplot(iti_intervalXage) + geom_point(aes(x=age, y=median, size=freq, colour="Median")) + geom_point(aes(x=age, y=mean, size=freq, colour="Mean")) + geom_smooth(aes(x=age, y=median), method="loess") + geom_smooth(aes(x=age, y=mean), method="loess") + scale_colour_manual(name="Measure", values=c("Median" = "blue", "Mean"="red")) + labs(x="Ego age", y="Days since last test", title="Mean and median intertest intervals by age, assuming testing is an interval process")
         
 ```
 
