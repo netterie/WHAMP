@@ -9,6 +9,7 @@ rmd_files: [ "_Washington_census_data_prep.Rmd",
 "Notes_on_mixing.Rmd",
 "Notes_on_condom_use_and_coital_frequency.Rmd",
 "Notes_on_most_recent_partner_limitations.Rmd",
+"Intertest interval",
 "Decisions.Rmd",
 "References.Rmd"
 ]
