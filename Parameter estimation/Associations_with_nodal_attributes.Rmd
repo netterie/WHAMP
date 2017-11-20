@@ -39,6 +39,7 @@ load(file="Data/InternetSurveySample_allages.Rdata")
 # Define alternate age categorization
 #-----------------------------------------------------------------------------------
    sample$age_chunks <-  cut(sample$age, c(17, 29, 39, 44, 59), labels=c("18-29", "30-39", "40-49", "50-59"))   
+    sample$age_cat_alt <- cut(sample$age, c(17, 24, 29, 34, 39, 49, 59), labels=c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"))
 
 #----------------------------------------------------------------------------------
 # Define multiplot function
@@ -82,7 +83,14 @@ load(file="Data/InternetSurveySample_allages.Rdata")
 #-----------------------------------------------------------------------------------
 # Write function to streamline analyses
 #-----------------------------------------------------------------------------------
+#Function to plot the coefficients for age
+plot.age.coefs <- function(full) {
+    agecoefs <- cbind.data.frame(age_cat = c("25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59"), coefs = as.vector(full$coefficients[2:8]))
+    plot <- ggplot(agecoefs, aes(x=age_cat, y=coefs)) + geom_point()
+    return(plot)
+}
 
+#Function to get likelihood ratio tests
 compare.models <- function(full, noreg, norace, noage, full_withint, noraceXreg, noageXreg, noraceXage) {
     lrt_region <- lrtest(full, noreg)
     lrt_race <- lrtest(full, norace)
@@ -101,6 +109,7 @@ compare.models <- function(full, noreg, norace, noage, full_withint, noraceXreg,
     return(results)
 }
 
+
 ```
 
 
@@ -111,22 +120,34 @@ This section documents the results of regression analyses aimed at identifying w
 To look for differences in the degree distribution, we will break it down to two binary indicators corresponding to whether men have one or more ongoing partner of any type and whether they have any concurrent partners.
 
 ### One or more partners 
-```{r somepartners, eval=TRUE, error=TRUE}
-
+We first look at the number of observations that re non-missing for this outcome and for model predictors
+```{r}
   #Look at the number of observations that are non-missing for this outcome and for model predictors
   table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$somepartners)], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$somepartners)], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$somepartners)])
+```
 
+Next we will look at how to parameterize age by plotting the ceofficients from the full model with age input as a dummy variable with 5-year age bins
+```{r}
+ #Figure out how to parameterize age
+    somepartners_full_testage <- glm(somepartners ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample)
+    plot.age.coefs(somepartners_full_testage)
+```
+
+From this it looks like age should be input as a categorical variable, but due to the small numbers in upper age groups, we will group ages 40-49 and 50-59.
+
+The models and likelihood ratio tests are below.
+```{r somepartners, eval=TRUE, error=TRUE}
  #Main effects
-  somepartners_full <- glm(somepartners ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample)
-  somepartners_noregion <- glm(somepartners ~ age_cat + race_eth_m.reg, family=binomial(link="logit"), data=sample)
-  somepartners_norace <- glm(somepartners ~ age_cat + region.bKC, family=binomial(link="logit"), data=sample)
+  somepartners_full <- glm(somepartners ~ age_cat_alt + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample)
+  somepartners_noregion <- glm(somepartners ~ age_cat_alt + race_eth_m.reg, family=binomial(link="logit"), data=sample)
+  somepartners_norace <- glm(somepartners ~ age_cat_alt + region.bKC, family=binomial(link="logit"), data=sample)
   somepartners_noage <- glm(somepartners ~ race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample)
 
  #Interactions
-  somepartners_full_withint <- glm(somepartners ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample)
-  somepartners_noraceXreg <- glm(somepartners ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample)
-  somepartners_noageXreg <- glm(somepartners ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample)
-  somepartners_noraceXage <- glm(somepartners ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, family=binomial(link="logit"), data=sample)
+  somepartners_full_withint <- glm(somepartners ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, family=binomial(link="logit"), data=sample)
+  somepartners_noraceXreg <- glm(somepartners ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, family=binomial(link="logit"), data=sample)
+  somepartners_noageXreg <- glm(somepartners ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat_alt, family=binomial(link="logit"), data=sample)
+  somepartners_noraceXage <- glm(somepartners ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*region.bKC, family=binomial(link="logit"), data=sample)
   
   results_somepartners <- compare.models(somepartners_full, somepartners_noregion, somepartners_norace, somepartners_noage, somepartners_full_withint, somepartners_noraceXreg, somepartners_noageXreg, somepartners_noraceXage)
   results_somepartners
@@ -134,22 +155,34 @@ To look for differences in the degree distribution, we will break it down to two
 
 
 ### Concurrency
-```{r concurrency, eval=TRUE, error=TRUE}
-
-  #Look at the number of observations that are non-missing for this outcome and for model predictors
+We first look at the number of observations that re non-missing for this outcome and for model predictors
+```{r}
+    #Look at the number of observations that are non-missing for this outcome and for model predictors
   table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$concurrent)], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$concurrent)], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$concurrent)])
+```
 
+Next we will look at how to parameterize age by plotting the ceofficients from the full model with age input as a dummy variable with 5-year age bins
+```{r}
+ #Figure out how to parameterize age
+    concurrent_full_testage <- glm(concurrent ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample)
+    plot.age.coefs(concurrent_full_testage)
+```
+
+From this it looks like age should be input as a categorical variable, but due to the small numbers in upper age groups, we will group ages 40-49 and 50-59.
+
+The models and likelihood ratio tests are below.
+```{r concurrency, eval=TRUE, error=TRUE}
  #Main effects
-  concurrent_full <- glm(concurrent ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample)
-  concurrent_noregion <- glm(concurrent ~ age_cat + race_eth_m.reg, family=binomial(link="logit"), data=sample)
-  concurrent_norace <- glm(concurrent ~ age_cat + region.bKC, family=binomial(link="logit"), data=sample)
+  concurrent_full <- glm(concurrent ~ age_cat_alt + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample)
+  concurrent_noregion <- glm(concurrent ~ age_cat_alt + race_eth_m.reg, family=binomial(link="logit"), data=sample)
+  concurrent_norace <- glm(concurrent ~ age_cat_alt + region.bKC, family=binomial(link="logit"), data=sample)
   concurrent_noage <- glm(concurrent ~ race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample)
 
  #Interactions
-  concurrent_full_withint <- glm(concurrent ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample)
-  concurrent_noraceXreg <- glm(concurrent ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample)
-  concurrent_noageXreg <- glm(concurrent ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample)
-  concurrent_noraceXage <- glm(concurrent ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, family=binomial(link="logit"), data=sample)
+  concurrent_full_withint <- glm(concurrent ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, family=binomial(link="logit"), data=sample)
+  concurrent_noraceXreg <- glm(concurrent ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, family=binomial(link="logit"), data=sample)
+  concurrent_noageXreg <- glm(concurrent ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat_alt, family=binomial(link="logit"), data=sample)
+  concurrent_noraceXage <- glm(concurrent ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*region.bKC, family=binomial(link="logit"), data=sample)
   
   results_concurrent <- compare.models(concurrent_full, concurrent_noregion, concurrent_norace, concurrent_noage, concurrent_full_withint, concurrent_noraceXreg, concurrent_noageXreg, concurrent_noraceXage)
   results_concurrent
@@ -159,22 +192,35 @@ To look for differences in the degree distribution, we will break it down to two
 ## Rate of instantaneous partners
 __Note__: This analysis does not control for men's momentary degree.
 
+We first look at the number of observations that re non-missing for this outcome and for model predictors
+```{r}
+    #Look at the number of observations that are non-missing for this outcome and for model predictors
+  table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$rate_inst)], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$rate_inst)], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$rate_inst)])
+```
+
+Next we will look at how to parameterize age by plotting the ceofficients from the full model with age input as a dummy variable with 5-year age bins
+```{r}
+ #Figure out how to parameterize age
+    rateinst_full_testage <- lm(rate_inst ~ age_cat + race_eth_m.reg + region.bKC, data=sample)
+    plot.age.coefs(rateinst_full_testage)
+```
+
+From this it looks like age should be input as a categorical variable, but due to the small numbers in upper age groups, we will group ages 40-49 and 50-59.
+
+The models and likelihood ratio tests are below.
 ```{r rateinst, eval=TRUE, error=TRUE}
  
- #Look at the number of observations that are non-missing for this outcome and for model predictors
-  table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$rate_inst)], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$rate_inst)], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$rate_inst)])
-
  #Main effects
-  rate_inst_full <- lm(rate_inst ~ age_cat + race_eth_m.reg + region.bKC, data=sample)
-  rate_inst_noregion <- lm(rate_inst ~ age_cat + race_eth_m.reg, data=sample)
-  rate_inst_norace <- lm(rate_inst ~ age_cat + region.bKC, data=sample)
+  rate_inst_full <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC, data=sample)
+  rate_inst_noregion <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg, data=sample)
+  rate_inst_norace <- lm(rate_inst ~ age_cat_alt + region.bKC, data=sample)
   rate_inst_noage <- lm(rate_inst ~ race_eth_m.reg + region.bKC, data=sample)
 
  #Interactions
-  rate_inst_full_withint <- lm(rate_inst ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, data=sample)
-  rate_inst_noraceXreg <- lm(rate_inst ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, data=sample)
-  rate_inst_noageXreg <- lm(rate_inst ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat, data=sample)
-  rate_inst_noraceXage <- lm(rate_inst ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, data=sample)
+  rate_inst_full_withint <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, data=sample)
+  rate_inst_noraceXreg <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, data=sample)
+  rate_inst_noageXreg <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat_alt, data=sample)
+  rate_inst_noraceXage <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*region.bKC, data=sample)
   
   results_rate_inst <- compare.models(rate_inst_full, rate_inst_noregion, rate_inst_norace, rate_inst_noage, rate_inst_full_withint, rate_inst_noraceXreg, rate_inst_noageXreg, rate_inst_noraceXage)
     results_rate_inst
@@ -197,22 +243,34 @@ To examine differences in mixing by race/ethnicity, we will look at the proporti
 ```
 
 ### Main partners
-```{r samerace_main, eval=TRUE}
-
- #Look at the number of observations that are non-missing for this outcome and for model predictors
+We first look at the number of observations that re non-missing for this outcome and for model predictors
+```{r}
+     #Look at the number of observations that are non-missing for this outcome and for model predictors
   table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$samerace) & sample$mrp_type_ongoing %in% "Main"], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$samerace) & sample$mrp_type_ongoing %in% "Main"], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$samerace) & sample$mrp_type_ongoing %in% "Main"])
+```
 
+Next we will look at how to parameterize age by plotting the ceofficients from the full model with age input as a dummy variable with 5-year age bins
+```{r}
+ #Figure out how to parameterize age
+    samerace_main_full_testage <- glm(samerace ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Main", ])
+    plot.age.coefs(samerace_main_full_testage)
+```
+
+The coefficients appear more or less flat by age, with the exception of the huge spike for those aged 55-59. This is based on data from 16 men aged 55-59, all of whom reported a partner of the same race. Given this small number, we will model age as a categorical, combining ages 40-49 and 50-59.
+
+The models and likelihood ratio tests are below.
+```{r samerace_main, eval=TRUE}
  #Main effects
-  samerace_main_full <- glm(samerace ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Main", ])
-  samerace_main_noregion <- glm(samerace ~ age_cat + race_eth_m.reg, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Main", ])
-  samerace_main_norace <- glm(samerace ~ age_cat + region.bKC, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Main", ])
+  samerace_main_full <- glm(samerace ~ age_cat_alt + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Main", ])
+  samerace_main_noregion <- glm(samerace ~ age_cat_alt + race_eth_m.reg, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Main", ])
+  samerace_main_norace <- glm(samerace ~ age_cat_alt + region.bKC, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Main", ])
   samerace_main_noage <- glm(samerace ~ race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Main", ])
 
  #Interactions
-  samerace_main_full_withint <- glm(samerace ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Main", ])
-  samerace_main_noraceXreg <- glm(samerace ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Main", ])
-  samerace_main_noageXreg <- glm(samerace ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Main", ])
-  samerace_main_noraceXage <- glm(samerace ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Main", ])
+  samerace_main_full_withint <- glm(samerace ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Main", ])
+  samerace_main_noraceXreg <- glm(samerace ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Main", ])
+  samerace_main_noageXreg <- glm(samerace ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat_alt, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Main", ])
+  samerace_main_noraceXage <- glm(samerace ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*region.bKC, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Main", ])
   
   results_samerace_main <- compare.models(samerace_main_full, samerace_main_noregion, samerace_main_norace, samerace_main_noage, samerace_main_full_withint, samerace_main_noraceXreg, samerace_main_noageXreg, samerace_main_noraceXage)
   results_samerace_main
@@ -221,22 +279,37 @@ To examine differences in mixing by race/ethnicity, we will look at the proporti
 
 
 ### Persistent partners
-```{r samerace_pers, eval=TRUE}
- 
+We first look at the number of observations that re non-missing for this outcome and for model predictors
+```{r}
+    
  #Look at the number of observations that are non-missing for this outcome and for model predictors
   table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$samerace) & sample$mrp_type_ongoing %in% "Persistent"], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$samerace) & sample$mrp_type_ongoing %in% "Persistent"], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$samerace) & sample$mrp_type_ongoing %in% "Persistent"])
 
+```
+
+Next we will look at how to parameterize age by plotting the ceofficients from the full model with age input as a dummy variable with 5-year age bins
+```{r}
+ #Figure out how to parameterize age
+    samerace_pers_full_testage <- glm(samerace ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
+    plot.age.coefs(samerace_pers_full_testage)
+```
+
+As with main partnerships, the coefficients appear more or less flat by age, with the exception of the huge spike for those aged 55-59. This is based on data from 16 men aged 55-59, all of whom reported a partner of the same race. Given this small number, we will model age as a categorical, combining ages 40-49 and 50-59.
+
+The models and likelihood ratio tests are below.
+```{r samerace_pers, eval=TRUE}
+ 
  #Main effects
-  samerace_pers_full <- glm(samerace ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
-  samerace_pers_noregion <- glm(samerace ~ age_cat + race_eth_m.reg, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
-  samerace_pers_norace <- glm(samerace ~ age_cat + region.bKC, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
+  samerace_pers_full <- glm(samerace ~ age_cat_alt + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
+  samerace_pers_noregion <- glm(samerace ~ age_cat_alt + race_eth_m.reg, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
+  samerace_pers_norace <- glm(samerace ~ age_cat_alt + region.bKC, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
   samerace_pers_noage <- glm(samerace ~ race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
 
  #Interactions
-  samerace_pers_full_withint <- glm(samerace ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
-  samerace_pers_noraceXreg <- glm(samerace ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
-  samerace_pers_noageXreg <- glm(samerace ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
-  samerace_pers_noraceXage <- glm(samerace ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
+  samerace_pers_full_withint <- glm(samerace ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
+  samerace_pers_noraceXreg <- glm(samerace ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
+  samerace_pers_noageXreg <- glm(samerace ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat_alt, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
+  samerace_pers_noraceXage <- glm(samerace ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*region.bKC, family=binomial(link="logit"), data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
   
   results_samerace_pers <- compare.models(samerace_pers_full, samerace_pers_noregion, samerace_pers_norace, samerace_pers_noage, samerace_pers_full_withint, samerace_pers_noraceXreg, samerace_pers_noageXreg, samerace_pers_noraceXage)
   results_samerace_pers
@@ -245,10 +318,25 @@ To examine differences in mixing by race/ethnicity, we will look at the proporti
 
 
 ### Instantaneous partners
-```{r samerace_inst, eval=TRUE}
-
+We first look at the number of observations that re non-missing for this outcome and for model predictors
+```{r}
+  
  #Look at the number of observations that are non-missing for this outcome and for model predictors
-  table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$samerace) & sample$mrp_type_r %in% "One time"], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$samerace) & sample$mrp_type_r %in% "One time"], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$samerace) & sample$mrp_type_r %in% "One time"])
+  table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$samerace) & sample$mrp_type_r %in% "One time"], sample$age_cat_alt[!is.na(sample$race_eth_m) & !is.na(sample$samerace) & sample$mrp_type_r %in% "One time"], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$samerace) & sample$mrp_type_r %in% "One time"])
+
+```
+
+Next we will look at how to parameterize age by plotting the ceofficients from the full model with age input as a dummy variable with 5-year age bins
+```{r}
+ #Figure out how to parameterize age
+    samerace_inst_full_testage <- glm(samerace ~ age_cat_alt + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample[sample$mrp_type_r %in% "One time", ])
+    plot.age.coefs(samerace_inst_full_testage)
+```
+
+From this, we will model age as a categorical variable. Given the differences between the coefficients for ages 40-44 and 45-49 and for ages 50-54 and 55-59, we will not collapse these into 10-year groups.
+
+The models and likelihood ratio tests are below.
+```{r samerace_inst, eval=TRUE}
 
  #Main effects
   samerace_inst_full <- glm(samerace ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample[sample$mrp_type_r %in% "One time", ])
@@ -267,27 +355,40 @@ To examine differences in mixing by race/ethnicity, we will look at the proporti
 ```
 
 
-
 ## Age mixing
 As with race/ethnicity, examination of age differences with main and persistent partners is restricted to most recent partners who are _ongoing_. For this analysis, we model age mixing using a linear model with the outcome being the absolute difference between the square root of the ego and alter's ages.
 
 ### Main partners
-```{r agemix_main, eval=TRUE}
-
+We first look at the number of observations that re non-missing for this outcome and for model predictors
+```{r}
  #Look at the number of observations that are non-missing for this outcome and for model predictors
   table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$sqrt_agediff)], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$sqrt_agediff)], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$sqrt_agediff)])
 
+```
+
+Next we will look at how to parameterize age by plotting the ceofficients from the full model with age input as a dummy variable with 5-year age bins
+```{r}
+ #Figure out how to parameterize age
+    sqrtagediff_main_full_testage <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC, data=sample[sample$mrp_type_ongoing %in% "Main", ])
+    plot.age.coefs(sqrtagediff_main_full_testage)
+```
+
+With the exception of the coefficients for ages 50-54 and 55-59, these appear close to linear. However, the coefficients for the models for persistent and instantaneous partnerships below do not appear linear. Although ages 50-54 and 55-59 appear quite different, there are only 19 and 17 respectively in each bin, so we will model age as a categorical variable, collapsing ages 40-59 into 10-year bins. 
+
+The models and likelihood ratio tests are below.
+```{r agemix_main, eval=TRUE}
+
  #Main effects
-  sqrtagediff_main_full <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC, data=sample[sample$mrp_type_ongoing %in% "Main", ])
-  sqrtagediff_main_noregion <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg, data=sample[sample$mrp_type_ongoing %in% "Main", ])
-  sqrtagediff_main_norace <- lm(sqrt_agediff ~ age_cat + region.bKC, data=sample[sample$mrp_type_ongoing %in% "Main", ])
+  sqrtagediff_main_full <- lm(sqrt_agediff ~ age_cat_alt + race_eth_m.reg + region.bKC, data=sample[sample$mrp_type_ongoing %in% "Main", ])
+  sqrtagediff_main_noregion <- lm(sqrt_agediff ~ age_cat_alt + race_eth_m.reg, data=sample[sample$mrp_type_ongoing %in% "Main", ])
+  sqrtagediff_main_norace <- lm(sqrt_agediff ~ age_cat_alt + region.bKC, data=sample[sample$mrp_type_ongoing %in% "Main", ])
   sqrtagediff_main_noage <- lm(sqrt_agediff ~ race_eth_m.reg + region.bKC, data=sample[sample$mrp_type_ongoing %in% "Main", ])
 
  #Interactions
-  sqrtagediff_main_full_withint <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, data=sample[sample$mrp_type_ongoing %in% "Main", ])
-  sqrtagediff_main_noraceXreg <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, data=sample[sample$mrp_type_ongoing %in% "Main", ])
-  sqrtagediff_main_noageXreg <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat, data=sample[sample$mrp_type_ongoing %in% "Main", ])
-  sqrtagediff_main_noraceXage <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, data=sample[sample$mrp_type_ongoing %in% "Main", ])
+  sqrtagediff_main_full_withint <- lm(sqrt_agediff ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age*region.bKC + race_eth_m.reg*age, data=sample[sample$mrp_type_ongoing %in% "Main", ])
+  sqrtagediff_main_noraceXreg <- lm(sqrt_agediff ~ age_cat_alt + race_eth_m.reg + region.bKC + age*region.bKC + race_eth_m.reg*age, data=sample[sample$mrp_type_ongoing %in% "Main", ])
+  sqrtagediff_main_noageXreg <- lm(sqrt_agediff ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age, data=sample[sample$mrp_type_ongoing %in% "Main", ])
+  sqrtagediff_main_noraceXage <- lm(sqrt_agediff ~ age_cat_alt + race_eth_m.reg + region.bKC + age*region.bKC + race_eth_m.reg*region.bKC, data=sample[sample$mrp_type_ongoing %in% "Main", ])
   
   results_adiff_main <- compare.models(sqrtagediff_main_full, sqrtagediff_main_noregion, sqrtagediff_main_norace, sqrtagediff_main_noage, sqrtagediff_main_full_withint, sqrtagediff_main_noraceXreg, sqrtagediff_main_noageXreg, sqrtagediff_main_noraceXage)  
   results_adiff_main
@@ -295,44 +396,72 @@ As with race/ethnicity, examination of age differences with main and persistent 
 ```
 
 ### Persistent partners
-```{r agemix_pers, eval=TRUE}
-
+We first look at the number of observations that re non-missing for this outcome and for model predictors
+```{r}
 #Look at the number of observations that are non-missing for this outcome and for model predictors
   table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$sqrt_agediff)], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$sqrt_agediff)], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$sqrt_agediff)])
 
+```
+
+Next we will look at how to parameterize age by plotting the ceofficients from the full model with age input as a dummy variable with 5-year age bins
+```{r}
+ #Figure out how to parameterize age
+    sqrtagediff_pers_full_testage <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC, data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
+    plot.age.coefs(sqrtagediff_pers_full_testage)
+```
+
+Although the coefficients for ages 50-54 and 55-59 appear quite different, there are only 6 and 4 respectively in each bin, so we will model age as a categorical variable, collapsing ages 40-59 into 10-year bins. This is consistent with the approach taken for main partnerships.
+
+The models and likelihood ratio tests are below.
+```{r agemix_pers, eval=TRUE}
+
  #Main effects
-  sqrtagediff_pers_full <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC, data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
-  sqrtagediff_pers_noregion <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg, data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
-  sqrtagediff_pers_norace <- lm(sqrt_agediff ~ age_cat + region.bKC, data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
+  sqrtagediff_pers_full <- lm(sqrt_agediff ~ age_cat_alt + race_eth_m.reg + region.bKC, data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
+  sqrtagediff_pers_noregion <- lm(sqrt_agediff ~ age_cat_alt + race_eth_m.reg, data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
+  sqrtagediff_pers_norace <- lm(sqrt_agediff ~ age_cat_alt + region.bKC, data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
   sqrtagediff_pers_noage <- lm(sqrt_agediff ~ race_eth_m.reg + region.bKC, data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
 
  #Interactions
-  sqrtagediff_pers_full_withint <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
-  sqrtagediff_pers_noraceXreg <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
-  sqrtagediff_pers_noageXreg <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat, data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
-  sqrtagediff_pers_noraceXage <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
+  sqrtagediff_pers_full_withint <- lm(sqrt_agediff ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
+  sqrtagediff_pers_noraceXreg <- lm(sqrt_agediff ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
+  sqrtagediff_pers_noageXreg <- lm(sqrt_agediff ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat_alt, data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
+  sqrtagediff_pers_noraceXage <- lm(sqrt_agediff ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*region.bKC, data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
   
   results_adiff_pers <- compare.models(sqrtagediff_pers_full, sqrtagediff_pers_noregion, sqrtagediff_pers_norace, sqrtagediff_pers_noage, sqrtagediff_pers_full_withint, sqrtagediff_pers_noraceXreg, sqrtagediff_pers_noageXreg, sqrtagediff_pers_noraceXage)  
   results_adiff_pers
 ```
 
 ### Instantaneous partners
-```{r agemix_inst, eval=TRUE}
- 
+We first look at the number of observations that re non-missing for this outcome and for model predictors
+```{r}
 #Look at the number of observations that are non-missing for this outcome and for model predictors
   table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$sqrt_agediff)], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$sqrt_agediff)], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$sqrt_agediff)])
 
+```
+
+Next we will look at how to parameterize age by plotting the ceofficients from the full model with age input as a dummy variable with 5-year age bins
+```{r}
+ #Figure out how to parameterize age
+    sqrtagediff_inst_full_testage <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC, data=sample[sample$mrp_type_r %in% "One time", ])
+    plot.age.coefs(sqrtagediff_inst_full_testage)
+```
+
+To be consistent with the approach for main and persistent partnerships, and becuase the estimate for 30-34 does not fit in a linear pattern, we will model age as a categorical variables with ages 40-59 in 10-year bins.
+
+The models and likelihood ratio tests are below.
+```{r agemix_inst, eval=TRUE}
+ 
  #Main effects
-  sqrtagediff_inst_full <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC, data=sample[sample$mrp_type_r %in% "One time", ])
-  sqrtagediff_inst_noregion <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg, data=sample[sample$mrp_type_r %in% "One time", ])
-  sqrtagediff_inst_norace <- lm(sqrt_agediff ~ age_cat + region.bKC, data=sample[sample$mrp_type_r %in% "One time", ])
+  sqrtagediff_inst_full <- lm(sqrt_agediff ~ age_cat_alt + race_eth_m.reg + region.bKC, data=sample[sample$mrp_type_r %in% "One time", ])
+  sqrtagediff_inst_noregion <- lm(sqrt_agediff ~ age_cat_alt + race_eth_m.reg, data=sample[sample$mrp_type_r %in% "One time", ])
+  sqrtagediff_inst_norace <- lm(sqrt_agediff ~ age_cat_alt + region.bKC, data=sample[sample$mrp_type_r %in% "One time", ])
   sqrtagediff_inst_noage <- lm(sqrt_agediff ~ race_eth_m.reg + region.bKC, data=sample[sample$mrp_type_r %in% "One time", ])
 
  #Interactions
-  sqrtagediff_inst_full_withint <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, data=sample[sample$mrp_type_r %in% "One time", ])
-  sqrtagediff_inst_noraceXreg <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, data=sample[sample$mrp_type_r %in% "One time", ])
-  sqrtagediff_inst_noageXreg <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat, data=sample[sample$mrp_type_r %in% "One time", ])
-  sqrtagediff_inst_noraceXage <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, data=sample[sample$mrp_type_r %in% "One time", ])
+  sqrtagediff_inst_full_withint <- lm(sqrt_agediff ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, data=sample[sample$mrp_type_r %in% "One time", ])
+  sqrtagediff_inst_noraceXreg <- lm(sqrt_agediff ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, data=sample[sample$mrp_type_r %in% "One time", ])
+  sqrtagediff_inst_noageXreg <- lm(sqrt_agediff ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat_alt, data=sample[sample$mrp_type_r %in% "One time", ])
+  sqrtagediff_inst_noraceXage <- lm(sqrt_agediff ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*region.bKC, data=sample[sample$mrp_type_r %in% "One time", ])
   
   results_adiff_inst <- compare.models(sqrtagediff_inst_full, sqrtagediff_inst_noregion, sqrtagediff_inst_norace, sqrtagediff_inst_noage, sqrtagediff_inst_full_withint, sqrtagediff_inst_noraceXreg, sqrtagediff_inst_noageXreg, sqrtagediff_inst_noraceXage) 
   results_adiff_inst
@@ -342,22 +471,36 @@ As with race/ethnicity, examination of age differences with main and persistent 
 Partnership age was modeled as a linear outcome.
 
 ### Main partners
-```{r pshipage_main, eval=TRUE}
-
+We first look at the number of observations that re non-missing for this outcome and for model predictors
+```{r}
  #Look at the number of observations that are non-missing for this outcome and for model predictors
   table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$pship_age_main)], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$pship_age_main)], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$pship_age_main)])
 
+```
+
+Next we will look at how to parameterize age by plotting the ceofficients from the full model with age input as a dummy variable with 5-year age bins
+```{r}
+ #Figure out how to parameterize age
+    pshipage_main_full_testage <- lm(pship_age_main ~ age_cat + race_eth_m.reg + region.bKC, data=sample)
+    plot.age.coefs(pshipage_main_full_testage)
+```
+
+The coefficients appear to follow a mostly linear trend with age, however to be consistent with the approach taken for persistent partners (below), we will model age as a categorical variable with ages 40-59 grouped into 10-year bins.
+
+The models and likelihood ratio tests are below.
+```{r pshipage_main, eval=TRUE}
+
  #Main effects
-  pshipage_main_full <- lm(pship_age_main ~ age_cat + race_eth_m.reg + region.bKC, data=sample)
-  pshipage_main_noregion <- lm(pship_age_main ~ age_cat + race_eth_m.reg, data=sample)
-  pshipage_main_norace <- lm(pship_age_main ~ age_cat + region.bKC, data=sample)
+  pshipage_main_full <- lm(pship_age_main ~ age_cat_alt + race_eth_m.reg + region.bKC, data=sample)
+  pshipage_main_noregion <- lm(pship_age_main ~ age_cat_alt + race_eth_m.reg, data=sample)
+  pshipage_main_norace <- lm(pship_age_main ~ age_cat_alt + region.bKC, data=sample)
   pshipage_main_noage <- lm(pship_age_main ~ race_eth_m.reg + region.bKC, data=sample)
 
  #Interactions
-  pshipage_main_full_withint <- lm(pship_age_main ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, data=sample)
-  pshipage_main_noraceXreg <- lm(pship_age_main ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, data=sample)
-  pshipage_main_noageXreg <- lm(pship_age_main ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat, data=sample)
-  pshipage_main_noraceXage <- lm(pship_age_main ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, data=sample)
+  pshipage_main_full_withint <- lm(pship_age_main ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, data=sample)
+  pshipage_main_noraceXreg <- lm(pship_age_main ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, data=sample)
+  pshipage_main_noageXreg <- lm(pship_age_main ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat_alt, data=sample)
+  pshipage_main_noraceXage <- lm(pship_age_main ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*region.bKC, data=sample)
   
   results_pshipage_main <- compare.models(pshipage_main_full, pshipage_main_noregion, pshipage_main_norace, pshipage_main_noage, pshipage_main_full_withint, pshipage_main_noraceXreg, pshipage_main_noageXreg, pshipage_main_noraceXage)  
   results_pshipage_main
@@ -366,35 +509,63 @@ Partnership age was modeled as a linear outcome.
 
                 
 ### Persistent partners
-```{r pshipage_pers, eval=TRUE}
-
- #Look at the number of observations that are non-missing for this outcome and for model predictors
+We first look at the number of observations that re non-missing for this outcome and for model predictors
+```{r}
+  #Look at the number of observations that are non-missing for this outcome and for model predictors
   table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$pship_age_pers)], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$pship_age_pers)], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$pship_age_pers)])
 
+```
+
+Next we will look at how to parameterize age by plotting the ceofficients from the full model with age input as a dummy variable with 5-year age bins
+```{r}
+ #Figure out how to parameterize age
+    pshipage_pers_full_testage <- lm(pship_age_pers ~ age_cat + race_eth_m.reg + region.bKC, data=sample)
+    plot.age.coefs(pshipage_pers_full_testage)
+```
+
+The coefficients do not follow a linear pattern, so it is most appropriate to model age as a categorical variable. The coefficient for age group 45-49 is substantially higher than the others, but this appears to be driven by the presence of two outliers. As such, in light of the small numbers at older ages, we will group ages 40-59 into 10-year age groups.
+
+The models and likelihood ratio tests are below.
+```{r pshipage_pers, eval=TRUE}
+
  #Main effects
-  pshipage_pers_full <- lm(pship_age_pers ~ age_cat + race_eth_m.reg + region.bKC, data=sample)
-  pshipage_pers_noregion <- lm(pship_age_pers ~ age_cat + race_eth_m.reg, data=sample)
-  pshipage_pers_norace <- lm(pship_age_pers ~ age_cat + region.bKC, data=sample)
+  pshipage_pers_full <- lm(pship_age_pers ~ age_cat_alt + race_eth_m.reg + region.bKC, data=sample)
+  pshipage_pers_noregion <- lm(pship_age_pers ~ age_cat_alt + race_eth_m.reg, data=sample)
+  pshipage_pers_norace <- lm(pship_age_pers ~ age_cat_alt + region.bKC, data=sample)
   pshipage_pers_noage <- lm(pship_age_pers ~ race_eth_m.reg + region.bKC, data=sample)
 
  #Interactions
-  pshipage_pers_full_withint <- lm(pship_age_pers ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, data=sample)
-  pshipage_pers_noraceXreg <- lm(pship_age_pers ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, data=sample)
-  pshipage_pers_noageXreg <- lm(pship_age_pers ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat, data=sample)
-  pshipage_pers_noraceXage <- lm(pship_age_pers ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, data=sample)
+  pshipage_pers_full_withint <- lm(pship_age_pers ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, data=sample)
+  pshipage_pers_noraceXreg <- lm(pship_age_pers ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, data=sample)
+  pshipage_pers_noageXreg <- lm(pship_age_pers ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat_alt, data=sample)
+  pshipage_pers_noraceXage <- lm(pship_age_pers ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*region.bKC, data=sample)
   
   results_pshipage_pers <- compare.models(pshipage_pers_full, pshipage_pers_noregion, pshipage_pers_norace, pshipage_pers_noage, pshipage_pers_full_withint, pshipage_pers_noraceXreg, pshipage_pers_noageXreg, pshipage_pers_noraceXage)  
   results_pshipage_pers
 ```
 
 ## Proportion never tested
-The parameter indicating the proportion of men who never test is meant to indicate the proportion of men who will not be screened for HIV. In previous network models, this was defined as the proportion who never tested by age 40, since the model was capped at age 39. For this model, that may not be appropriate. For the current analysis, I simply modeled the probability that men had ever tested at their current age.</span>
+The parameter indicating the proportion of men who never test is meant to indicate the proportion of men who will not be screened for HIV. In previous network models, this was defined as the proportion who never tested by age 40, since the model was capped at age 39. For this model, that may not be appropriate. For the current analysis, I simply modeled the probability that men had ever tested at their current age.
 
-```{r nevertest}
-  
-  #Look at the number of observations that are non-missing for this outcome and for model predictors
+We first look at the number of observations that re non-missing for this outcome and for model predictors
+```{r}
+   #Look at the number of observations that are non-missing for this outcome and for model predictors
   table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$evertest_r)], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$evertest_r)], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$evertest_r)])
 
+```
+
+Next we will look at how to parameterize age by plotting the ceofficients from the full model with age input as a dummy variable with 5-year age bins
+```{r}
+ #Figure out how to parameterize age
+    evertest_full_testage <- glm(evertest_r ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample)
+    plot.age.coefs(evertest_full_testage)
+```
+
+The coefficients do not follow a linear pattern, so it is most appropriate to model age as a categorical variable. The number of respondents in older age groups seems sufficient to allow for categorizing age in 5-year bins.
+
+The models and likelihood ratio tests are below.
+```{r nevertest}
+  
  #Main effects
   evertest_full <- glm(evertest_r ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample)
   evertest_noregion <- glm(evertest_r ~ age_cat + race_eth_m.reg, family=binomial(link="logit"), data=sample)
@@ -416,10 +587,24 @@ The parameter indicating the proportion of men who never test is meant to indica
 ## Intertest interval
 The last test interval is estimated as the days since men reported their last HIV test, assuming men have a constant hazard of testing. This analysis is restricted to men who reported having ever tested.
 
-```{r iti, eval=TRUE}
-
-#Look at the number of observations that are non-missing for this outcome and for model predictors
+We first look at the number of observations that re non-missing for this outcome and for model predictors
+```{r}
+  #Look at the number of observations that are non-missing for this outcome and for model predictors
   table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$iti)], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$iti)], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$iti)])
+
+```
+
+Next we will look at how to parameterize age by plotting the ceofficients from the full model with age input as a dummy variable with 5-year age bins
+```{r}
+ #Figure out how to parameterize age
+    iti_full_testage <- lm(iti ~ age_cat + race_eth_m.reg + region.bKC, data=sample)
+    plot.age.coefs(iti_full_testage)
+```
+
+The coefficients do not follow a linear pattern, so it is most appropriate to model age as a categorical variable. As with the indicator for having ever tested, the number of respondents in older age groups seems sufficient to allow for categorizing age in 5-year bins, which is inidcated given the difference in coefficeints for ages 40-44 and 45-49 and for ages 50-54 and 55-59.
+
+The models and likelihood ratio tests are below.
+```{r iti, eval=TRUE}
 
  #Main effects
   iti_full <- lm(iti ~ age_cat + race_eth_m.reg + region.bKC, data=sample)
@@ -441,11 +626,23 @@ The last test interval is estimated as the days since men reported their last HI
 Data on coital frequency are from all most recent partnerships, not just those that are ongoing. 
 
 ### Main partners
-```{r coitalfreq_main}
-
-#Look at the number of observations that are non-missing for this outcome and for model predictors
+We first look at the number of observations that re non-missing for this outcome and for model predictors
+```{r}
+ #Look at the number of observations that are non-missing for this outcome and for model predictors
   table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$airate_main)], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$airate_main)], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$airate_main)])
+```
 
+Next we will look at how to parameterize age by plotting the ceofficients from the full model with age input as a dummy variable with 5-year age bins
+```{r}
+ #Figure out how to parameterize age
+    airate_main_full_testage <- lm(airate_main ~ age_cat + race_eth_m.reg + region.bKC, data=sample)
+    plot.age.coefs(airate_main_full_testage)
+```
+
+From these coefficients, it seems most appropriate to model age as a categorical variable. Although the numbers are small for older ages, it seems best to try to model age in 5-year groups to capture differences between 40-44 and 45-49 year-olds and between 50-54 and 55-59 year-olds.
+
+The models and likelihood ratio tests are below.
+```{r coitalfreq_main}
  #Main effects
   airate_main_full <- lm(airate_main ~ age_cat + race_eth_m.reg + region.bKC, data=sample)
   airate_main_noregion <- lm(airate_main ~ age_cat + race_eth_m.reg, data=sample)
@@ -465,10 +662,24 @@ Data on coital frequency are from all most recent partnerships, not just those t
 
 
 ### Persistent partners
-```{r coitalfreq_pers}
-
+We first look at the number of observations that re non-missing for this outcome and for model predictors
+```{r}
  #Look at the number of observations that are non-missing for this outcome and for model predictors
   table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$airate_pers)], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$airate_pers)], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$airate_pers)])
+
+```
+
+Next we will look at how to parameterize age by plotting the ceofficients from the full model with age input as a dummy variable with 5-year age bins
+```{r}
+ #Figure out how to parameterize age
+    airate_pers_full_testage <- lm(airate_pers ~ age_cat + race_eth_m.reg + region.bKC, data=sample)
+    plot.age.coefs(airate_pers_full_testage)
+```
+
+As above for coital frequency in main partnerships, it seems most appropriate to model age as a categorical variable. Although the numbers are small for older ages, it seems best to try to model age in 5-year groups to capture differences between 40-44 and 45-49 year-olds and between 50-54 and 55-59 year-olds.
+
+The models and likelihood ratio tests are below.
+```{r coitalfreq_pers}
 
  #Main effects
   airate_pers_full <- lm(airate_pers ~ age_cat + race_eth_m.reg + region.bKC, data=sample)
@@ -489,8 +700,9 @@ Data on coital frequency are from all most recent partnerships, not just those t
 ## Sex role
 Sex role is categorized as exclusively bottom, exclusively top, or versatile, based on men's reported role in anal sex over the past 12 months. Responses of "mostly a bottom", "mostly a top", and "equally a bottom and a top" were categorized as versatile. For this analysis, a dichotomous indicator was constructed to measure whether men report any bottoming (bottoms and versatile men) or report exclusively topping.
 
-```{r sexrole}
-  sample$position_top <- ifelse(sample$position_cat=="Exclusively top", 1, 
+We first look at the number of observations that are non-missing for this outcome and for model predictors
+```{r}
+ sample$position_top <- ifelse(sample$position_cat=="Exclusively top", 1, 
                                       ifelse(!is.na(sample$position_cat), 0, NA))
   sample$position_bottom <- ifelse(sample$position_cat=="Exclusively bottom", 1, 
                                       ifelse(!is.na(sample$position_cat), 0, NA))
@@ -498,6 +710,20 @@ Sex role is categorized as exclusively bottom, exclusively top, or versatile, ba
   #Look at the number of observations that are non-missing for this outcome and for model predictors
   table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$position_top)], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$position_top)], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$position_top)])
 
+```
+
+Next we will look at how to parameterize age by plotting the ceofficients from the full model with age input as a dummy variable with 5-year age bins
+```{r}
+ #Figure out how to parameterize age
+    top_full_testage <-  glm(position_top ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample)
+    plot.age.coefs(top_full_testage)
+```
+
+The plot of these coefficients suggests that age should be modeled as a categorical variable in 5-year age groups. 
+
+The models and likelihood ratio tests are below.
+```{r sexrole}
+  
  #Main effects
   top_full <- glm(position_top ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample)
   top_noregion <- glm(position_top ~ age_cat + race_eth_m.reg, family=binomial(link="logit"), data=sample)
@@ -519,10 +745,25 @@ Sex role is categorized as exclusively bottom, exclusively top, or versatile, ba
 Data on condom use are restricted to dyads in which both the respondent and his partner were HIV-negative or of unknown status. This analysis includes data from all such partnerships, not just those that were ongoing. 
 
 ### Main partners
-```{r condoms_main}
-
+We first look at the number of observations that are non-missing for this outcome and for model predictors
+```{r}
+ 
  #Look at the number of observations that are non-missing for this outcome and for model predictors
   table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$condoms_main)], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$condoms_main)], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$condoms_main)])
+
+```
+
+Next we will look at how to parameterize age by plotting the ceofficients from the full model with age input as a dummy variable with 5-year age bins
+```{r}
+ #Figure out how to parameterize age
+    condoms_main_full_testage <- lm(condoms_main ~ age_cat + race_eth_m.reg + region.bKC, data=sample)
+    plot.age.coefs(condoms_main_full_testage)
+```
+
+The plot of these coefficients suggests that age should be modeled as a categorical variable in 5-year age groups. 
+
+The models and likelihood ratio tests are below.
+```{r condoms_main}
 
  #Main effects
   condoms_main_full <- lm(condoms_main ~ age_cat + race_eth_m.reg + region.bKC, data=sample)
@@ -542,10 +783,25 @@ Data on condom use are restricted to dyads in which both the respondent and his 
 
 
 ### Persistent partners
-```{r condoms_pers}
-
+We first look at the number of observations that are non-missing for this outcome and for model predictors
+```{r}
+ 
  #Look at the number of observations that are non-missing for this outcome and for model predictors
   table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$condoms_pers)], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$condoms_pers)], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$condoms_pers)])
+
+```
+
+Next we will look at how to parameterize age by plotting the ceofficients from the full model with age input as a dummy variable with 5-year age bins
+```{r}
+ #Figure out how to parameterize age
+    condoms_pers_full_testage <- lm(condoms_pers ~ age_cat + race_eth_m.reg + region.bKC, data=sample)
+    plot.age.coefs(condoms_pers_full_testage)
+```
+
+The plot of these coefficients suggests that age should be modeled as a categorical variable in 5-year age groups, although the numbers are small for older ages. 
+
+The models and likelihood ratio tests are below.
+```{r condoms_pers}
 
  #Main effects
   condoms_pers_full <- lm(condoms_pers ~ age_cat + race_eth_m.reg + region.bKC, data=sample)
@@ -565,10 +821,25 @@ Data on condom use are restricted to dyads in which both the respondent and his 
 ```
 
 ### Instantaneous partners
-```{r condoms_inst}
+We first look at the number of observations that are non-missing for this outcome and for model predictors
+```{r}
 
  #Look at the number of observations that are non-missing for this outcome and for model predictors
   table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$condoms_inst)], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$condoms_inst)], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$condoms_inst)])
+
+```
+
+Next we will look at how to parameterize age by plotting the ceofficients from the full model with age input as a dummy variable with 5-year age bins
+```{r}
+ #Figure out how to parameterize age
+    condoms_inst_full_testage <- glm(condoms_inst ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample)
+    plot.age.coefs(condoms_inst_full_testage)
+```
+
+The plot of these coefficients suggests that age should be modeled as a categorical variable in 5-year age groups, although the numbers are small for older ages. 
+
+The models and likelihood ratio tests are below.
+```{r condoms_inst}
 
  #Main effects
   condoms_inst_full <- glm(condoms_inst ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample)
@@ -590,22 +861,38 @@ Data on condom use are restricted to dyads in which both the respondent and his 
 
 ## PrEP use
 To look at differences in PrEP use, the outcome is reported current use of PrEP _among those for whom PrEP is recommended_.
-```{r prep}
 
+We first look at the number of observations that are non-missing for this outcome and for model predictors
+```{r}
+ 
 #Look at the number of observations that are non-missing for this outcome and for model predictors
   table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$prep_use_curr) & sample$prepelig_r %in% "Recommend"], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$prep_use_curr) & sample$prepelig_r %in% "Recommend"], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$prep_use_curr) & sample$prepelig_r %in% "Recommend"])
 
+```
+
+Next we will look at how to parameterize age by plotting the ceofficients from the full model with age input as a dummy variable with 5-year age bins
+```{r}
+ #Figure out how to parameterize age
+    prep_full_testage <- glm(prep_use_curr ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample, subset=prepelig_r %in% "Recommend")
+    plot.age.coefs(prep_full_testage)
+```
+
+The plot of these coefficients suggests that age should be modeled as a categorical variable. We will group ages 40-59 in 10-year age groups.
+
+The models and likelihood ratio tests are below.
+```{r prep}
+
  #Main effects
-  prep_full <- glm(prep_use_curr ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample, subset=prepelig_r %in% "Recommend")
-  prep_noregion <- glm(prep_use_curr ~ age_cat + race_eth_m.reg, family=binomial(link="logit"), data=sample, subset=prepelig_r %in% "Recommend")
-  prep_norace <- glm(prep_use_curr ~ age_cat + region.bKC, family=binomial(link="logit"), data=sample, subset=prepelig_r %in% "Recommend")
+  prep_full <- glm(prep_use_curr ~ age_cat_alt + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample, subset=prepelig_r %in% "Recommend")
+  prep_noregion <- glm(prep_use_curr ~ age_cat_alt + race_eth_m.reg, family=binomial(link="logit"), data=sample, subset=prepelig_r %in% "Recommend")
+  prep_norace <- glm(prep_use_curr ~ age_cat_alt + region.bKC, family=binomial(link="logit"), data=sample, subset=prepelig_r %in% "Recommend")
   prep_noage <- glm(prep_use_curr ~ race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample, subset=prepelig_r %in% "Recommend")
 
  #Interactions
-  prep_full_withint <- glm(prep_use_curr ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample, subset=prepelig_r %in% "Recommend")
-  prep_noraceXreg <- glm(prep_use_curr ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample, subset=prepelig_r %in% "Recommend")
-  prep_noageXreg <- glm(prep_use_curr ~ age_cat + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat, family=binomial(link="logit"), data=sample, subset=prepelig_r %in% "Recommend")
-  prep_noraceXage <- glm(prep_use_curr ~ age_cat + race_eth_m.reg + region.bKC + age_cat*region.bKC + race_eth_m.reg*region.bKC, family=binomial(link="logit"), data=sample, subset=prepelig_r %in% "Recommend")
+  prep_full_withint <- glm(prep_use_curr ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, family=binomial(link="logit"), data=sample, subset=prepelig_r %in% "Recommend")
+  prep_noraceXreg <- glm(prep_use_curr ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, family=binomial(link="logit"), data=sample, subset=prepelig_r %in% "Recommend")
+  prep_noageXreg <- glm(prep_use_curr ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat_alt, family=binomial(link="logit"), data=sample, subset=prepelig_r %in% "Recommend")
+  prep_noraceXage <- glm(prep_use_curr ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*region.bKC, family=binomial(link="logit"), data=sample, subset=prepelig_r %in% "Recommend")
   
   results_prep <- compare.models(prep_full, prep_noregion, prep_norace, prep_noage, prep_full_withint, prep_noraceXreg, prep_noageXreg, prep_noraceXage)
   results_prep
@@ -627,7 +914,7 @@ To look at differences in PrEP use, the outcome is reported current use of PrEP 
     
     ```
 
-These analyses were intended as a guide to suggest which nodal attributes appear to shape patterns of partnership formation/persistence and behaviors related to transmission and diagnosis. For network model parameters, there appear to be **racial/ethnic differences in race and age mixing** and **age differences in the rate of instantaneous partnerships, race mixing, age mixing, and dissolution (partnership age)**. While there are some significant interactions, they do not suggest a clear pattern, so we will focus on the main effects. For epidemic model parameters, we will explore **age effects on HIV testing behavior and condom use**, and **the effects of all three nodal attributes on PrEP use**.
+These analyses were intended as a guide to suggest which nodal attributes appear to shape patterns of partnership formation/persistence and behaviors related to transmission and diagnosis. For network model parameters, there appear to be **racial/ethnic differences in race and age mixing** and **age differences in the <span style="color:red">degree distribution</span>, rate of instantaneous partnerships, race mixing, age mixing, and dissolution (partnership age)**. While there are some significant interactions, they do not suggest a clear pattern, so we will focus on the main effects. For epidemic model parameters, we will explore **age effects on HIV testing behavior and condom use**, and **the effects of all three nodal attributes on PrEP use**.
 
 ## Plots {#plots}
 The plots below further explore the associations highlighted in the above section.
@@ -717,6 +1004,24 @@ __Decision__: The patterns for non-Hispanic other and Hispanic respondents appea
 
 To capture the age heterogeneity in age mixing, we need to decide how to parameterize the age difference. From plots \@ref(fig:plots_explore_agemixing_3) and \@ref(fig:plots_explore_agemixing_4), taking the difference between the square root of ego and alter ages reduces the heterogeneity by age, but does not fully account for differences by ego age in the age difference with persistent partnerships. Taking the cube root does not lead to a noticeable improvement.
 
+### Degree distribution by age
+
+```{r plots_explore_somepartners_1}
+#One or more ongoing partners by age
+    somepartnersXage <- sample %>% filter(!is.na(somepartners)) %>% group_by(age_cat) %>% summarise(prop = mean(somepartners, na.rm=TRUE), freq=n())
+    
+    ggplot(somepartnersXage) + geom_point(aes(x=age_cat, y=prop, size=freq), shape=16) + plot_background + labs(x="Age", y="Percent", title="Proportion reporting one or more ongoing partners by age") + theme_title + ylim(0, 1)
+
+```
+
+```{r plots_explore_concurrent_1}
+#One or more ongoing partners by age
+    concurrentXage <- sample %>% filter(!is.na(concurrent)) %>% group_by(age_cat) %>% summarise(prop = mean(concurrent, na.rm=TRUE), freq=n())
+    
+    ggplot(concurrentXage) + geom_point(aes(x=age_cat, y=prop, size=freq), shape=16) + plot_background + labs(x="Age", y="Percent", title="Proportion reporting two or more concurrent partners by age") + theme_title + ylim(0, 1)
+
+```
+__Decision__: <span style="color:red"> Fill me in </span>
 
 ### Rate of instantaneous partnerships by age
 
@@ -770,7 +1075,7 @@ These plots show the mean partnership age in main and persistent partnerships, r
     ```
     
 ### HIV testing by age
-The first graph below looks at the proportoin of men who report having ever tested by age group. The graph is a bit tricky to interpret because the figure represents both age and cohort effects, and because the number of respondents for some ages is small. It seems that if men don't test by age 40-45, they are unlikely to get tested. The pattern is similar if age is binned in 5 year groups.
+The first graph below looks at the proportion of men who report having ever tested by age group. The graph is a bit tricky to interpret because the figure represents both age and cohort effects, and because the number of respondents for some ages is small. It seems that if men don't test by age 40-45, they are unlikely to get tested. The pattern is similar if age is binned in 5 year groups.
 
 ```{r plotsexplore_testing}
 # Ever tested by age
@@ -782,12 +1087,52 @@ The first graph below looks at the proportoin of men who report having ever test
 
 
 #Intertest interval by age (with calculated mean as implied by exponential distribution)
-    itiXage <- sample %>% filter(!is.na(iti) & prep_use_r !="Currently taking PrEP") %>% group_by(age) %>% summarise(freq=n(), median=median(iti, na.rm=TRUE), int_mean = 2*mean(iti, na.rm=TRUE), int_median=2*median(iti, na.rm=TRUE)) %>% mutate(exp_mean = median/log(2))
+    itiXage <- sample %>% filter(!is.na(iti) & prep_use_r !="Currently taking PrEP") %>% group_by(age) %>% summarise(freq=n(), median=median(iti, na.rm=TRUE), mean=mean(iti, na.rm=TRUE))
     
-    ggplot(itiXage) + geom_point(aes(x=age, y=int_median, size=freq), colour="blue") + geom_point(aes(x=age, y=int_mean, size=freq), colour="red") + geom_smooth(aes(x=age, y=int_median), method="loess") + geom_smooth(aes(x=age, y=int_mean), method="loess") + labs(x="Ego age", y="Median days since last test", title="Median intertest interval by age, assuming testing is an inteval process")
+    ggplot(itiXage) + geom_point(aes(x=age, y=median, size=freq), colour="blue") + geom_point(aes(x=age, y=mean, size=freq), colour="red") + geom_smooth(aes(x=age, y=median), method="loess") + geom_smooth(aes(x=age, y=mean), method="loess") + labs(x="Ego age", y="Median days since last test", title="Median intertest interval by age, assuming testing is an inteval process")
         
 ```
+
 ### Condom use by age
+The plots below show the probability of condom use by respondent age in main partnerships.
+```{r plotsexplore_condoms_main}
+#Condom use in main partnerships by ego age
+   p_condoms_main <- ggplot(sample[!is.na(sample$condoms_main),], aes(x=age, y=condoms_main)) + geom_point() + labs(x="Ego age", y="Probability of condom use", title = "Probability of condom use in main partnerships by respondent age") + plot_background + theme_title
+   condoms_mainXage <- sample %>% filter(!is.na(condoms_main)) %>% group_by(age_cat) %>% summarise(freq=n(), mean=mean(condoms_main))
+    p_condoms_main_mean <- ggplot(condoms_mainXage, aes(x=age_cat, y=mean, size=freq)) + geom_point() + labs(x="Ego age", y="Mean probability of condom use", title = "Mean probability of condom use in main partnerships by respondent age") + ylim(0, 1)  + plot_background + theme_title
+    multiplot(p_condoms_main_mean, p_condoms_main, cols=1)
+```
+Probability of condom use by respondent age in persistent partnerships:
+```{r plotsexplore_condoms_pers}
+#Condom use in persistent partnerships by ego age
+ p_condoms_pers <- ggplot(sample[!is.na(sample$condoms_pers),], aes(x=age, y=condoms_pers)) + geom_point() + labs(x="Ego age", y="Probability of condom use", title = "Probability of condom use in persistent partnerships by respondent age") + plot_background + theme_title
+   condoms_persXage <- sample %>% filter(!is.na(condoms_pers)) %>% group_by(age_cat) %>% summarise(freq=n(), mean=mean(condoms_pers))
+    p_condoms_pers_mean <- ggplot(condoms_persXage, aes(x=age_cat, y=mean, size=freq)) + geom_point() + labs(x="Ego age", y="Mean probability of condom use", title = "Mean probability of condom use in persistent partnerships by respondent age") + ylim(0, 1) + plot_background + theme_title
+    multiplot(p_condoms_pers_mean, p_condoms_pers, cols=1)
+    ```
+Probability of condom use in instantaneous partnerships
+```{r plotsexplore_condoms_inst}
+#Condom use in instantaneous partnerships by ego age
+   condoms_instXage <- sample %>% filter(!is.na(condoms_inst)) %>% group_by(age_cat) %>% summarise(freq=n(), mean=mean(condoms_inst))
+    ggplot(condoms_instXage, aes(x=age_cat, y=mean, size=freq)) + geom_point() + labs(x="Ego age", y="Mean probability of condom use", title = "Mean probability of condom use in instantaneous partnerships by respondent age") + ylim(0, 1) + plot_background + theme_title
+    ```
 
 ### PrEP use by age, race, and region
+The plots below illustrate the proportion of men for whom local guidelines recommend PrEP who report current use by age, race, and region
+```{r plotsexplore_prep_age}
+#PrEP use by age
+   prepXage <- sample %>% filter(!is.na(prep_use_curr) & prepelig_r %in% "Recommend") %>% group_by(age_cat) %>% summarise(freq=n(), mean=mean(prep_use_curr))
+    ggplot(prepXage, aes(x=age_cat, y=mean, size=freq)) + geom_point() + labs(x="Ego age", y="Mean probability of PrEP use", title = "Mean probability of PrEP use among men recommended to initiate PrEP by age") + ylim(0, 1) + plot_background + theme_title
+```
+    
+```{r plotsexplore_prep_race}
+#PrEP use by age
+   prepXrace <- sample %>% filter(!is.na(prep_use_curr) & prepelig_r %in% "Recommend") %>% group_by(race_eth_m) %>% summarise(freq=n(), mean=mean(prep_use_curr))
+    ggplot(prepXrace, aes(x=race_eth_m, y=mean, size=freq)) + geom_point() + labs(x="Ego race/ethnicity", y="Mean probability of PrEP use", title = "Mean probability of PrEP use among men recommended to initiate PrEP by race/ethnicity") + ylim(0, 1) + plot_background + theme_title
+```
 
+```{r plotsexplore_prep_region}
+#PrEP use by age
+   prepXregion <- sample %>% filter(!is.na(prep_use_curr) & prepelig_r %in% "Recommend") %>% group_by(region) %>% summarise(freq=n(), mean=mean(prep_use_curr))
+    ggplot(prepXregion, aes(x=region, y=mean, size=freq)) + geom_point() + labs(x="Region", y="Mean probability of PrEP use", title = "Mean probability of PrEP use among men recommended to initiate PrEP by region") + ylim(0, 1) + plot_background + theme_title
+```
