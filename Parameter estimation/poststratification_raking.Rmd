@@ -36,6 +36,9 @@ options(knitr.table.format = "html")
     load(file="Data/census_totalbyregion.Rdata")
     load(file="Data/wa_msm_est2013.Rdata")
     load(file="Data/msmbyregion.Rdata")
+    load(file="Data/plwha_age.Rdata")
+    load(file="Data/plwha_hboXregion.Rdata")
+
     
 #-----------------------------------------------------------------------------------
 #set plot settings 
@@ -63,33 +66,62 @@ options(knitr.table.format = "html")
     samplesvy <- svydesign(id=~1, data=sample)
 
 #-----------------------------------------------------------------------------------
-# Define "population" totals from census data and Jeremy Grey's analysis
+# Define "population" totals from census data and Jeremy Grey's analysis, and subtracting
+# HIV-positives   
 #-----------------------------------------------------------------------------------
 
 #Region
-    pop.region <- MSMbyregion %>% select(region, numMSM) %>% mutate(numMSM = round(numMSM))
+    pop.region.all <- MSMbyregion %>% select(region, numMSM) %>% mutate(numMSM = round(numMSM))
     levels(pop.region$region)[levels(pop.region$region)=="Other Western WA"] <- "Western WA"
     
+    #HIV-positive only
+    pop.region.pos <- plwha_hboXregion %>% group_by(region) %>% summarise("total" = sum(Freq))
+    pop.region.pos$region <- factor(pop.region.pos$region, levels = c("King County", "Western WA", "Eastern WA"))
+    pop.region.pos <- pop.region.pos %>% arrange(region)
+
+    #HIV-negative only
+    pop.region.neg <- cbind.data.frame(region = c("King County", "Western WA", "Eastern WA"), total = c(round(pop.region.all$numMSM[pop.region.all$region %in% "King County"] - pop.region.pos$total[pop.region.pos$region %in% "King County"]), round(pop.region.all$numMSM[pop.region.all$region %in% "Other Western WA"] - pop.region.pos$total[pop.region.pos$region %in% "Western WA"]), round(pop.region.all$numMSM[pop.region.all$region %in% "Eastern WA"] - pop.region.pos$total[pop.region.pos$region %in% "Eastern WA"])))
+    
 #Race and region
-    pop.raceregion <- cbind.data.frame(region=c(rep("King County", 3), rep("Western WA", 3), rep("Eastern WA", 3)), hbo=c(rep(c("Hispanic", "Black", "Other"), 3)), Freq=c(round(wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "King County"]*pop.region$numMSM[pop.region$region %in% "King County"]), round(wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "King County"]*pop.region$numMSM[pop.region$region %in% "King County"]), round(wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "King County"]*pop.region$numMSM[pop.region$region %in% "King County"]), round(wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "Other Western"]*pop.region$numMSM[pop.region$region %in% "Western WA"]), round(wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "Other Western"]*pop.region$numMSM[pop.region$region %in% "Western WA"]), round(wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "Other Western"]*pop.region$numMSM[pop.region$region %in% "Western WA"]), round(wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "Eastern"]*pop.region$numMSM[pop.region$region %in% "Eastern WA"]), round(wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "Eastern"]*pop.region$numMSM[pop.region$region %in% "Eastern WA"]), round(wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "Eastern"]*pop.region$numMSM[pop.region$region %in% "Eastern WA"])))
+    pop.raceregion.all <- cbind.data.frame(region=c(rep("King County", 3), rep("Western WA", 3), rep("Eastern WA", 3)), hbo=c(rep(c("Hispanic", "Black", "Other"), 3)), Freq=c(round(wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "King County"]*pop.region$numMSM[pop.region$region %in% "King County"]), round(wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "King County"]*pop.region$numMSM[pop.region$region %in% "King County"]), round(wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "King County"]*pop.region$numMSM[pop.region$region %in% "King County"]), round(wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "Other Western"]*pop.region$numMSM[pop.region$region %in% "Western WA"]), round(wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "Other Western"]*pop.region$numMSM[pop.region$region %in% "Western WA"]), round(wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "Other Western"]*pop.region$numMSM[pop.region$region %in% "Western WA"]), round(wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "Eastern"]*pop.region$numMSM[pop.region$region %in% "Eastern WA"]), round(wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "Eastern"]*pop.region$numMSM[pop.region$region %in% "Eastern WA"]), round(wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "Eastern"]*pop.region$numMSM[pop.region$region %in% "Eastern WA"])))
     #Specify order of factors
-    pop.raceregion$hbo <- factor(pop.raceregion$hbo, levels = c("Hispanic", "Black", "Other"))
-    pop.raceregion$region <- factor(pop.raceregion$region, levels = c("King County", "Western WA", "Eastern WA"))
-    pop.raceregion <- pop.raceregion %>% arrange(region, hbo)
+    pop.raceregion.all$hbo <- factor(pop.raceregion.all$hbo, levels = c("Hispanic", "Black", "Other"))
+    pop.raceregion.all$region <- factor(pop.raceregion.all$region, levels = c("King County", "Western WA", "Eastern WA"))
+    pop.raceregion.all <- pop.raceregion.all %>% arrange(region, hbo)
+
+    #HIV-positive only
+    pop.raceregion.pos <- plwha_hboXregion
+        #Specify order of factors
+        pop.raceregion.pos$hbo <- factor(pop.raceregion.pos$hbo, levels = c("Hispanic", "Black", "Other"))
+        pop.raceregion.pos$region <- factor(pop.raceregion.pos$region, levels = c("King County", "Western WA", "Eastern WA"))
+        pop.raceregion.pos <- pop.raceregion.pos %>% arrange(region, hbo)
+
+    #HIV-negative only
+    pop.raceregion.neg <- cbind.data.frame(region=c(rep("King County", 3), rep("Western WA", 3), rep("Eastern WA", 3)), hbo=c(rep(c("Hispanic", "Black", "Other"), 3)), Freq=c(round(pop.raceregion.all[1:3, 3] - pop.raceregion.pos[1:3, 3]), round(pop.raceregion.all[4:6, 3] - pop.raceregion.pos[4:6, 3]), round(pop.raceregion.all[7:9, 3] - pop.raceregion.pos[7:9, 3])))
     
 #Race
-    pop.hbo <- (pop.raceregion %>% group_by(hbo) %>% summarise(Freq=sum(Freq)))
-
+    pop.hbo.all <- pop.raceregion.all %>% group_by(hbo) %>% summarise(Freq=sum(Freq))
+    pop.hbo.pos <- pop.raceregion.pos %>% group_by(hbo) %>% summarise(Freq=sum(Freq))
+    pop.hbo.neg <- pop.raceregion.neg %>% group_by(hbo) %>% summarise(Freq=sum(Freq))
+         #Specify order of factors
+        pop.hbo.neg$hbo <- factor(pop.hbo.neg$hbo, levels = c("Hispanic", "Black", "Other"))
+        pop.hbo.neg <- pop.hbo.neg %>% arrange(hbo)
 
 #Age
     wa_acs_agebyregion$age_groups <- ifelse(wa_acs_agebyregion$Age_group %in% c("males.40to44", "males.45to49"), "40-49", ifelse(wa_acs_agebyregion$Age_group %in% c("males.50to54", "males.55to59"), "50-59", ifelse(wa_acs_agebyregion$Age_group %in% "males.18to24", "18-24", ifelse(wa_acs_agebyregion$Age_group %in% "males.25to29", "25-29", ifelse(wa_acs_agebyregion$Age_group %in% "males.30to34", "30-34", ifelse(wa_acs_agebyregion$Age_group %in% "males.35to39", "35-39", NA))))))
-    pop.age_groups <- wa_acs_agebyregion %>% group_by(age_groups) %>% summarise(Freq = sum(Frequency))
+    pop.age.all <- wa_acs_agebyregion %>% group_by(age_groups) %>% summarise(Freq = sum(Frequency))
+    
+    #HIV-positive only
+    pop.age.pos <- plwha_age
+    
+    #HIV-negative only
+    pop.age.neg <- cbind.data.frame(age_groups = c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"), Freq = c(round(pop.age.all$Freq - pop.age.pos$Freq)))
 
 #-----------------------------------------------------------------------------------
-# Post-stratify and rake
+# Post-stratify and rake the survey sample using population totals for negatives only
 #-----------------------------------------------------------------------------------
-    sample_psraceregion <- postStratify(samplesvy, ~hbo + region, pop.raceregion)
-    sample_rakeage <- rake(sample_psraceregion, list(~age_groups), list(pop.age_groups))
+    sample_psraceregion <- postStratify(samplesvy, ~hbo + region, pop.raceregion.neg)
+    sample_rakeage <- rake(sample_psraceregion, list(~age_groups), list(pop.age.neg))
 
 #-----------------------------------------------------------------------------------
 # Reweight sample
@@ -120,7 +152,7 @@ The weights resulting from post-stratification on race and region are summarized
     # table(reweight_ps$hbo[reweight_ps$ps.wt %in% (max(reweight_ps$ps.wt))], (reweight_ps$region[reweight_ps$ps.wt %in% (max(reweight_ps$ps.wt))]))
     #     #look at number with these characteristics in original sample
     #     sample %>% filter(hbo %in% "Black" & region %in% "King County") %>% summarise(Freq = n())
-    #     
+    # 
     # #look at characteristics of those with the lowest weight
     # table(reweight_ps$hbo[reweight_ps$ps.wt %in% (min(reweight_ps$ps.wt))], (reweight_ps$region[reweight_ps$ps.wt %in% (min(reweight_ps$ps.wt))]))
     #     #look at number with these characteristics in original sample
@@ -134,12 +166,12 @@ After raking the post-stratified survey object on age, the weights are considera
     summary(reweight_ps_rake$rake.wt)
     
     # #look at characteristics of those with highest weight
-    # table(reweight_ps_rake$hbo[reweight_ps_rake$rake.wt %in% (max(reweight_ps_rake$rake.wt))], (reweight_ps_rake$region[reweight_ps_rake$rake.wt %in% (max(reweight_ps_rake$rake.wt))]))
-    # table(reweight_ps_rake$age_groups[reweight_ps_rake$rake.wt %in% (max(reweight_ps_rake$rake.wt))])
-    #     #look at number with these characteristics in original sample
-    #     sample %>% filter(hbo %in% "Black" & region %in% "King County" & age_groups %in% "50-59") %>% summarise(Freq = n())
-    #     
-    # #look at characteristics of those with the lowest weight
+    table(reweight_ps_rake$hbo[reweight_ps_rake$rake.wt %in% (max(reweight_ps_rake$rake.wt))], (reweight_ps_rake$region[reweight_ps_rake$rake.wt %in% (max(reweight_ps_rake$rake.wt))]))
+    table(reweight_ps_rake$age_groups[reweight_ps_rake$rake.wt %in% (max(reweight_ps_rake$rake.wt))])
+        #look at number with these characteristics in original sample
+        sample %>% filter(hbo %in% "Black" & region %in% "King County" & age_groups %in% "50-59") %>% summarise(Freq = n())
+
+    #look at characteristics of those with the lowest weight
     # table(reweight_ps_rake$hbo[reweight_ps_rake$rake.wt %in% (min(reweight_ps_rake$rake.wt))], (reweight_ps_rake$region[reweight_ps_rake$rake.wt %in% (min(reweight_ps_rake$rake.wt))]))
     # table(reweight_ps_rake$age_groups[reweight_ps_rake$rake.wt %in% (min(reweight_ps_rake$rake.wt))])
     #     #look at number with these characteristics in original sample
@@ -168,7 +200,7 @@ The tables and graphs below show the resulting distribution of the sample by age
   #Age
     age_dist_orig <- as.vector(prop.table(table(sample$age_groups)))
     age_dist_reweighted <- as.vector(prop.table(table(reweight_ps_rake$age_groups)))
-    age_dist_pop <- as.vector(pop.age_groups$Freq / sum(pop.age_groups$Freq))
+    age_dist_pop <- as.vector(pop.age.neg$Freq / sum(pop.age.neg$Freq))
     
     #Table
     age_compare <- cbind.data.frame("Age_group" = c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"), "Original_sample" = age_dist_orig, "Reweighted_sample" = age_dist_reweighted, "Population" = age_dist_pop)
@@ -183,7 +215,7 @@ The tables and graphs below show the resulting distribution of the sample by age
   #Margins of region
     region_dist_orig <- as.vector(prop.table(table(sample$region)))
     region_dist_reweighted <- as.vector(prop.table(table(reweight_ps_rake$region)))
-    region_dist_pop <- as.vector(pop.region$numMSM / sum(pop.region$numMSM))
+    region_dist_pop <- as.vector(pop.region.neg$total / sum(pop.region.neg$total))
     
     #Table
     region_compare <- cbind.data.frame("Region" = c("King County", "Other Western WA", "Eastern WA"), "Original_sample" = region_dist_orig, "Reweighted_sample" = region_dist_reweighted, "Population" = region_dist_pop)
@@ -198,7 +230,7 @@ The tables and graphs below show the resulting distribution of the sample by age
   #Margins of race
     race_dist_orig <- as.vector(prop.table(table(sample$hbo)))
     race_dist_reweighted <- as.vector(prop.table(table(reweight_ps_rake$hbo)))
-    race_dist_pop <- as.vector(pop.hbo$Freq / sum(pop.hbo$Freq))
+    race_dist_pop <- as.vector(pop.hbo.neg$Freq / sum(pop.hbo.neg$Freq))
     
     #Table
     race_compare <- cbind.data.frame("Race" = c("Hispanic", "Black", "Other"), "Original_sample" = race_dist_orig, "Reweighted_sample" = race_dist_reweighted, "Population" = race_dist_pop)
@@ -213,7 +245,7 @@ The tables and graphs below show the resulting distribution of the sample by age
   #Race by region
     raceregion_dist_orig <- as.vector(prop.table(table(sample$hbo, sample$region), 2))
     raceregion_dist_reweighted <- as.vector(prop.table(table(reweight_ps_rake$hbo, reweight_ps_rake$region), 2))
-    raceregion_dist_pop <- pop.raceregion %>% group_by(region) %>% mutate(percent = Freq/sum(Freq))
+    raceregion_dist_pop <- pop.raceregion.neg %>% group_by(region) %>% mutate(percent = Freq/sum(Freq))
     
     #Table
     raceregion_compare <- cbind.data.frame("Race_ethnicity" = c(rep(c("Hispanic", "Black", "Other"), 3)), "Original_sample" = raceregion_dist_orig, "Reweighted_sample" = raceregion_dist_reweighted, "Population" = as.vector(raceregion_dist_pop$percent))
