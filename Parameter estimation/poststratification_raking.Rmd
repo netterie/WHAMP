@@ -4,7 +4,7 @@ To adjust the composition of the sample to more closely match the estimated popu
 
 Instead, we decided to post-stratify to the joint distribution of race/ethnicity and region, and then rake the post-stratified object to match the marginal distribution by age. For this, we categorized age into the following groups: 18-24, 25-29, 30-34, 35-39, 40-49, 50-59. We grouped ages above 40 into 10-year age groups to increase the stabiltiy of the estimates, as there are fewer respondents in these ages, and because the number of respondents aged 40-44 and 45-49 are roughly equal, as are the number of respondents aged 50-54 and 55-59. 
 
-Post-stratification and raking were both carried out using the `survey` package. This package requires that you first specify a survey design. The package is not designed to work with convenience samples, so the most appropriate option seemed to be to speficy the interet sample as a simple random sample, as we did not implement any stratified or cluster sampling. After creating a survey design object, we specify the population totals for each racial/ethnicy group by region and for the margins of the age distribution. We then use the `postStratify` and `rake` functions to obtain adjusted sampling weights. To adjust the sample to more closely match the target distributions, we re-sample from the original sample dataframe with replacement, with sampling probabilities given by the post-stratification and raking procedures. 
+Post-stratification and raking were both carried out using the `survey` package. This package requires that you first specify a survey design. The package is not designed to work with convenience samples, so the most appropriate option seemed to be to speficy the interet sample as a simple random sample, as we did not implement any stratified or cluster sampling. After creating a survey design object, we specify the population totals for each racial/ethnicy group by region and for the margins of the age distribution. To correspond to the sampled population, we subtracted the number of people living with HIV from the population totals. We then use the `postStratify` and `rake` functions to obtain adjusted sampling weights. To adjust the sample to more closely match the target distributions, we re-sample from the original sample dataframe with replacement, with sampling probabilities given by the post-stratification and raking procedures. 
 
 ```{r, include=FALSE}
 ####################################################################################
@@ -72,7 +72,7 @@ options(knitr.table.format = "html")
 
 #Region
     pop.region.all <- MSMbyregion %>% select(region, numMSM) %>% mutate(numMSM = round(numMSM))
-    levels(pop.region$region)[levels(pop.region$region)=="Other Western WA"] <- "Western WA"
+    levels(pop.region.all$region)[levels(pop.region.all$region)=="Other Western WA"] <- "Western WA"
     
     #HIV-positive only
     pop.region.pos <- plwha_hboXregion %>% group_by(region) %>% summarise("total" = sum(Freq))
@@ -80,10 +80,10 @@ options(knitr.table.format = "html")
     pop.region.pos <- pop.region.pos %>% arrange(region)
 
     #HIV-negative only
-    pop.region.neg <- cbind.data.frame(region = c("King County", "Western WA", "Eastern WA"), total = c(round(pop.region.all$numMSM[pop.region.all$region %in% "King County"] - pop.region.pos$total[pop.region.pos$region %in% "King County"]), round(pop.region.all$numMSM[pop.region.all$region %in% "Other Western WA"] - pop.region.pos$total[pop.region.pos$region %in% "Western WA"]), round(pop.region.all$numMSM[pop.region.all$region %in% "Eastern WA"] - pop.region.pos$total[pop.region.pos$region %in% "Eastern WA"])))
+    pop.region.neg <- cbind.data.frame(region = c("King County", "Western WA", "Eastern WA"), total = c(round(pop.region.all$numMSM[pop.region.all$region %in% "King County"] - pop.region.pos$total[pop.region.pos$region %in% "King County"]), round(pop.region.all$numMSM[pop.region.all$region %in% "Western WA"] - pop.region.pos$total[pop.region.pos$region %in% "Western WA"]), round(pop.region.all$numMSM[pop.region.all$region %in% "Eastern WA"] - pop.region.pos$total[pop.region.pos$region %in% "Eastern WA"])))
     
 #Race and region
-    pop.raceregion.all <- cbind.data.frame(region=c(rep("King County", 3), rep("Western WA", 3), rep("Eastern WA", 3)), hbo=c(rep(c("Hispanic", "Black", "Other"), 3)), Freq=c(round(wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "King County"]*pop.region$numMSM[pop.region$region %in% "King County"]), round(wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "King County"]*pop.region$numMSM[pop.region$region %in% "King County"]), round(wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "King County"]*pop.region$numMSM[pop.region$region %in% "King County"]), round(wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "Other Western"]*pop.region$numMSM[pop.region$region %in% "Western WA"]), round(wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "Other Western"]*pop.region$numMSM[pop.region$region %in% "Western WA"]), round(wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "Other Western"]*pop.region$numMSM[pop.region$region %in% "Western WA"]), round(wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "Eastern"]*pop.region$numMSM[pop.region$region %in% "Eastern WA"]), round(wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "Eastern"]*pop.region$numMSM[pop.region$region %in% "Eastern WA"]), round(wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "Eastern"]*pop.region$numMSM[pop.region$region %in% "Eastern WA"])))
+    pop.raceregion.all <- cbind.data.frame(region=c(rep("King County", 3), rep("Western WA", 3), rep("Eastern WA", 3)), hbo=c(rep(c("Hispanic", "Black", "Other"), 3)), Freq=c(round(wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "King County"]*pop.region.all$numMSM[pop.region.all$region %in% "King County"]), round(wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "King County"]*pop.region.all$numMSM[pop.region.all$region %in% "King County"]), round(wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "King County"]*pop.region.all$numMSM[pop.region.all$region %in% "King County"]), round(wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "Other Western"]*pop.region.all$numMSM[pop.region.all$region %in% "Western WA"]), round(wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "Other Western"]*pop.region.all$numMSM[pop.region.all$region %in% "Western WA"]), round(wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "Other Western"]*pop.region.all$numMSM[pop.region.all$region %in% "Western WA"]), round(wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "Eastern"]*pop.region.all$numMSM[pop.region.all$region %in% "Eastern WA"]), round(wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "Eastern"]*pop.region.all$numMSM[pop.region.all$region %in% "Eastern WA"]), round(wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "Eastern"]*pop.region.all$numMSM[pop.region.all$region %in% "Eastern WA"])))
     #Specify order of factors
     pop.raceregion.all$hbo <- factor(pop.raceregion.all$hbo, levels = c("Hispanic", "Black", "Other"))
     pop.raceregion.all$region <- factor(pop.raceregion.all$region, levels = c("King County", "Western WA", "Eastern WA"))
@@ -133,10 +133,10 @@ options(knitr.table.format = "html")
     sample$rake.wt <- 1/(sample_rakeage$prob)
 
 #Reweight sample - comment out to avoid re-sampling each time the file is run
-    #Using post-stratification weights on race and region only
-    # reweight_ps <- sample %>% sample_n(6000, replace=TRUE, weight=ps.wt)
+    # #Using post-stratification weights on race and region only
+    # reweight_ps <- sample %>% sample_n(10000, replace=TRUE, weight=ps.wt)
     # #Using weights from raking on age on post-stratified dataset
-    # reweight_ps_rake <- sample %>% sample_n(6000, replace=TRUE, weight=rake.wt)
+    # reweight_ps_rake <- sample %>% sample_n(10000, replace=TRUE, weight=rake.wt)
     # 
     # save(reweight_ps, file="Data/InternetSurveySample_poststrat.Rdata")
     # save(reweight_ps_rake, file="Data/InternetSurveySample_reweighted.Rdata")
@@ -166,10 +166,10 @@ After raking the post-stratified survey object on age, the weights are considera
     summary(reweight_ps_rake$rake.wt)
     
     # #look at characteristics of those with highest weight
-    table(reweight_ps_rake$hbo[reweight_ps_rake$rake.wt %in% (max(reweight_ps_rake$rake.wt))], (reweight_ps_rake$region[reweight_ps_rake$rake.wt %in% (max(reweight_ps_rake$rake.wt))]))
-    table(reweight_ps_rake$age_groups[reweight_ps_rake$rake.wt %in% (max(reweight_ps_rake$rake.wt))])
-        #look at number with these characteristics in original sample
-        sample %>% filter(hbo %in% "Black" & region %in% "King County" & age_groups %in% "50-59") %>% summarise(Freq = n())
+    # table(reweight_ps_rake$hbo[reweight_ps_rake$rake.wt %in% (max(reweight_ps_rake$rake.wt))], (reweight_ps_rake$region[reweight_ps_rake$rake.wt %in% (max(reweight_ps_rake$rake.wt))]))
+    # table(reweight_ps_rake$age_groups[reweight_ps_rake$rake.wt %in% (max(reweight_ps_rake$rake.wt))])
+    #     #look at number with these characteristics in original sample
+    #     sample %>% filter(hbo %in% "Black" & region %in% "King County" & age_groups %in% "50-59") %>% summarise(Freq = n())
 
     #look at characteristics of those with the lowest weight
     # table(reweight_ps_rake$hbo[reweight_ps_rake$rake.wt %in% (min(reweight_ps_rake$rake.wt))], (reweight_ps_rake$region[reweight_ps_rake$rake.wt %in% (min(reweight_ps_rake$rake.wt))]))
