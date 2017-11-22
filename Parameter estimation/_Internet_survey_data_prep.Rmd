@@ -146,6 +146,18 @@
 #Any concurrent partnerships
     sample_allages$concurrent <- ifelse(sample_allages$deg_matrix %in% c("0 main 2+ pers", "1 main 1 pers", "1 main 2+ pers") & !is.na(sample_allages$deg_matrix), 1, ifelse(!is.na(sample_allages$deg_matrix), 0, NA))
     
+#Any main partners
+    sample_allages$anymain <- sample_allages$degree_main
+
+#Any persistent partners
+    sample_allages$anypers <- ifelse(sample_allages$degreecat_cas %in% c("One", "Two or more"), 1, ifelse(sample_allages$degreecat_cas %in% "None", 0, NA))
+
+#Two or more concurrent persistent partners
+    sample_allages$concurrent_pers <- ifelse(sample_allages$degreecat_cas %in% c("One", "None"), 0, ifelse(sample_allages$degreecat_cas %in% "Two or more", 1, NA))
+
+#Any persistent partners among those with a main partner
+    sample_allages$concurrent_mainpers <- ifelse(sample_allages$degree_main %in% 1 & sample_allages$degreecat_cas %in% c("One", "Two or more"), 1, ifelse(sample_allages$degree_main %in% 1 & sample_allages$degreecat_cas %in% "None", 0, NA))
+    
 #Redefine MRP type to change "unspecified" to NA and reorder levels so main is first
     sample_allages$mrp_type_r[sample_allages$mrp_type_r %in% "Unspecified"] <- NA
     sample_allages$mrp_type_r <- factor(sample_allages$mrp_type_r)
