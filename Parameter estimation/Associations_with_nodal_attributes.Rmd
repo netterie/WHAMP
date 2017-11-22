@@ -85,8 +85,8 @@ load(file="Data/InternetSurveySample_allages.Rdata")
 #-----------------------------------------------------------------------------------
 #Function to plot the coefficients for age
 plot.age.coefs <- function(full) {
-    agecoefs <- cbind.data.frame(age_cat = c("25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59"), coefs = as.vector(full$coefficients[2:8]))
-    plot <- ggplot(agecoefs, aes(x=age_cat, y=coefs)) + geom_point()
+    agecoefs <- cbind.data.frame(age_cat = c("25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59"), coefs = as.vector(full$coefficients[2:8]), se = as.vector(coef(summary(full))[2:8,2]))
+    plot <- ggplot(agecoefs, aes(x=age_cat, y=coefs)) + geom_pointrange(aes(ymin=coefs - 2*se, ymax=coefs + 2*se))
     return(plot)
 }
 
