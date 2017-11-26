@@ -148,7 +148,7 @@ We first look at the number of observations that are non-missing for this outcom
   table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$hasmain)], sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$hasmain)], sample$region[!is.na(sample$race_eth_m) & !is.na(sample$hasmain)])
 ```
 
-Next we will look at how to parameterize age by plotting the ceofficients for age from the model adjusting for age, race, and region, with age input as a dummy variable. The error bars on these plots correspond to 2 times the standard error on either side of the point estimate.
+Next we will look at how to parameterize age by plotting the ceofficients for age from the model adjusting for age, race, and region, with age input as a dummy variable. The error bars on these plots correspond to 1.96 times the standard error on either side of the point estimate.
 ```{r}
  #Figure out how to parameterize age
     hasmain_full_testage <- glm(hasmain ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample)
