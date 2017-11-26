@@ -39,7 +39,7 @@ The statistics and plots below show the distribution of the reported rate of ins
 
 ```{r rateinst_quants}
 summary(sample$rate_inst)
-ggplot(sample[!is.na(sample$rate_inst),], aes(rate_inst)) + geom_histogram(binwidth = 0.005) + labs(x="Rate of instantaneous partners", title="Distribution of the rate of instantaneous partners")
+ggplot(sample[!is.na(sample$rate_inst),], aes(rate_inst)) + geom_histogram(binwidth = 0.005) + labs(x="Rate of instantaneous partners", title="Distribution of the rate of instantaneous partners") + plot_background + theme_title
 ggplot(sample[sample$rate_inst <0.25 & !is.na(sample$rate_inst),], aes(rate_inst)) + geom_histogram(binwidth = 0.005) + labs(x="Rate of instantaneous partners", title="Distribution of the rate of instantaneous partners, capped at 0.25") + plot_background + theme_title
 
 ```
