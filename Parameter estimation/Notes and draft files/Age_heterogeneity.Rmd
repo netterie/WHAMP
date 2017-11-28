@@ -1,0 +1,455 @@
+---
+title: "Age heterogeneity"
+author: "Darcy Rao"
+date: "11/26/2017"
+output:
+  html_document:
+    toc: true
+---
+
+```{r, include=FALSE}
+####################################################################################
+# Setup
+####################################################################################
+#-----------------------------------------------------------------------------------
+# Load packages
+#-----------------------------------------------------------------------------------
+
+library("tidyverse")
+library("knitr")
+library("data.table")
+library("lmtest")
+library("kableExtra")
+library("logbin")
+
+#-----------------------------------------------------------------------------------
+# Knitr options
+#-----------------------------------------------------------------------------------
+opts_chunk$set(echo=FALSE, message=FALSE, warning=TRUE, error=TRUE, fig.align = "center")
+options(knitr.table.format = "html") 
+
+#-----------------------------------------------------------------------------------
+# Plot settings
+#-----------------------------------------------------------------------------------
+#save plot settings for white background and light grey lines and darkening the colors a bit
+plot_background <- theme(panel.background = element_rect(fill="white", colour = "black")) + theme(panel.grid.major = element_line(colour = "grey90"))
+darken_color <- scale_colour_hue(l=50)
+theme_title <- theme(plot.title = element_text(hjust = 0.5, size=12)) 
+
+#-----------------------------------------------------------------------------------
+# Load data
+#-----------------------------------------------------------------------------------
+load(file="/Users/darcywhite/Documents/UW/Dissertation/Network Modeling/Washington HIV Modeling in MSM/Parameter estimation/Data/InternetSurveySample_allages.Rdata")
+load(file="/Users/darcywhite/Documents/UW/Dissertation/Network Modeling/Washington HIV Modeling in MSM/Parameter estimation/Data/InternetSurveySample.Rdata")
+
+#-----------------------------------------------------------------------------------
+# Define alternate age categorization
+#-----------------------------------------------------------------------------------
+sample$age_chunks <-  cut(sample$age, c(17, 29, 39, 44, 59), labels=c("18-29", "30-39", "40-49", "50-59"))   
+sample$age_cat_alt <- cut(sample$age, c(17, 24, 29, 34, 39, 49, 59), labels=c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"))
+
+#----------------------------------------------------------------------------------
+# Define multiplot function
+#_---------------------------------------------------------------------------------
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+    library(grid)
+    
+    # Make a list from the ... arguments and plotlist
+    plots <- c(list(...), plotlist)
+    
+    numPlots = length(plots)
+    
+    # If layout is NULL, then use 'cols' to determine layout
+    if (is.null(layout)) {
+        # Make the panel
+        # ncol: Number of columns of plots
+        # nrow: Number of rows needed, calculated from # of cols
+        layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                         ncol = cols, nrow = ceiling(numPlots/cols))
+    }
+    
+    if (numPlots==1) {
+        print(plots[[1]])
+        
+    } else {
+        # Set up the page
+        grid.newpage()
+        pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+        
+        # Make each plot, in the correct location
+        for (i in 1:numPlots) {
+            # Get the i,j matrix positions of the regions that contain this subplot
+            matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+            
+            print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                            layout.pos.col = matchidx$col))
+        }
+    }
+}
+
+#-----------------------------------------------------------------------------------
+# Write function to streamline analyses
+#-----------------------------------------------------------------------------------
+#Function to plot the coefficients for age
+plot.age.coefs <- function(full) {
+    agecoefs <- cbind.data.frame(age_cat = c("25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59"), coefs = as.vector(full$coefficients[2:8]), se = as.vector(coef(summary(full))[2:8,2]))
+    plot <- ggplot(agecoefs, aes(x=age_cat, y=coefs)) + geom_pointrange(aes(ymin=coefs - 1.96*se, ymax=coefs + 1.96*se))
+    return(plot)
+}
+
+#Function to get likelihood ratio tests
+#Outcomes for which we are looking at age, race, and region
+compare.models <- function(full, noreg, norace, noage, full_withint, noraceXreg, noageXreg, noraceXage) {
+    lrt_region <- lrtest(full, noreg)
+    lrt_race <- lrtest(full, norace)
+    lrt_age <- lrtest(full, noage)
+    lrt_summary_main <- cbind.data.frame("Variable" = c("Region", "Race", "Age"), "pvalue" = c(round(lrt_region$'Pr(>Chisq)'[2], 4), round(lrt_race$'Pr(>Chisq)'[2], 4), round(lrt_age$'Pr(>Chisq)'[2], 4)))
+    lrt_summary_main$sig <- ifelse(lrt_summary_main$pvalue<0.001, "***", ifelse(lrt_summary_main$pvalue<0.01, "**", ifelse(lrt_summary_main$pvalue<0.05, "*", "")))
+    
+    lrt_raceXreg <- lrtest(full_withint, noraceXreg)
+    lrt_ageXreg <- lrtest(full_withint, noageXreg)
+    lrt_raceXage <- lrtest(full_withint, noraceXage)
+    lrt_summary_int <- cbind.data.frame("Variable" = c("Race by region", "Age by region", "Race by age"), "pvalue" = c(round(lrt_raceXreg$'Pr(>Chisq)'[2], 4), round(lrt_ageXreg$'Pr(>Chisq)'[2], 4), round(lrt_raceXage$'Pr(>Chisq)'[2], 4)))
+    lrt_summary_int$sig <-  ifelse(lrt_summary_int$pvalue<0.001, "***", ifelse(lrt_summary_int$pvalue<0.01, "**", ifelse(lrt_summary_int$pvalue<0.05, "*", "")))
+    
+    #results <- list(summary(full), lrt_summary_main, summary(full_withint), lrt_summary_int)
+    results <- list(lrt_summary_main, lrt_summary_int)
+    
+    return(results)
+}
+
+#Outcomes for which we are looking only at race and region
+compare.models.noage <- function(full, noreg, norace, full_withint, noraceXreg) {
+    lrt_region <- lrtest(full, noreg)
+    lrt_race <- lrtest(full, norace)
+    lrt_summary_main <- cbind.data.frame("Variable" = c("Region", "Race"), "pvalue" = c(round(lrt_region$'Pr(>Chisq)'[2], 4), round(lrt_race$'Pr(>Chisq)'[2], 4)))
+    lrt_summary_main$sig <- ifelse(lrt_summary_main$pvalue<0.001, "***", ifelse(lrt_summary_main$pvalue<0.01, "**", ifelse(lrt_summary_main$pvalue<0.05, "*", "")))
+    
+    lrt_raceXreg <- lrtest(full_withint, noraceXreg)
+    lrt_summary_int <- cbind.data.frame("Variable" = c("Race by region"), "pvalue" = round(lrt_raceXreg$'Pr(>Chisq)'[2], 4))
+    lrt_summary_int$sig <-  ifelse(lrt_summary_int$pvalue<0.001, "***", ifelse(lrt_summary_int$pvalue<0.01, "**", ifelse(lrt_summary_int$pvalue<0.05, "*", "")))
+    
+    #results <- list(summary(full), lrt_summary_main, summary(full_withint), lrt_summary_int)
+    results <- list(lrt_summary_main, lrt_summary_int)
+    
+    return(results)
+}
+
+```
+
+This file examines heterogeneity in model parameters by age to determine whether the data show any age effects and, if so, how age should be modeled. The figures below plot the estimated coefficients for age in models adjusting for race/ethnicity (Hispanic, black, or other) and region, with age modeled as a factor variable with levels 18-24, 25-34... 54-59. The error bars correspond to the 95% confidence interval around the estimates (1.96 times the standard error). 
+
+## Degree distribution
+To look for differences in the degree distribution, we will break it down to four binary indicators corresponding to: 1) whether men have any ongoing main partners, 2) whether they have any ongoing persistent partners, 3) whether they have two or more ongoing persistent partners, and 4) whether men who reported an ongoing main partner reported any concurrent persistent partners.
+
+### Any ongoing main partner
+```{r}
+#Figure out how to parameterize age
+hasmain_full_testage <- glm(hasmain ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample)
+plot.age.coefs(hasmain_full_testage)
+```
+
+There does not appear to be any significant pattern in the proportion of men who report an ongoing main partner by age, __so we will not represent heterogeneity by age.__ 
+
+### Any ongoing persistent partners
+```{r}
+#Figure out how to parameterize age
+anypers_full_testage <- glm(anypers ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample)
+plot.age.coefs(anypers_full_testage)
+```
+
+Although the likelihood of having any persistent partner appears to be higher for men aged 40-44 and 45-49 relative to men aged 18-24, there is not a meaningful pattern by age, __so we will not represent heterogeneity by age.__
+
+### Two or more ongoing persistent partners
+```{r}
+#Figure out how to parameterize age
+concurrent_pers_full_testage <- glm(concurrent_pers ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample)
+plot.age.coefs(concurrent_pers_full_testage)
+```
+
+The pattern of concurrent persistent partnerships by age is similar to the pattern for having any persistent partnership. There is not a meaningful pattern by age, __so we will not represent heterogeneity by age.__
+
+### Ongoing main partners with concurrent persistent partners
+```{r}
+#Figure out how to parameterize age
+concurrent_mainpers_full_testage <- glm(concurrent_mainpers ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample)
+plot.age.coefs(concurrent_mainpers_full_testage)
+```
+
+It appears that the probability of having persistent partners concurrently with a main partner increases through age 49, but the only age group for which this is significant is 45-49. The overall lack of significance and incongruent observation for men aged 35-39 suggests that __this parameter does not vary meaningfully by age.__
+
+
+## Rate of instantaneous partners
+This analysis looks at heterogeneity in the rate of one-time partnerships separately for men who have 0 main, those who have 1 main, those who have 0 persistent, and those who have one or more persistent partnerships. 
+
+<span style="color:red">Would I want to look at this by the joint distribution of main and persistent partnerships? An issue with this approach would be that the numbers get small (as low as 40 overall for men with one main and one persistent partner) </span>
+
+### Among men with no main partners
+```{r}
+#Figure out how to parameterize age
+rateinst_nomain_full_testage <- lm(rate_inst ~ age_cat + race_eth_m.reg + region.bKC, data=sample, subset = degree_main %in% 0)
+plot.age.coefs(rateinst_nomain_full_testage)
+```
+
+This plot suggests that the rate of instantaneous partners is highest for men aged 35-39 and subsequently decreases with age. The point for ages 30-34 does not fit with a trend suggesting that the rate increases with age up through age 39, but it may be an outlier. 
+
+<span style="color:red"> Is it worth further exploring whether the rate of one-offs among men without main partners varies by age? It could be that the distribution varies in a way not well represented by examination of the mean by age (e.g. the proportion with 0 persistent partners may change...)</span>.
+
+### Main partner
+```{r}
+#Figure out how to parameterize age
+rateinst_main_full_testage <- lm(rate_inst ~ age_cat + race_eth_m.reg + region.bKC, data=sample, subset = degree_main %in% 1)
+plot.age.coefs(rateinst_main_full_testage)
+```
+
+As for men with no main partners, this plot suggests that the rate of instantaneous partners increases with age through age 39 and subsequently decreases. 
+
+<span style="color:red">Further explore age? If I further explore age as an effect for men with main partners, would I want to take the same approach for men without main partners? </span>.
+
+### No persistent partners
+```{r}
+#Figure out how to parameterize age
+rateinst_nopers_full_testage <- lm(rate_inst ~ age_cat + race_eth_m.reg + region.bKC, data=sample, subset = degreecat_cas %in% "None")
+plot.age.coefs(rateinst_nopers_full_testage)
+```
+
+The pattern here is a bit less clear than above, but it suggests that the rate of instantaneous partners is highest for men aged 35-39
+
+<span style="color:red">Worth exploring this further? Would I want my approach to representing age heterogeneity to be similar to that taken above for main partners?</span>
+
+### Any persistent partners
+```{r}
+#Figure out how to parameterize age
+rateinst_anypers_full_testage <- lm(rate_inst ~ age_cat + race_eth_m.reg + region.bKC, data=sample, subset = degreecat_cas %in% c("One", "Two or more"))
+plot.age.coefs(rateinst_anypers_full_testage)
+```
+
+The pattern here is similar to the pattern for men with no persistent partners. 
+
+<span style="color:red">Worth exploring this further?</span>
+
+
+## Racial/ethnic mixing
+To examine differences in mixing by race/ethnicity, we will look at the proportion of men reporting that their most recent partner was in the same racial/ethnic group (Hispanic, black, or other) as themselves. For main and persistent partner types, this analysis is restricted to most recent partners who are _ongoing_. The outcome is based on ego reports of their partners race and, at this point, does not adjust for imbalances in reported partnering patterns. __Note__: We expect this to vary by race/ethnicity just based on the racial/ethnic composition of the sample. This analysis is intended to examine whether the proportion of men whose partners are the same race/ethnicity as themselves varies by age after adjusting for race.
+
+```{r samerace_define}
+
+#Set to missing if the respondent did not know his partner's race/ethnicity
+sample$mrp_race_eth_m_removedk <- sample$mrp_race_eth_m[!(sample$mrp_race_eth_m %in% "Dont know")]
+sample$mrp_race_eth_m_removedk <- factor(sample$mrp_race_eth_m_removedk)
+
+#Define indicator of respondent and partner being of the same race/ethnicity
+sample$samerace <- ifelse(sample$race_eth_m==sample$mrp_race_eth_m_removedk, 1,
+                          ifelse(!is.na(sample$race_eth_m) & !is.na(sample$mrp_race_eth_m_removedk), 0,
+                                 NA))
+```
+
+### Main partners
+All men in age group 55-59 reported a partner of the same race/ethnicity, making this estimate unstable. Because this estimate and it's confidence interval are much larger than the estimates and intervals for other age groups, the plot including this point masks variability. As such, the second plot excludes estimates for the 55-59 year-old group.
+```{r}
+#Figure out how to parameterize age
+samerace_main_full_testage <- glm(samerace ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample, subset = mrp_type_ongoing %in% "Main")
+p1 <- plot.age.coefs(samerace_main_full_testage)
+
+#Dropping age_cat 55-59
+agecoefs_dropcat <- cbind.data.frame(age_cat = c("25-29", "30-34", "35-39", "40-44", "45-49", "50-54"), coefs = as.vector(samerace_main_full_testage$coefficients[2:7]), se = as.vector(coef(summary(samerace_main_full_testage))[2:7,2]))
+p2 <- ggplot(agecoefs_dropcat, aes(x=age_cat, y=coefs)) + geom_pointrange(aes(ymin=coefs - 1.96*se, ymax=coefs + 1.96*se))
+
+multiplot(p1, p2, cols=1)
+```
+
+These coefficients suggest that racial/ethnic homophily is lower among those aged 30-34 and 50-54 and higher among those aged 40-44 and 55-59, though these latter two estimates are not statistically significant. This does not suggest any meaningful trend, __so we will not include age in further analyses__.
+
+### Persistent partners
+As with main partnerships, all men in age group 55-59 reported a persistent partner of the same race/ethnicity, making this estimate unstable. Because this estimate and it's confidence interval are much larger than the estimates and intervals for other age groups, the plot including this point masks variability. As such, the second plot excludes estimates for the 55-59 year-old group.
+```{r}
+#Figure out how to parameterize age
+samerace_pers_full_testage <- glm(samerace ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample, subset = mrp_type_ongoing %in% "Persistent")
+p1 <- plot.age.coefs(samerace_pers_full_testage)
+
+#Dropping age_cat 55-59
+agecoefs_dropcat <- cbind.data.frame(age_cat = c("25-29", "30-34", "35-39", "40-44", "45-49", "50-54"), coefs = as.vector(samerace_pers_full_testage$coefficients[2:7]), se = as.vector(coef(summary(samerace_pers_full_testage))[2:7,2]))
+p2 <- ggplot(agecoefs_dropcat, aes(x=age_cat, y=coefs)) + geom_pointrange(aes(ymin=coefs - 1.96*se, ymax=coefs + 1.96*se))
+
+multiplot(p1, p2, cols=1)
+```
+
+As with main partnerships, __there does not appear to be a meaningful pattern by age.__
+
+### Instantaneous partners
+```{r}
+#Figure out how to parameterize age
+samerace_inst_full_testage <- glm(samerace ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample[sample$mrp_type_r %in% "One time", ])
+plot.age.coefs(samerace_inst_full_testage)
+```
+
+This plot __does not show any clear pattern of racial/ethnic mixing by age.__
+
+
+## Age mixing
+As with race/ethnicity, examination of age differences with main and persistent partners is restricted to most recent partners who are _ongoing_. For this analysis, we model age mixing using a linear model with the outcome being the absolute difference between the square root of the ego and alter's ages.
+
+### Main partners
+```{r}
+#Figure out how to parameterize age
+sqrtagediff_main_full_testage <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC, data=sample[sample$mrp_type_ongoing %in% "Main", ])
+plot.age.coefs(sqrtagediff_main_full_testage)
+```
+
+With the exception of the coefficients for ages 50-54 and 55-59, this pattern appears close to linear. The coefficients for these older groups suggest that a linear parameterization may not be appropriate, however. Although ages 50-54 and 55-59 appear quite different, there are only 19 and 17 respectively in each bin, __so in further models testing adjusted associations by age, race, and region, we will include age as a categorical variable, collapsing ages 40-59 into 10-year bins.__
+
+### Persistent partners
+```{r}
+#Figure out how to parameterize age
+sqrtagediff_pers_full_testage <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC, data=sample[sample$mrp_type_ongoing %in% "Persistent", ])
+plot.age.coefs(sqrtagediff_pers_full_testage)
+```
+
+With the exception of the estimate for ages 50-54, there does not appear to be a meaningful trend by age. However, to be consistent with the approach taken for main partners, we will model age as a categorical variable, collapsing ages 40-59 into 10-year bins. Although this groups together ages 50-54 and 55-59, for which the estimates appear different, there are only 6 and 4 men in each age group.
+
+<span style="color:red">Does it make sense to do this just to be consistent with the approach taken for main partners? Or should I judge this separately and not adjust for age?</span>
+
+### Instantaneous partners
+```{r}
+#Figure out how to parameterize age
+sqrtagediff_inst_full_testage <- lm(sqrt_agediff ~ age_cat + race_eth_m.reg + region.bKC, data=sample[sample$mrp_type_r %in% "One time", ])
+plot.age.coefs(sqrtagediff_inst_full_testage)
+```
+
+This plot suggests that the difference between the square root of ego and alter ages increases with age. To be consistent with the approach for main and persistent partnerships, and because the estimates for 25-39 and 30-34 do not fit in a linear pattern, __we will model age as a categorical variables with ages 40-59 in 10-year bins.__
+
+## Partnership age
+Partnership age was modeled as a linear outcome.
+
+### Main partners
+```{r}
+#Figure out how to parameterize age
+pshipage_main_full_testage <- lm(pship_age_main ~ age_cat + race_eth_m.reg + region.bKC, data=sample)
+plot.age.coefs(pshipage_main_full_testage)
+```
+
+The coefficients appear to follow a mostly linear trend with age, __so we will model age as a linear covariate.__
+
+<span style="color:red"> Does that seem justifiable? Or would it be better to model age as a factor varaible? Steve and I have discussed how representing heterogeneity in partnership age by ego age is complex due to censoring, so we probably won't try to represent this anyways. The conclusion Steve and I reached a few weeks ago is to run the model without stratifying this by age and compare the simulated distribution of partnership durations against the observed. In any case, would we want to adjust for age in models testing whether there are differences by race/ethnicity and region?</span>
+
+### Persistent partners
+```{r}
+#Figure out how to parameterize age
+pshipage_pers_full_testage <- lm(pship_age_pers ~ age_cat + race_eth_m.reg + region.bKC, data=sample)
+plot.age.coefs(pshipage_pers_full_testage)
+```
+
+The coefficients do not follow a linear pattern, and __do not seem to indicate any meaningful pattern by age.__
+
+<span style="color:red"> Is it okay not to further examine age here if I include it for main partnerships?</span>
+
+
+## Proportion ever tested
+The parameter indicating the proportion of men who never test is meant to indicate the proportion of men who will not be screened for HIV. In previous network models, this was defined as the proportion who never tested by age 40, since the model was capped at age 39. For this model, that may not be appropriate. For the current analysis, I simply modeled the probability that men had _ever_ tested at their current age. This analysis excludes men currently taking PrEP, as they will all have tested and their testing patterns will be represented differently in the model.
+
+```{r}
+#Figure out how to parameterize age
+evertest_full_testage <- glm(evertest_r ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample, subset = !(prep_use_r %in% "Currently taking PrEP"))
+plot.age.coefs(evertest_full_testage)
+```
+
+The coefficients do not follow a linear pattern, but they __do seem to suggest a pattern by age.__ Especially because this outcome will most likely be conditional on age (e.g. proportion never tested by age X) in the model, we will adjust for age in the analyses below to test for heterogeneity by race/ethnicity and region. The number of respondents in older age groups seems sufficient to allow for categorizing age in 5-year bins.
+
+
+## Intertest interval
+The last test interval is estimated as the days since men reported their last HIV test, assuming men test as an interval process. This analysis is restricted to men who reported having ever tested, and excludes men who reported current use of PrEP, as their testing patterns will be different and will be represented with a separate parameter in the model.
+
+```{r}
+#Figure out how to parameterize age
+iti_full_testage <- lm(iti ~ age_cat + race_eth_m.reg + region.bKC, data=sample, subset = !(prep_use_r %in% "Currently taking PrEP"))
+plot.age.coefs(iti_full_testage)
+```
+
+The coefficients suggest that the intertest interval increases with age, though the estimates do not follow a clear pattern. 
+
+<span style="color:red"> How should I handle this? Maybe it would be appropriate to group age into the following bins: 18-24, 25-34, 35+?</span>
+
+
+## Coital frequency
+Data on coital frequency are from all most recent partnerships, not just those that are ongoing. 
+
+### Main partners
+```{r}
+#Figure out how to parameterize age
+airate_main_full_testage <- lm(airate_main ~ age_cat + race_eth_m.reg + region.bKC, data=sample)
+plot.age.coefs(airate_main_full_testage)
+```
+
+From these coefficients, coital frequency does not appear to follow a meaningful trend by age. The estimate for men aged 30-34 appears higher, but no other estiamtes are statistically significant. __We will exclude age from subsequent analyses.__
+
+### Persistent partners
+```{r}
+#Figure out how to parameterize age
+airate_pers_full_testage <- lm(airate_pers ~ age_cat + race_eth_m.reg + region.bKC, data=sample)
+plot.age.coefs(airate_pers_full_testage)
+```
+
+As above for coital frequency in main partnerships, __there does not appear to be a meaningful trend by age, so we will exclude age.__
+
+
+## Sex role
+Sex role is categorized as exclusively bottom, exclusively top, or versatile, based on men's reported role in anal sex over the past 12 months. Responses of "mostly a bottom", "mostly a top", and "equally a bottom and a top" were categorized as versatile. For this analysis, a dichotomous indicator was constructed to measure whether men report any bottoming (bottoms and versatile men) or report exclusively topping.
+```{r}
+sample$position_top <- ifelse(sample$position_cat=="Exclusively top", 1, 
+                              ifelse(!is.na(sample$position_cat), 0, NA))
+sample$position_bottom <- ifelse(sample$position_cat=="Exclusively bottom", 1, 
+                                 ifelse(!is.na(sample$position_cat), 0, NA))
+
+```
+```{r}
+#Figure out how to parameterize age
+top_full_testage <-  glm(position_top ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample)
+plot.age.coefs(top_full_testage)
+```
+
+Although the proportion of men reporting that they are exclusive tops seems to increase through age 44, it then fluctuates for older age groups. __This suggests that there is not a clear pattern by age, so we will not explore age heterogeneity further.__ 
+
+
+## Condom use
+Data on condom use are restricted to dyads in which both the respondent and his partner were HIV-negative or of unknown status. This analysis includes data from all such partnerships, not just those that were ongoing. 
+
+### Main partners
+```{r}
+#Figure out how to parameterize age
+condoms_main_full_testage <- lm(condoms_main ~ age_cat + race_eth_m.reg + region.bKC, data=sample)
+plot.age.coefs(condoms_main_full_testage)
+```
+
+The plot of these coefficients __suggests that condom use in main partnerships decreases with age through age 49 and then increases slightly.__ The number of respondents aged 40 and higher is somewhat small, so we will group ages 40-59 in 10-year bins. 
+
+### Persistent partners
+
+```{r}
+#Figure out how to parameterize age
+condoms_pers_full_testage <- lm(condoms_pers ~ age_cat + race_eth_m.reg + region.bKC, data=sample)
+plot.age.coefs(condoms_pers_full_testage)
+```
+
+The pattern by age is less clear for this condom use with persistent partners than with main partners.
+
+<span style="color:red"> If I include age in further analyes for condom use in main partnerships, is it okay to not include it for persisent partnerships?</span>
+    
+### Instantaneous partners
+```{r}
+#Figure out how to parameterize age
+condoms_inst_full_testage <- glm(condoms_inst ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample)
+plot.age.coefs(condoms_inst_full_testage)
+```
+
+The plot of these coefficients suggests that there is __not a meaningful trend by age for the probability of condom use with instantaneous partners.__
+
+
+## PrEP use
+To look at differences in PrEP use, the outcome is reported current use of PrEP _among those for whom PrEP is recommended_.
+```{r}
+#Figure out how to parameterize age
+prep_full_testage <- glm(prep_use_curr ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample, subset=prepelig_r %in% "Recommend")
+plot.age.coefs(prep_full_testage)
+```
+
+The plot of these coefficients suggests that the __probability of PrEP use is significantly higher for those aged 25-49 (and non-significantly higher for those aged 50-59) relative to those aged 18-24.__ Due to the small number of observations among men aged 40 and older, we will group ages 40-59 into 10-year age groups and include age as a factor variable. 
