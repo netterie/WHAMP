@@ -147,7 +147,7 @@
     sample_allages$concurrent <- ifelse(sample_allages$deg_matrix %in% c("0 main 2+ pers", "1 main 1 pers", "1 main 2+ pers") & !is.na(sample_allages$deg_matrix), 1, ifelse(!is.na(sample_allages$deg_matrix), 0, NA))
     
 #Any main partners
-    sample_allages$anymain <- sample_allages$degree_main
+    sample_allages$hasmain <- sample_allages$degree_main
 
 #Any persistent partners
     sample_allages$anypers <- ifelse(sample_allages$degreecat_cas %in% c("One", "Two or more"), 1, ifelse(sample_allages$degreecat_cas %in% "None", 0, NA))
