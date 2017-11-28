@@ -62,5 +62,6 @@ load(file="Data/census_totalbyregion.Rdata")
 # Save datasets
 #-----------------------------------------------------------------------------------
 save(wa_msm_est2013, file="Data/wa_msm_est2013.Rdata")
+save(propMSMbyregion, file="Data/prop_msmbyregion.Rdata")
 save(MSMbyregion, file="Data/msmbyregion.Rdata")
 ```
