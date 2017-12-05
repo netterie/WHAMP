@@ -13,4 +13,11 @@ This document presents the results of data analyses for estimation of parameters
 * One-time network
 * Summary of decisions made
 * References
-
+* Appendices:
+    * Reweighting data from the Washington HIV Prevention Project internet survey
+    * Model structure: heterogeneity on nodal attributes
+    * Notes on sexual mixing
+    * Notes on the rate of instantaneous (one-time) partnerships
+    * Notes on condom use and coital frequency
+    * Notes on limitations to using data from the most recent partner only
+    * Notes on the intertest interval
