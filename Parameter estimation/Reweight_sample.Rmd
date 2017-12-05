@@ -4,7 +4,7 @@ To adjust the composition of the sample to more closely match the estimated popu
 
 Instead, we decided to rake with partial joint distributions. That is, we will rake to the joint distribution of race/ethnicity and region and simultaneously to the marginal distribution by age, which we categorized age into the following groups: 18-24, 25-29, 30-34, 35-39, 40-49, 50-59. We grouped ages above 40 into 10-year age groups to increase the stabiltiy of the estimates, as there are fewer respondents in these ages, and because the number of respondents aged 40-44 and 45-49 are roughly equal, as are the number of respondents aged 50-54 and 55-59. 
 
-We used the `survey` package for the raking procedure. This package requires that you first specify a survey design. The package is not intended for working with convenience samples, so the most appropriate option seemed to be to speficy the interet sample as a simple random sample, as we did not implement any stratified or cluster sampling. After creating a survey design object, we specify the population totals for each racial/ethnic group by region and for the margins of the age distribution. To correspond to the sampled population, we subtracted the number of people living with HIV from the population totals. We then use the `rake` function to obtain adjusted sampling weights. <span style="color:red"> To adjust the sample to more closely match the target distributions, we re-sample from the original sample dataframe with replacement, with sampling probabilities given by the post-stratification and raking procedures. </span>
+We used the `survey` package for the raking procedure. This package requires that you first specify a survey design. The package is not intended for working with convenience samples, so the most appropriate option seemed to be to speficy the interet sample as a simple random sample, as we did not implement any stratified or cluster sampling. After creating a survey design object, we specify the population totals for each racial/ethnic group by region and for the margins of the age distribution. To correspond to the sampled population, we subtracted the number of people living with HIV from the population totals. We then use the `rake` function to obtain adjusted sampling weights. To calculate target statistics, we will use the commands in the `survey` package to incorporate the weights from the raked survey object.
 
 ```{r, include=FALSE}
 ####################################################################################
@@ -131,44 +131,38 @@ options(knitr.table.format = "html")
     # sample_psraceregion <- postStratify(samplesvy, ~hbo + region, pop.raceregion.neg)
     # sample_rakeage <- rake(sample_psraceregion, list(~age_groups), list(pop.age.neg))
     sample_rake <- rake(samplesvy, list(~hbo+region, ~age_groups), list(pop.raceregion.neg, pop.age.neg))
-
-#-----------------------------------------------------------------------------------
-# Reweight sample
-#-----------------------------------------------------------------------------------
-#Append probabilities to the main dataset, restricted to a version without NAs for race 
-    sample$rake.prob <- sample_rake$prob
-    sample$rake.wt <- 1/(sample_rake$prob)
-
-#Reweight sample - comment out to avoid re-sampling each time the file is run
-    sample_reweighted <- sample %>% sample_n(10000, replace=TRUE, weight=rake.wt)
-
-    save(sample_reweighted, file="Data/InternetSurveySample_reweighted.Rdata")
+    
+     save(sample_rake, file="Data/InternetSurveysample_rake.Rdata")
 
 ```
 
 The weights resulting from raking to the joint distribution of race and region and the margins of age are summarized below.
 ```{r ps_weights}
-    load(file="Data/InternetSurveySample_reweighted.Rdata")
-    summary(sample_reweighted$rake.wt)
+        load(file="Data/InternetSurveysample_rake.Rdata")
+
+    weights <- weights(sample_rake)
+    summary(weights)
     
-    # #look at characteristics of those with highest weight
-    # table(sample_reweighted$hbo[sample_reweighted$rake.wt %in% (max(sample_reweighted$rake.wt))], (sample_reweighted$region[sample_reweighted$rake.wt %in% (max(sample_reweighted$rake.wt))]))
+    #look at characteristics of those with highest weight
+    # svytable(~hbo + age_groups + region, sample_rake[sample_rake$prob %in% min(sample_rake$prob)], round = TRUE)
     #     #look at number with these characteristics in original sample
-    #     sample %>% filter(hbo %in% "Black" & region %in% "King County") %>% summarise(Freq = n())
+    #     sample %>% filter(hbo %in% "Black" & region %in% "King County" & age_groups %in% "50-59") %>% summarise(Freq = n())
     # 
     # #look at characteristics of those with the lowest weight
-    # table(sample_reweighted$hbo[sample_reweighted$rake.wt %in% (min(sample_reweighted$rake.wt))], (sample_reweighted$region[sample_reweighted$rake.wt %in% (min(sample_reweighted$rake.wt))]))
+    # svytable(~hbo + age_groups + region, sample_rake[sample_rake$prob %in% max(sample_rake$prob)], round = TRUE)
+    #     table(sample_rake$hbo[sample_rake$rake.wt %in% (min(sample_rake$rake.wt))], (sample_rake$region[sample_rake$rake.wt %in% (min(sample_rake$rake.wt))]))
     #     #look at number with these characteristics in original sample
-    #     sample %>% filter(hbo %in% "Black" & region %in% "Eastern WA") %>% summarise(Freq = n())
+    #     sample %>% filter(hbo %in% "Black" & region %in% "Eastern WA" & age_groups %in% "18-24") %>% summarise(Freq = n())
 
 ```
 
-The tables and graphs below show the resulting distribution of the sample by age, race/ethnicity, and region compared to the target population distributions.
+To check that this worked, the tables and graphs below show the distribution of the re-weighted sample by age, race/ethnicity, and region compared to the target population distributions.
 ```{r checkdists, fig.align="center"}
+  
 #Make tables to compare margins and joint distributions
   #Age
     age_dist_orig <- as.vector(prop.table(table(sample$age_groups)))
-    age_dist_reweighted <- as.vector(prop.table(table(sample_reweighted$age_groups)))
+    age_dist_reweighted <- as.vector(prop.table(svytable(~age_groups, sample_rake, round=TRUE)))
     age_dist_pop <- as.vector(pop.age.neg$Freq / sum(pop.age.neg$Freq))
     
     #Table
@@ -183,7 +177,7 @@ The tables and graphs below show the resulting distribution of the sample by age
 
   #Margins of region
     region_dist_orig <- as.vector(prop.table(table(sample$region)))
-    region_dist_reweighted <- as.vector(prop.table(table(sample_reweighted$region)))
+    region_dist_reweighted <- as.vector(prop.table(svytable(~region, sample_rake, round=TRUE)))
     region_dist_pop <- as.vector(pop.region.neg$total / sum(pop.region.neg$total))
     
     #Table
@@ -198,7 +192,7 @@ The tables and graphs below show the resulting distribution of the sample by age
 
   #Margins of race
     race_dist_orig <- as.vector(prop.table(table(sample$hbo)))
-    race_dist_reweighted <- as.vector(prop.table(table(sample_reweighted$hbo)))
+    race_dist_reweighted <- as.vector(prop.table(svytable(~hbo, sample_rake, round=TRUE)))
     race_dist_pop <- as.vector(pop.hbo.neg$Freq / sum(pop.hbo.neg$Freq))
     
     #Table
@@ -213,7 +207,7 @@ The tables and graphs below show the resulting distribution of the sample by age
 
   #Race by region
     raceregion_dist_orig <- as.vector(prop.table(table(sample$hbo, sample$region), 2))
-    raceregion_dist_reweighted <- as.vector(prop.table(table(sample_reweighted$hbo, sample_reweighted$region), 2))
+    raceregion_dist_reweighted <- as.vector(prop.table(svytable(~hbo + region, sample_rake, round=TRUE), 2))
     raceregion_dist_pop <- pop.raceregion.neg %>% group_by(region) %>% mutate(percent = Freq/sum(Freq))
     
     #Table
