@@ -132,13 +132,13 @@ options(knitr.table.format = "html")
     # sample_rakeage <- rake(sample_psraceregion, list(~age_groups), list(pop.age.neg))
     sample_rake <- rake(samplesvy, list(~hbo+region, ~age_groups), list(pop.raceregion.neg, pop.age.neg))
     
-     save(sample_rake, file="Data/InternetSurveysample_rake.Rdata")
+     save(sample_rake, file="Data/InternetSurvey_reweighted.Rdata")
 
 ```
 
 The weights resulting from raking to the joint distribution of race and region and the margins of age are summarized below.
 ```{r ps_weights}
-        load(file="Data/InternetSurveysample_rake.Rdata")
+        load(file="Data/InternetSurvey_reweighted.Rdata")
 
     weights <- weights(sample_rake)
     summary(weights)
