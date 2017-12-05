@@ -2,7 +2,7 @@
 
 To adjust the composition of the sample to more closely match the estimated population totals, we would ideally adjust the sample to correspond to the full joint distributions of age, race/ethnicity, and region. However, this would stretch the data very thin, resulting in unstable estimates. We felt it was important to capture the joint distribution of race and region, as the racial/ethnic composition of each region differs, as illustrated in section \@ref(#racedist). There are some differences in the age composition of each region (section \@ref(#agedist)), but these differences are not quite as stark as for the racial/ethnic composition. Furthermore, trying to match the age distribution by region poses challenges in a dynamic model - to preserve the distribution by region, we would need to account for patterns of migration that lead to that distribution. 
 
-Instead, we decided to rake with partial joint distributions. That is, we will rake to the joint distribution of race/ethnicity and region and simultaneously to the marginal distribution by age. For this, we categorized age into the following groups: 18-24, 25-29, 30-34, 35-39, 40-49, 50-59. We grouped ages above 40 into 10-year age groups to increase the stabiltiy of the estimates, as there are fewer respondents in these ages, and because the number of respondents aged 40-44 and 45-49 are roughly equal, as are the number of respondents aged 50-54 and 55-59. 
+Instead, we decided to rake with partial joint distributions. That is, we will rake to the joint distribution of race/ethnicity and region and simultaneously to the marginal distribution by age, which we categorized age into the following groups: 18-24, 25-29, 30-34, 35-39, 40-49, 50-59. We grouped ages above 40 into 10-year age groups to increase the stabiltiy of the estimates, as there are fewer respondents in these ages, and because the number of respondents aged 40-44 and 45-49 are roughly equal, as are the number of respondents aged 50-54 and 55-59. 
 
 We used the `survey` package for the raking procedure. This package requires that you first specify a survey design. The package is not intended for working with convenience samples, so the most appropriate option seemed to be to speficy the interet sample as a simple random sample, as we did not implement any stratified or cluster sampling. After creating a survey design object, we specify the population totals for each racial/ethnic group by region and for the margins of the age distribution. To correspond to the sampled population, we subtracted the number of people living with HIV from the population totals. We then use the `rake` function to obtain adjusted sampling weights. <span style="color:red"> To adjust the sample to more closely match the target distributions, we re-sample from the original sample dataframe with replacement, with sampling probabilities given by the post-stratification and raking procedures. </span>
 
@@ -140,9 +140,9 @@ options(knitr.table.format = "html")
     sample$rake.wt <- 1/(sample_rake$prob)
 
 #Reweight sample - comment out to avoid re-sampling each time the file is run
-    # sample_reweighted <- sample %>% sample_n(10000, replace=TRUE, weight=rake.wt)
-    # 
-    # save(sample_reweighted, file="Data/InternetSurveySample_reweighted.Rdata")
+    sample_reweighted <- sample %>% sample_n(10000, replace=TRUE, weight=rake.wt)
+
+    save(sample_reweighted, file="Data/InternetSurveySample_reweighted.Rdata")
 
 ```
 
