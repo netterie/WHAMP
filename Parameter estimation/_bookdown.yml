@@ -1,17 +1,13 @@
-rmd_files: [ "_Washington_census_data_prep.Rmd",
-"_Internet_survey_data_prep.Rmd",
-"_2013_MSM_estimates_data_prep.Rmd",
-"index.Rmd",
+rmd_files: ["index.Rmd",
 "Overview.Rmd",
 "Network_composition.Rmd",
-"Associations_with_nodal_attributes.Rmd",
+"Decisions.Rmd",
 "Reweight_sample.Rmd",
+"Associations_with_nodal_attributes.Rmd",
 "Notes_on_mixing.Rmd",
 "Notes_on_rate_of_inst_partnerships.Rmd",
 "Notes_on_condom_use_and_coital_frequency.Rmd",
 "Notes_on_most_recent_partner_limitations.Rmd",
-"Intertest_interval.Rmd",
-"Decisions.Rmd",
-"References.Rmd"
+"Intertest_interval.Rmd"
 ]
 
