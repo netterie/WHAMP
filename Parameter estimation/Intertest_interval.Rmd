@@ -12,6 +12,7 @@
     library("knitr")
     library("data.table")
     library("kableExtra")
+    library("survey")
 
 #-----------------------------------------------------------------------------------
 # Knitr options
@@ -33,7 +34,19 @@ theme_title <- theme(plot.title = element_text(hjust = 0.5, size=12))
 
 load(file="Data/InternetSurveySample.Rdata")
 load(file="Data/InternetSurveySample_allages.Rdata")
+load(file="Data/InternetSurvey_reweighted.Rdata")
 
+#-----------------------------------------------------------------------------------
+#set plot settings 
+#-----------------------------------------------------------------------------------
+    
+    #White background and light grey lines
+    plot_background_nogrid <- theme(panel.background = element_rect(fill="white", colour = "black")) 
+    #Darken colors
+    darken_color <- scale_colour_hue(l=50)
+    #Title size to 12 and center it 
+    theme_title <- theme(plot.title = element_text(hjust = 0.5, size=12)) 
+    
 #----------------------------------------------------------------------------------
 # Define multiplot function
 #_---------------------------------------------------------------------------------
@@ -72,19 +85,27 @@ load(file="Data/InternetSurveySample_allages.Rdata")
                 }
             }
         }
+
+
 ```
 
 This section explores whether to model HIV testing as an interval process or a memoryless process. If as an __interval process__, we assume that men test at regular intervals. Since the survey was not associated wtih any testing event, we assume the survey date is randomly distributed wtihin men's intervals, such that on average it will fall halfway between their testing events. As such, the intertest interval is calculated as twice the reported days since the last test. If we model testing as a __memoryless process__, men are assumed to have a constant hazard of testing, such that the data follow an exponential distribution. Under this assumption, the expected time between tests is the average time from the last test.
 
-In looking at the testing intervals, we exclude men who report current use of PrEP, as these men will have different testing patterns that will be represented using separate parameters in the model. If we assume testing is an interval process, the median intertest interval is `r median(2*sample_allages$daysago_lasttest[!(sample$prep_use_r %in% "Currently taking PrEP")], na.rm=TRUE)` and the mean is `r mean(sample_allages$daysago_lasttest[!(sample$prep_use_r %in% "Currently taking PrEP")], na.rm=TRUE)`. If we assume testing is a memoryless process, the median intertest interval is `r median(sample_allages$daysago_lasttest[!(sample$prep_use_r %in% "Currently taking PrEP")], na.rm=TRUE)` and the mean is `r mean(sample_allages$daysago_lasttest[!(sample$prep_use_r %in% "Currently taking PrEP")], na.rm=TRUE)`.
+In looking at the testing intervals, we exclude men who report current use of PrEP, as these men will have different testing patterns that will be represented using separate parameters in the model. If we assume testing is an interval process, the median intertest interval is `r svyquantile(~iti_int, sample_rake[!(sample_rake$variables$prep_use_r %in% "Currently taking PrEP")], .5, na.rm=TRUE)` and the mean is `r round(svymean(~iti_int, sample_rake[!(sample_rake$variables$prep_use_r %in% "Currently taking PrEP")], na.rm=TRUE)[1], 0)`. If we assume testing is a memoryless process, the median intertest interval is `r svyquantile(~iti_mem, sample_rake[!(sample_rake$variables$prep_use_r %in% "Currently taking PrEP")], .5, na.rm=TRUE)` and the mean is `r round(svymean(~iti_mem, sample_rake[!(sample_rake$variables$prep_use_r %in% "Currently taking PrEP")], na.rm=TRUE)[1], 0)`.
 
-Plot \@ref(fig:iti_interval) shows the median and mean intertest intervals calculated as an interval process by respondent age. 
+Plot \@ref(fig:plots_iti_interval) shows the median and mean intertest intervals calculated as an <span style="color:red">interval process</span> by respondent age. 
 ```{r plots_iti_interval}
 
 #Intertest interval by age 
-    iti_intervalXage <- sample %>% filter(!is.na(daysago_lasttest) & prep_use_r !="Currently taking PrEP") %>% group_by(age) %>% summarise(freq=n(), median=median(2*daysago_lasttest, na.rm=TRUE), mean=mean(2*daysago_lasttest, na.rm=TRUE))
+    itiXage_med <- as.vector(svyby(~iti_int, ~age, sample_rake[!(sample_rake$variables$prep_use_r %in% "Currently taking PrEP")], svyquantile, quantiles=0.5, na.rm=TRUE, keep.var = FALSE)[2])
+    itiXage_mean <- as.vector(svyby(~iti_int, ~age, sample_rake[!(sample_rake$variables$prep_use_r %in% "Currently taking PrEP")], svymean, na.rm=TRUE, keep.var = FALSE)[2])
+    itiXage_freq <- as.vector(svytable(~age, sample_rake[!(sample_rake$variables$prep_use_r %in% "Currently taking PrEP") & !is.na(sample_rake$variables$iti_int)]))
+    itiXage <- cbind.data.frame(age = 18:59, median = itiXage_med, mean = itiXage_mean, freq = itiXage_freq)
+    names(itiXage)[2] <- "median"
+    names(itiXage)[3] <- "mean"
     
-    ggplot(iti_intervalXage) + geom_point(aes(x=age, y=median, size=freq, colour="Median")) + geom_point(aes(x=age, y=mean, size=freq, colour="Mean")) + geom_smooth(aes(x=age, y=median), method="loess") + geom_smooth(aes(x=age, y=mean), method="loess") + scale_colour_manual(name="Measure", values=c("Median" = "blue", "Mean"="red")) + labs(x="Ego age", y="Days since last test", title="Mean and median intertest intervals by age, assuming testing is an interval process")
+    ggplot(itiXage) + geom_point(aes(x=age, y=median, size=freq, colour="Median")) + geom_point(aes(x=age, y=mean, size=freq, colour="Mean")) + geom_smooth(aes(x=age, y=median), method="loess") + geom_smooth(aes(x=age, y=mean), method="loess") + scale_colour_manual(name="Measure", values=c("Median" = "blue", "Mean"="red")) + labs(x="Ego age", y="Days since last test", title="Mean and median intertest intervals by age, \n assuming testing is an interval process") + plot_background_nogrid + theme_title
+  
 ```
 
-<span style="color:red"> Fill in: Median looks better. In the model, we get to pick one summary statistic to model. For interval data that can be skewed easily by outliers, median may be more stable. Also median gets us results that more closely match Atlanta data (from Sam's PrEP paper appendix, the estimated mean ITI for HIV negative MSM was 301 days for blacks and 315 days for whites) and what STD clinic data show: David Katz' [analysis](https://www-ncbi-nlm-nih-gov.offcampus.lib.washington.edu/pmc/articles/PMC3465512/) of data from the PHSKC STD clinic and Gay City Health Project indicates that the median ITIs are 215-257 days. These are probably slightly lower than for all men, as the STD clinic in particular caters to higher risk men, and testing intervals in King County are likely shorter. Among men diagnosed with HIV in 2015 King County, the median time between the last negative test and first positive diagnosis was [12 months](http://www.kingcounty.gov/depts/health/communicable-diseases/hiv-std/patients/epidemiology/~/media/depts/health/communicable-diseases/documents/hivstd/2016-hiv-aids-epidemiology-annual-report.ashx) (ranging form 8-12 months bewteen 2009 and 2015). </span>.
+<span style="color:red"> Fill in: From these graphs, the median looks like a better summary statistic. In the model, we get to pick one summary statistic to model. For interval data that can be skewed easily by outliers, the median may be more stable. Additionally, the median gets us results that more closely match Atlanta data (from Sam's PrEP paper appendix, the estimated mean ITI for HIV negative MSM was 301 days for blacks and 315 days for whites) and what STD clinic data show: David Katz' [analysis](https://www-ncbi-nlm-nih-gov.offcampus.lib.washington.edu/pmc/articles/PMC3465512/) of data from the PHSKC STD clinic and Gay City Health Project indicates that the median ITIs are 215-257 days. These are probably slightly lower than for all men, as the STD clinic in particular caters to higher risk men, and testing intervals in King County are likely shorter. Among [men diagnosed with HIV in 2015 King County](http://www.kingcounty.gov/depts/health/communicable-diseases/hiv-std/patients/epidemiology/~/media/depts/health/communicable-diseases/documents/hivstd/2016-hiv-aids-epidemiology-annual-report.ashx) (ranging form 8-12 months bewteen 2009 and 2015), the median time between the last negative test and first positive diagnosis was 12 months. </span>.
