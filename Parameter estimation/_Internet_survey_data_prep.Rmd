@@ -17,12 +17,6 @@
     #install.packages("psych") #To use "describe" function for continuous vars
     library("psych")
 
-    #install.packages("nnet") #For multinomial logistic regression
-    library("nnet")
-
-    #install.packages("lmtest") #For likelihood ratio test
-    library("lmtest")
-
     #install.packages("ggplot2")
     library("ggplot2")
     
