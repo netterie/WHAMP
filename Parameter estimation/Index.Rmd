@@ -9,7 +9,7 @@ output:
             toc:
                 collapse: section
     bookdown::pdf_book: default
-bibliography: [refs.bib]
+bibliography: ["_refs.bib"]
 pandoc_args: [ "--csl", "national-institute-of-health-research.csl" ]
 link-citations: yes
 ---
