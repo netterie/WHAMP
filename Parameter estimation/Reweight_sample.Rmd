@@ -138,7 +138,7 @@ options(knitr.table.format = "html")
 
 The weights resulting from raking to the joint distribution of race and region and the margins of age are summarized below.
 ```{r ps_weights}
-        load(file="Data/InternetSurvey_reweighted.Rdata")
+    load(file="Data/InternetSurvey_reweighted.Rdata")
 
     weights <- weights(sample_rake)
     summary(weights)
