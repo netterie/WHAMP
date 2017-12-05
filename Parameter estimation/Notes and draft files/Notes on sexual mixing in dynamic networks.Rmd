@@ -1,0 +1,163 @@
+# Notes on mixing with dynamic networks
+
+```{r, include=FALSE}
+####################################################################################
+# Setup
+####################################################################################
+#-----------------------------------------------------------------------------------
+# Load packages
+#-----------------------------------------------------------------------------------
+
+    library("tidyverse")
+    library("knitr")
+    library("kableExtra")
+    library("data.table")
+#-----------------------------------------------------------------------------------
+# Knitr options
+#-----------------------------------------------------------------------------------
+opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
+options(knitr.table.format = "html") 
+
+#-----------------------------------------------------------------------------------
+# Plot settings
+#-----------------------------------------------------------------------------------
+plot_background <- theme(panel.background = element_rect(fill="white", colour = "black")) +
+            theme(panel.grid.major = element_line(colour = "grey90"))
+theme_title <- theme(plot.title = element_text(hjust = 0.5, size=12)) 
+
+#Define multiplot function
+    multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+        library(grid)
+        
+        # Make a list from the ... arguments and plotlist
+        plots <- c(list(...), plotlist)
+        
+        numPlots = length(plots)
+        
+        # If layout is NULL, then use 'cols' to determine layout
+        if (is.null(layout)) {
+            # Make the panel
+            # ncol: Number of columns of plots
+            # nrow: Number of rows needed, calculated from # of cols
+            layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                             ncol = cols, nrow = ceiling(numPlots/cols))
+        }
+        
+        if (numPlots==1) {
+            print(plots[[1]])
+            
+        } else {
+            # Set up the page
+            grid.newpage()
+            pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+            
+            # Make each plot, in the correct location
+            for (i in 1:numPlots) {
+                # Get the i,j matrix positions of the regions that contain this subplot
+                matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+                
+                print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                                layout.pos.col = matchidx$col))
+            }
+        }
+    }
+
+```
+This file explores the implications of different strategies for representing patterns of mixing in dynamic models. In specifying parameters governing sexual mixing, one needs to consider balance to ensure that the number of partnerships that members of group _i_ have with members of group _j_ equal the number of partnerships that members of group _j_ have with members of group _i_. Additionally, one needs to consider how patterns of mixing change over time as the size and structure of the population change. The two extremes of the spectrum of how to handle this are:
+1. To assume that people have a fixed rate of contacts, and the change in the population structure is absorbed by changes in selection preferences. This is the __pure drive__ scenario. 
+2. To assume that people's mixing preferences remain fixed, that is, to preserve the conditional row probabilities in the mixing matrix. This is the __pure selection__ scenario, and in this case the change in the population structure leads to changes in the contact rate.  
+  
+A third option is to preserve the odds ratio for the odds of someone in group _i_ mixing with someone in their own group (_i_) relative to mixing with someone in group _j_. A key feature of odds ratios is that they are margin-independent, meaning that they will not change as the composition of the network changes. Preserving the odds ratios also satisfies the constraint that the number of ties reported by someone in group _i_ with someone in group _j_ matches the number of ties reported by someone in group _j_ with someone in group _i_ as the network changes. Taking this approach allows the effects of population size and mixing preferences to vary independently, and the contact rates depend of the preferences of members of each group and the availability of potential partners.
+
+
+```{r exploremixing, echo=FALSE}
+
+#In the following example, we have two groups, A and B, and we will look at what happens as the population structure changes under each scenario. <span style="color:red">I am not sure how to simulate the matrices through time if we preserve the odds ratios.</span>
+
+#Define function for population change
+popchange <- function(numA, numB, t){
+    numA[1] <- numA
+    numB[1] <- numB
+    for(i in 2:t){
+        numA[i] <- numA[i-1]*1.01
+        numB[i] <- numB[i-1]*1.02
+    }
+    population <- numA + numB
+    return(list(numA_t=numA, numB_t=numB, population_t=population))
+}
+
+popsize <- popchange(10, 10, 100)
+
+#Pure drive
+puredrive <- function(contactA, contactB, prefAB_1, adjustprefAB, t){
+    prefAB <- c(prefAB_1, rep(NA, t-1))
+    prefBA_1 <- popsize$numA_t[1]*contactA*prefAB_1 / popsize$numB_t[1]*contactB
+    prefBA <- c(prefBA_1, rep(NA, t-1))
+    mixmatrix <- vector("list", t)
+    
+    for(i in 2:t){
+    prefAB[i] <- prefAB[i-1]*adjustprefAB
+    prefBA[i] <- (popsize$numA_t[i]*contactA*prefAB[i]) / (popsize$numB_t[i]*contactB)
+    }
+    for(i in 1:t){
+    mixmatrix[[i]] <- matrix(c((popsize$numA_t[i]*contactA*(1-prefAB[i])), (popsize$numA_t[i]*contactA*prefAB[i]), (popsize$numB_t[i]*contactB*prefBA[i]), (popsize$numB_t[i]*contactB*(1-prefBA[i]))), nrow=2, ncol=2, byrow=TRUE)
+    }
+    
+    return(list(prefAB=prefAB, prefBA=prefBA, mixmatrix=mixmatrix))
+}
+
+ratioAtoB <- popsize$numA_t/popsize$numB_t
+puredrive_rand <- puredrive(1, 1, .5, 0.999, 100)
+p_puredrive_rand <- ggplot() + geom_point(aes(x=(c(1:100)), y=puredrive_rand$prefBA), color="blue") + geom_point(aes(x=(c(1:100)), y=puredrive_rand$prefAB), color="yellow") + geom_point(aes(x=(c(1:100)), y=ratioAtoB), shape=6, color="black") + scale_y_continuous(sec.axis = dup_axis(name="Ratio groups A to B")) + labs(x="Time", y="Selection Preference", title="") +  theme_title + plot_background  + scale_colour_manual(name="", guide="legend", values=, labels="")
+
+puredrive_homoph <- puredrive(1, 2, 0, 1.001, 100)
+p_puredrive_homoph <- ggplot() + geom_point(aes(x=(c(1:100)), y=puredrive_homoph$prefBA, color="a")) + geom_point(aes(x=(c(1:100)), y=puredrive_homoph$prefAB, color="b")) + geom_point(aes(x=(c(1:100)), y=ratioAtoB, color="c"), shape=6) + scale_y_continuous(sec.axis = dup_axis(name="Ratio groups A to B")) + labs(x="Time", y="Selection Preference", title="Mixing under pure drive (contact rates equal, \n proportional change in selection patterns A with B=1.001 \n differing values for initial selection preferences)") + scale_colour_manual(name="Legend", guide="legend", values=c("a"="blue", "b"="yellow", "c"="black"), labels=c("Selection preference B with A", "Selection preference A with B", "Ratio of group sizes A:B")) + theme(legend.position = "bottom") + theme_title + plot_background 
+
+puredrive_25 <- puredrive(1, 1, .25, 1.001, 100)
+p_puredrive_25 <- ggplot() + geom_point(aes(x=(c(1:100)), y=puredrive_25$prefBA), color="blue") + geom_point(aes(x=(c(1:100)), y=puredrive_25$prefAB), color="yellow") + geom_point(aes(x=(c(1:100)), y=ratioAtoB), shape=6, color="black") + scale_y_continuous(sec.axis = dup_axis(name="Ratio groups A to B")) + labs(x="Time", y="Selection Preference", title="") +  theme_title + plot_background  + scale_colour_manual(name="", guide="legend", values=, labels="") 
+
+multiplot(p_puredrive_rand, p_puredrive_homoph, p_puredrive_25, cols=3)
+
+
+#Pure selection
+pureselection <- function(prefAB, prefBA, contactA_1, adjustcontactA, t){
+    contactA <- c(contactA_1, rep(NA, t-1))
+    contactB_1 <- (popsize$numA_t[1]*contactA_1*prefAB) / (popsize$numB_t[1]*prefBA)
+    contactB <- c(contactB_1, rep(NA, t-1))
+    mixmatrix <- vector("list", t)
+    
+    for(i in 2:t){
+    contactA[i] <- contactA[i-1]*adjustcontactA
+    contactB[i] <- (popsize$numA_t[i]*contactA[i]*prefAB) / (popsize$numB_t[i]*prefBA)
+    }
+    for(i in 1:t){
+    mixmatrix[[i]] <- matrix(c((popsize$numA_t[i]*contactA[i]*(1-prefAB)), (popsize$numA_t[i]*contactA[i]*prefAB), (popsize$numB_t[i]*contactB[i]*prefBA), (popsize$numB_t[i]*contactB[i]*(1-prefBA))), nrow=2, ncol=2, byrow=TRUE)
+    }
+    
+    return(list(contactA=contactA, contactB=contactB, mixmatrix=mixmatrix))
+}
+
+pureselection_a <- pureselection(0.3, 0.75, 1, 0.95, 100)
+p_pureselection_a <- ggplot() + geom_point(aes(x=(c(1:100)), y=pureselection_a$contactA), color="blue") + geom_point(aes(x=(c(1:100)), y=pureselection_a$contactB), color="yellow") + geom_point(aes(x=(c(1:100)), y=ratioAtoB), shape=6, color="black") + scale_y_continuous(sec.axis = dup_axis(name="Ratio groups A to B")) + labs(x="Time", y="Contact rate", title="Mixing under pure selection (prefAB=0.3, prefBA=0.75, \n starting contact group A=1, proportional change in contact for group A=0.95)") +  theme_title + plot_background  + scale_colour_manual(name="", guide="legend", values=, labels="")
+
+pureselection_b <- pureselection(0.75, 0.3, 1, 0.95, 100)
+p_pureselection_b <- ggplot() + geom_point(aes(x=(c(1:100)), y=pureselection_b$contactA, color="a")) + geom_point(aes(x=(c(1:100)), y=pureselection_b$contactB, color="b")) + geom_point(aes(x=(c(1:100)), y=ratioAtoB, color="c"), shape=6) + scale_y_continuous(sec.axis = dup_axis(name="Ratio groups A to B")) + labs(x="Time", y="Contact rate", title="Mixing under pure selection (prefAB=0.75, prefBA=0.3, \n starting contact group A=1, proportional change in contact for group A=0.95)") +  theme_title + plot_background  + scale_colour_manual(name="Legend", guide="legend", values=c("a"="blue", "b"="yellow", "c"="black"), labels=c("Contact rate A", "Contact rate B", "Ratio of group sizes A:B")) + theme(legend.position = "bottom") 
+
+pureselection_c <- pureselection(0.75, 0.3, 2, 1.01, 100)
+p_pureselection_c <- ggplot() + geom_point(aes(x=(c(1:100)), y=pureselection_c$contactA), color="blue") + geom_point(aes(x=(c(1:100)), y=pureselection_c$contactB), color="yellow") + geom_point(aes(x=(c(1:100)), y=ratioAtoB), shape=6, color="black") + scale_y_continuous(sec.axis = dup_axis(name="Ratio groups A to B")) + labs(x="Time", y="Contact rate", title="Mixing under pure selection (prefAB=0.75, prefBA=0.3, \n starting contact group A=2, proportional change in contact for group A=1.01") +  theme_title + plot_background  + scale_colour_manual(name="", guide="legend", values=, labels="")
+
+multiplot(p_pureselection_a, p_pureselection_b, p_pureselection_c, cols=3)
+
+#Preserve odds ratios
+oddsratios <- function(prefAB_1, prefBA_2, contactA_1, t){
+    contactB_1 <- (popsize$numA_t[1]*contactA_1*prefAB_1) / (popsize$numB_t[1]*prefBA_1)
+    mixmatrix_1 <- matrix(c(popsize$numA_t[1]*contactA_1*(1-prefAB_1), popsize$numA_t[1]*contactA_1*(prefAB_1),  popsize$numB_t[1]*contactB_1*(prefBA_1), popsize$numB_t[1]*contactB_1*(1-prefBA_1)), nrow=2, ncol=2, byrow=TRUE)
+    oddsratio <- ((popsize$numA_t[1]*contactA_1*(1-prefAB_1))*(popsize$numB_t[1]*contactB_1*(1-prefBA_1))) / ((popsize$numA_t[1]*contactA_1*(prefAB_1))*(popsize$numB_t[1]*contactB_1*(prefBA_1)))
+    
+    mixmatrix <- vector("list", t)
+    mixmatrix[[1]] <- mixmatrix_1
+    
+   #CAN'T FIGURE OUT HOW TO SIMULATE THIS
+}
+
+```
