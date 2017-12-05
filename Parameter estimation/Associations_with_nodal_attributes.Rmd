@@ -1,4 +1,4 @@
-# Heterogeneity on nodal attributes {#explore_heterogeneity}
+# Model structure: Heterogeneity on nodal attributes {#explore_heterogeneity}
 ```{r, include=FALSE}
 ####################################################################################
 # Setup
