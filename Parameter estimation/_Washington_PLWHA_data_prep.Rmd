@@ -79,3 +79,4 @@ options(knitr.table.format = "html")
     save(plwha_age, file="Data/plwha_age.Rdata")
     save(plwha_hboXregion, file="Data/plwha_hboXregion.Rdata")
 
+```
