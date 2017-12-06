@@ -11,7 +11,7 @@
 
     library("tidyverse")
     library("psych") #To use "describe" function for continuous vars
-    library("nnet") #For multinomial logistic regression
+    #library("nnet") #For multinomial logistic regression
     library("lmtest") #For likelihood ratio test
     library("ggplot2")
     library("survey")
@@ -29,6 +29,10 @@
     load(file="Data/census_totalbyregion.Rdata")
     load(file="Data/wa_msm_est2013.Rdata")
     load(file="Data/msmbyregion.Rdata")
+    load(file="Data/InternetSurvey_reweighted.Rdata")
+    load(file="Data/plwha_age.Rdata")
+    load(file="Data/plwha_hboXregion.Rdata")
+
     
 # Set options
     opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
@@ -36,34 +40,37 @@
     
 ```
 
-The key nodal attributes on which this model will be stratified are age, race/ethnicity, and region. The distribution of these attributes in the network and the way in which they will be categorized in the model are noted below. Except where otherwise noted, we will assume that the effects of each of these attributes on model parameters are independent.
+The key nodal attributes on which this model will be stratified are age, race/ethnicity, and region. The distribution of these attributes in the network (based on data from the reweighted survey object) and the way in which they will be categorized in the model are noted below. Except where otherwise noted, we will assume that the effects of each of these attributes on model parameters are independent.
 
 ## Region {#region}
 ### Regional divisions {#regiondiv}
-Prior to launching the Washington HIV Prevention Project (hereafter referred to as the internet survey), the majority of data on HIV-related behaviors focused on King County. The Department of Health was interested in gathering data from men in other regions to understand how their prevention needs and behaviors may be different. For the internet survey, we defined three regions: King County, other counties in western Washington, and Eastern Washington^[Western Washington outside of King County was defined to include the following counties: Clallam, Clark, Cowlitz, Grays Harbor, Island, Jefferson, Kitsap, Lewis, Mason, Pacific, Pierce, San Juan, Skagit, Skamania, Snohomish, Thurston, and Whatcom. Eastern Washington includes Adams, Asotin, Benton, Chelan, Douglas, Ferry, Franklin, Grant, Kittitas, Klickitat, Okanogan, Pend Oreille, Spokane, Stevens, Walla Walla, Whitman, and Yakima Counties.] In the course of descriptive analyses of the internet survey data, we observed that there were notable differences by region on factors such as PrEP utilization and HIV testing. As such, we felt it would be important to represent regional heterogeneity in the model. To identify parameters that vary by region independent of age and race effects, we conducted regression analyses (Section \@ref(explore_heterogeneity). These analyses indicated significant regional variability in <span style="color:green">XXXX, XXXX, and XXXX</span><span style="color:green"> (see section @ref(ADDLABEL)), so these parameters will be stratified by region.</span>.
+Prior to launching the Washington HIV Prevention Project (WHPP), the majority of data on HIV-related behaviors focused on King County. The Department of Health was interested in gathering data from men in other regions to understand how their prevention needs and behaviors may be different. For WHPP, we defined three regions: King County, other counties in western Washington, and Eastern Washington^[Western Washington outside of King County was defined to include the following counties: Clallam, Clark, Cowlitz, Grays Harbor, Island, Jefferson, Kitsap, Lewis, Mason, Pacific, Pierce, San Juan, Skagit, Skamania, Snohomish, Thurston, and Whatcom. Eastern Washington includes Adams, Asotin, Benton, Chelan, Douglas, Ferry, Franklin, Grant, Kittitas, Klickitat, Okanogan, Pend Oreille, Spokane, Stevens, Walla Walla, Whitman, and Yakima Counties.] In the course of descriptive analyses of the WHPP survey data, we observed that there were notable differences by region on factors such as PrEP utilization and HIV testing. As such, we felt it would be important to represent regional heterogeneity in the model. To identify parameters that vary by region independent of age and race effects, we conducted regression analyses (Section \@ref(explore_heterogeneity). These analyses indicated significant regional variability in <span style="color:green">XXXX, XXXX, and XXXX</span><span style="color:green">, so these parameters will be stratified by region.</span>.
 
 ### Regional distribution
-To define the distribution of nodes in the network by region, we need to know the distribution of MSM by region in the population. The proportion of respondents to the internet survey could provide some indication of this distribution, but there are likely factors that may have differntially influenced whether men saw and clicked the ads and completed the survey by region. However, the distribution of males in Washington recorded by the census also likely doesn't reflect the distribution of MSM; I would expect more MSM to preferentially migrate to King County than heterosexual men. An alternative source of information on the regional distribution of MSM is a 2016 analysis by Jeremy Grey et al. [@Grey2016] that estimated the sizes of the MSM population by state and county. County-level data available on [Emory's Coalition for Applied Modeling for Prevention (CAMP) website](http://www.emorycamp.org/item.php?i=48). 
-
-Table \@ref(tab:region) shows the differences between the regional composition of the internet sample, the regional distribution of males in Washington based on the 2011-2015 American Community Survey 5-year Estimates [@WA-census]^[Data were downloaded from the American FactFinder using the Guided Search. I selected the option "I'm looking for information about people", then under topics I selected Age and Sex from the "Age & Sex" menu. For Geographies, I selected County as the geographic type, Washington as the state, clicked "All counties within Washington," and added my selection. For Race/Ethnic Groups, I clicked "Select from detailed groups", and added the following to my selection: Total population (code 001), Hispanic or Latino (of any race)(200-299) (code 400), White alone, not Hispanic or Latino (code 451), Black or African American alone, not Hispanic or Latino (code 453), Black or African American alone or in combination with one or more other races, not Hispanic or Latino (code 454), American Indian and Alaska Native alone, not Hispanic or Latino (code 455), Asian alone, not Hispanic or Latino (code 457), Native Hawaiian and Other Pacific Islander alone, not Hispanic or Latino (code 459), Some other race alone, not Hispanic or Latino (code 461), Two or more races, not Hispanic or Latino (code 463), Black or African American alone, Hispanic or Latino (code 466), and Black or African American alone or in combination with one or more other races, Hispanic or Latino (code 467). I selected the latter two to look at how many men identified as Hispanic and reported black race. From the available tables, I clicked "SEX BY AGE", table ID B01001, and downloaded it with the option to use the data, with both options selected.], and the distribution calculated by applying the estimates of the size of the MSM population from @Grey2016 to the size of the male population ages 18-59 from the American Community Survey. The sample distribution was actually a pretty close match to the true distribution of MSM by region implied by application of @Grey2016's estimates to the American Community Survey population data!
+To define the distribution of nodes in the network by region, we need to know the distribution of MSM by region in the population. To estimate this, we used data from a 2016 analysis by @Grey2016 that estimated the sizes of the MSM population by state and county.^[County-level data were obtained from [Emory's Coalition for Applied Modeling for Prevention (CAMP) website](http://www.emorycamp.org/item.php?i=48)] After aggregating these estimates to obtain the proportion of males who are MSM by region, we estimated the total number of MSM in each region by multiplying these proportions by the number of males aged 18 to 59 in the 2011-2015 American Community Survey (ACS) 5-year estimates [@WA-census].^[Data were downloaded from the American FactFinder using the Guided Search. I selected the option "I'm looking for information about people", then under topics I selected Age and Sex from the "Age & Sex" menu. For Geographies, I selected County as the geographic type, Washington as the state, clicked "All counties within Washington," and added my selection. For Race/Ethnic Groups, I clicked "Select from detailed groups", and added the following to my selection: Total population (code 001), Hispanic or Latino (of any race)(200-299) (code 400), White alone, not Hispanic or Latino (code 451), Black or African American alone, not Hispanic or Latino (code 453), Black or African American alone or in combination with one or more other races, not Hispanic or Latino (code 454), American Indian and Alaska Native alone, not Hispanic or Latino (code 455), Asian alone, not Hispanic or Latino (code 457), Native Hawaiian and Other Pacific Islander alone, not Hispanic or Latino (code 459), Some other race alone, not Hispanic or Latino (code 461), Two or more races, not Hispanic or Latino (code 463), Black or African American alone, Hispanic or Latino (code 466), and Black or African American alone or in combination with one or more other races, Hispanic or Latino (code 467). I selected the latter two to look at how many men identified as Hispanic and reported black race. From the available tables, I clicked "SEX BY AGE", table ID B01001, and downloaded it with the option to use the data, with both options selected.] To estimate the distribution separately by HIV status, we obtained data on the number of MSM living with HIV/AIDS from the Washington State Department of Health^[2016 data on the number of persons living with diagnosed HIV/AIDS by age, race/ethnicity, and region were obtained from Jason Carr at the Washington State Department of Health in an email on 12/5/2017. These estimates were restricted to males whose infection was attributed to male-male sex (including those who also reported injection drug use). For this analysis, persons with no identified risk, such as male-male sex (approximately 10% of cases) were categorized using multiple imputation (procedure implemented by Jason Carr using a CDC-supplied MI program). Because there is differential missingness on exposure risk by county, using numbers for MSM that include imputed cases is recommended.], and subtracted the number of cases from the total population to estimate the number of HIV-negative or unknown status men. The WHPP <span style="color:red>and NHBS</span> samples were reweighted to match the population totals for HIV-negative and unknown men, <span style="color:red>the Medical Monitoring Project sample was reweighted to match the population totals for HIV-positive men</span>, <span style="color:red>and the NHBS was reweighted such that HIV-negative respondents matched population totals for HIV negative men, and HIV-positive respondents matched population totals for HIV-positive men.</span>
 
 ```{r region}
-    #Census
-    census_region <- wa_acs_totalbyregion %>% select(region, Percent)
-    census_region <- cbind.data.frame(region=c("King County", "Other Western WA", "Eastern WA"), percent=c(census_region[[2,2]], census_region[[3,2]],census_region[[1,2]]))
+    #All
+    pop.region.all <- MSMbyregion %>% select(region, numMSM) %>% mutate(freq = round(numMSM), percent = numMSM / sum(numMSM))
+    levels(pop.region.all$region)[levels(pop.region.all$region)=="Other Western WA"] <- "Western WA"
     
-    #Sample data
-    sample_region <- as.vector(prop.table(table(sample$region)))
-    sample_region <- cbind.data.frame(region=c("King County", "Other Western WA", "Eastern WA"), percent=sample_region)
-    
-    #Grey et al.
-    #MSMbyregion
+    #HIV-positive only
+    pop.region.pos <- plwha_hboXregion %>% group_by(region) %>% summarise("freq" = sum(Freq)) %>% mutate(percent = freq / sum(freq))
+    pop.region.pos$region <- factor(pop.region.pos$region, levels = c("King County", "Western WA", "Eastern WA"))
+    pop.region.pos <- pop.region.pos %>% arrange(region)
 
+    #HIV-negative only
+    pop.region.neg <- cbind.data.frame(region = c("King County", "Western WA", "Eastern WA"), freq = c(round(pop.region.all$numMSM[pop.region.all$region %in% "King County"] - pop.region.pos$freq[pop.region.pos$region %in% "King County"]), round(pop.region.all$numMSM[pop.region.all$region %in% "Western WA"] - pop.region.pos$freq[pop.region.pos$region %in% "Western WA"]), round(pop.region.all$numMSM[pop.region.all$region %in% "Eastern WA"] - pop.region.pos$freq[pop.region.pos$region %in% "Eastern WA"])))
+    pop.region.neg$percent = pop.region.neg$freq/sum(pop.region.neg$freq)
+    pop.region.neg$region <- factor(pop.region.neg$region, levels = c("King County", "Western WA", "Eastern WA"))
+    pop.region.neg <- pop.region.neg %>% arrange(region)
+
+    
     #Combine columns
-    region <- cbind.data.frame("Age group" = sample_region$region,  "Census" = (census_region$percent), "Sample" = (sample_region$percent), "Grey et al." = c(MSMbyregion$percentMSM))
+    region <- cbind.data.frame("Region" = pop.region.all$region,  "All MSM" = pop.region.all$percent, "MSM Diagnosed with HIV/AIDS" = pop.region.pos$percent, "HIV-negative or unknown status MSM" = pop.region.neg$percent)
     
     #make table
-    kable(region, col.names=c("Region", "Census (all males)", "Sample (MSM)", "Grey et al. (MSM)"), digits=c(0, 3, 3, 3), caption="Regional distribution: Census, interent survey sample, and Grey et al. 2016") %>% kable_styling(full_width=F, position="center")
+    kable(region, col.names=c("Region", "All MSM", "MSM Diagnosed with HIV/AIDS", "HIV-negative or unknown status MSM"), digits=c(0, 3, 3, 3), caption="Regional distribution among MSM by HIV status") %>% kable_styling(full_width=F, position="center")
 ```
 
 ## Age {#age}
