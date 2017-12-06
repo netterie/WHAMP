@@ -14,6 +14,7 @@ This document presents the results of data analyses for estimation of parameters
 * Summary of decisions made
 * References
 * Appendices:
+    * Notes on the demographic composition of the Washington HIV Prevention Project sample
     * Reweighting data from the Washington HIV Prevention Project internet survey
     * Model structure: heterogeneity on nodal attributes
     * Notes on sexual mixing
