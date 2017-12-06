@@ -1,0 +1,113 @@
+# Washington HIV Prevention Project demographic composition {#demog_compare}
+
+```{r, echo=FALSE, include=FALSE}
+####################################################################################
+# 
+####################################################################################
+
+#-----------------------------------------------------------------------------------
+# Load packages
+#-----------------------------------------------------------------------------------
+
+    library("tidyverse")
+    library("psych") #To use "describe" function for continuous vars
+    #library("nnet") #For multinomial logistic regression
+    library("lmtest") #For likelihood ratio test
+    library("ggplot2")
+    library("survey")
+    library("knitr")
+    library("kableExtra")
+    library("reshape2")
+
+#-----------------------------------------------------------------------------------
+# Load data
+#-----------------------------------------------------------------------------------
+    load(file="Data/InternetSurveySample.Rdata")
+    load(file="Data/InternetSurveySample_allages.Rdata")
+    load(file="Data/census_agebyregion.Rdata")
+    load(file="Data/census_racebyregion.Rdata")
+    load(file="Data/census_totalbyregion.Rdata")
+    load(file="Data/wa_msm_est2013.Rdata")
+    load(file="Data/msmbyregion.Rdata")
+    load(file="Data/InternetSurvey_reweighted.Rdata")
+    
+# Set options
+    opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
+    options(knitr.table.format = "html") 
+    
+```
+
+This section compares the demographic composition of the 2017 Washington HIV Prevention Project (WHPP) sample to the demographic composition of Washington males. To examine the regional distribution, we compare the sample to the expected distribution of MSM by region, calculated by multiplying estimates of the proportion of males that are MSM at the county-level from [Grey et al.](http://www.emorycamp.org/item.php?i=48) [@Grey2016] by the size of the male population aged 18-59 in each county from the 2011-2015 American Community Survey (ACS)[@WA-census], and aggregating to the regional level. For age and race/ethnicity, because we lack population-based data on the characteristics of Washington MSM, we compare the sample to 2011-2015 ACS data on all males aged 18-59. This comparison assumes that the demographic composition of the MSM population is similar to the demographic composition of all males.
+
+## Region {#region_compare}
+Table \@ref(tab:region_compare), below, compares the regional composition of the WHPP sample, the regional distribution of males in Washington based on the 2011-2015 ACS, and the distribution calculated by applying the estimates of the size of the MSM population from @Grey2016 to the size of the male population ages 18-59 from the American Community Survey. The sample distribution appears to be a pretty close match to the distribution of MSM by region implied by application of @Grey2016's estimates to the American Community Survey population data.
+
+```{r region_compare}
+    #Census
+    census_region <- wa_acs_totalbyregion %>% select(region, Percent)
+    census_region <- cbind.data.frame(region=c("King County", "Other Western WA", "Eastern WA"), percent=c(census_region[[2,2]], census_region[[3,2]],census_region[[1,2]]))
+    
+    #Sample data
+    sample_region <- as.vector(prop.table(table(sample$region)))
+    sample_region <- cbind.data.frame(region=c("King County", "Other Western WA", "Eastern WA"), percent=sample_region)
+    
+    #Grey et al.
+    #MSMbyregion
+
+    #Combine columns
+    region <- cbind.data.frame("Age group" = sample_region$region,  "Census" = (census_region$percent), "Sample" = (sample_region$percent), "Grey et al." = c(MSMbyregion$percentMSM))
+    
+    #make table
+    kable(region, col.names=c("Region", "Census (all males)", "Sample (MSM)", "Grey et al. (MSM)"), digits=c(0, 3, 3, 3), caption="Regional distribution: Census, interent survey sample, and Grey et al. 2016") %>% kable_styling(full_width=F, position="center")
+```
+
+## Age {#age_compare}
+A limitation to using data from all males to approximate the true age composition of MSM is that there may be differences in the age profile of MSM due to migration patterns, particularly at the regional level, but we lack reliable data to inform this. Table \@ref(tab:agebyregion_compare) presents the age distribution of WHPP survey respondents by region alongside the age distribution of all Washington males, based on the 2011-2015 ACS 5-year estimates. We can see that the survey sample is proportionately younger and will need to be re-weighted (section \@ref(reweight)).
+
+```{r agebyregion_compare}
+#Define age distribution by region and combine columns
+    census_ageKC <- wa_acs_agebyregion %>% select(Age_group, Percent, region) %>% filter(region %in% "King County")
+    census_ageOW <- wa_acs_agebyregion %>% select(Age_group, Percent, region) %>% filter(region %in% "Other Western")
+    census_ageE <- wa_acs_agebyregion %>% select(Age_group, Percent, region) %>% filter(region %in% "Eastern")
+    
+    #Sample data
+    sample_ageXregion <- sample %>% group_by(region, age_cat) %>% summarise(count = n()) %>% group_by(region) %>% mutate(percent = count / sum(count))
+    sample_ageKC <- sample_ageXregion %>% select(region, age_cat, percent) %>% filter(region %in% "King County")
+    sample_ageOW <- sample_ageXregion %>% select(region, age_cat, percent) %>% filter(region %in% "Western WA")
+    sample_ageE <- sample_ageXregion %>% select(region, age_cat, percent) %>% filter(region %in% "Eastern WA")
+    
+    #Combine columns
+    ageXregion <- cbind.data.frame("Age group" = sample_ageKC$age_cat,  "KC Census" = (census_ageKC$Percent), "KC Sample" = (sample_ageKC$percent), "OW Census" = (census_ageOW$Percent), "OW Sample" = (sample_ageOW$percent), "E Census" = (census_ageE$Percent), "E Sample" = (sample_ageE$percent))
+    
+    #make table
+    kable(ageXregion, col.names=c("Age Group", "Census", "Sample", "Census", "Sample", "Census", "Sample"), digits=c(0, 3, 3, 3, 3, 3, 3), caption="Age distribution by region: Census and interent survey samples") %>% kable_styling(full_width=F, position="center") %>% add_header_above(c("", "King County" = 2, "Other Western WA" = 2, "Eastern WA" = 2)) 
+```
+
+## Race/ethnicity {#race_compare}
+Because the regions in Washington are demographically diverse, we will look at the racia/ethnic composition separately in each region. Table \@ref(tab:racebyregion_compare) presents the racial/ethnic distribution of survey respondents by region alongside the racial/ethnic distribution by region for males based on the 2011-2015 ACS data.^[The Hispanic group was defined as men of Hispanic/Latino ethnicity of any race, and the black group includes Non-Hispanic men who reported black race alone or in combination with one or more other races. Likely due to imprecision in the estimation algorithm for small areas, the sum of men across all race groups is slightly less than the total. As such, to define the 'other' race group, we subtracted the number of Hispanic and black men from the total in each region.] To better match the estimated population distribution by race/ethnicity in each region, we will reweight the sample (section \@ref(reweight)).
+
+```{r racebyregion_compare}
+#Define race/ethnic distribution by region and combine columns
+    wa_acs_racebyregion_melt <- melt(wa_acs_racebyregion, id="region")
+    wa_acs_racebyregion_melt$hbo <- ifelse(wa_acs_racebyregion_melt$variable %in% "Percent_Hispanic", "Hispanic",
+                                           ifelse(wa_acs_racebyregion_melt$variable %in% "Percent_black", "black",
+                                                  "other"))
+    names(wa_acs_racebyregion_melt)[names(wa_acs_racebyregion_melt)=="value"] <- "percent"
+    
+    census_raceKC <- wa_acs_racebyregion_melt %>% select(region, hbo, percent) %>% filter(region %in% "King County")
+    census_raceOW <- wa_acs_racebyregion_melt %>% select(region, hbo, percent) %>% filter(region %in% "Other Western")
+    census_raceE <- wa_acs_racebyregion_melt %>% select(region, hbo, percent) %>% filter(region %in% "Eastern")
+    
+    #Sample data
+    sample_raceXregion <- sample %>% filter(!is.na(hbo)) %>% group_by(region, hbo) %>% summarise(count = n()) %>% group_by(region) %>% mutate(percent = count / sum(count))
+    sample_raceKC <- sample_raceXregion %>% select(region, hbo, percent) %>% filter(region %in% "King County")
+    sample_raceOW <- sample_raceXregion %>% select(region, hbo, percent) %>% filter(region %in% "Western WA")
+    sample_raceE <- sample_raceXregion %>% select(region, hbo, percent) %>% filter(region %in% "Eastern WA")
+    
+    #Combine columns
+    raceXregion <- cbind.data.frame("Race/ethnicity" = sample_raceKC$hbo,  "KC Census" = (census_raceKC$percent), "KC Sample" = (sample_raceKC$percent), "OW Census" = (census_raceOW$percent), "OW Sample" = (sample_raceOW$percent), "E Census" = (census_raceE$percent), "E Sample" = (sample_raceE$percent))
+    
+    #make table
+    kable(raceXregion, col.names=c("Race/ethnicity", "Census", "Sample", "Census", "Sample", "Census", "Sample"), digits=c(0, 3, 3, 3, 3, 3, 3), caption="Racial/ethnic distribution by region: Census and interent survey samples") %>% kable_styling(full_width=F, position="center") %>% add_header_above(c("", "King County" = 2, "Other Western WA" = 2, "Eastern WA" = 2))
+
+```
