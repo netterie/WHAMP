@@ -1,5 +1,5 @@
 # Washington People Living with HIV/AIDS (PLWHA) data preparation
-These 2016 data were provided by Jason Carr via email on 11/20/2017. The data include cases attributable to male-male sex and male-male sex in combination with injection drug use. For individuals with no identified risk (~10% of prevalent cases), the CDC-supplied multiple imputation program is used to impute their risk group. Jason says that approximately half of those with no identified risk were imputed as MSM.
+These 2016 data were provided by Jason Carr via email on 12/5/2017. The data include cases attributable to male-male sex and male-male sex in combination with injection drug use. For individuals with no identified risk (~10% of prevalent cases), the CDC-supplied multiple imputation program is used to impute their risk group. Jason says that approximately half of those with no identified risk were imputed as MSM. Additionally, the number with no identified risk varies by county, such that using these imputed data is preferable to using data among those with known risk factors.
 
 ```{r, include=FALSE}
 ####################################################################################
@@ -31,10 +31,7 @@ options(knitr.table.format = "html")
     plwha_ageXcounty <- read.csv("Data/HIV_pos_MSM_by_age_and_county_WA_State_2016.csv", skip=2, header=TRUE, sep=",")
     
     #Rename columns
-    setnames(plwha_ageXcounty, old=c("County", "X0...17", "X18...24", "X25...29", "X30...34", "X35...39", "X40...44", "X45...49", "X50...54", "X55...59", "X60.", "Total"), new=c("County", "0to17", "18to24", "25to29", "30to34", "35to39", "40to44", "45to49", "50to54", "55to59", "60plus", "Total"))
-    
-    #Filter to ages of interest
-    plwha_ageXcounty <- plwha_ageXcounty %>% select(-`0to17`, -`60plus`)
+    setnames(plwha_ageXcounty, old=c("County", "X18...24", "X25...29", "X30...34", "X35...39", "X40...44", "X45...49", "X50...54", "X55...59", "Total"), new=c("County", "18to24", "25to29", "30to34", "35to39", "40to44", "45to49", "50to54", "55to59", "Total"))
     
     #Define a variable for region
     plwha_ageXcounty$region <- ifelse(plwha_ageXcounty$County %in% "Total", "Total", ifelse(plwha_ageXcounty$County=="KING CO.", "King County", ifelse(plwha_ageXcounty$County %in% c("CLALLAM CO.", "CLARK CO.", "COWLITZ CO.", "GRAYS HARBOR CO.", "ISLAND CO.", "JEFFERSON CO.", "KITSAP CO.", "LEWIS CO.", "MASON CO.", "PACIFIC CO.", "PIERCE CO.", "SAN JUAN CO.", "SKAGIT CO.", "SKAMANIA CO.", "SNOHOMISH CO.", "THURSTON CO.", "WAHKIAKUM CO.", "WHATCOM CO."), "Other Western", "Eastern")))
@@ -63,16 +60,6 @@ options(knitr.table.format = "html")
     
     plwha_age <- cbind.data.frame(age_groups = c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"), Freq = c(plwha_age_vector[1:4], (plwha_age_vector[5] + plwha_age_vector[6]), (plwha_age_vector[7] + plwha_age_vector[8])))
         
-#Race/ethnicity overall
-    plwha_hbo_all <- read.csv("Data/HIV_pos_MSM_by_race_WA_State_2016.csv", skip=2, header=TRUE, sep=",")
-    
-    #Select and combine the rows with MSM
-    plwha_hbo <- plwha_hbo_all %>% filter(Imputed.Risk.Category %in% c("(01)Adult male sexual cntct male (MSM)", "(03)Adult MSM & IDU")) %>% summarise("Hispanic"=sum(Hispanic), "Black"=sum(Black), "Other"=sum(Other), "Total"=sum(Total))
-
-#Region overall
-    plwha_region <- plwha_hboXcounty %>% group_by(region) %>% summarise("Total" = sum(Total))
-    
-
 #-----------------------------------------------------------------------------------
 # Save datasets
 #-----------------------------------------------------------------------------------
