@@ -120,8 +120,6 @@ options(knitr.table.format = "html")
     
     pop.age.all <- wa_acs_agebyregion %>% select(-Frequency) %>% group_by(age_groups) %>% summarise(Freq = sum(numMSM))
     
-    #All MSM (apply proportion MSM in the state overall to )
-    
     #HIV-positive only
     pop.age.pos <- plwha_age
     
