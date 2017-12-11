@@ -41,7 +41,7 @@
     
 ```
 
-The key nodal attributes on which this model will be stratified are age, race/ethnicity, and region. The distribution of these attributes in the network (based on data from the reweighted survey object) and the way in which they will be categorized in the model are noted below. Except where otherwise noted, we will assume that the effects of each of these attributes on model parameters are independent.
+The key nodal attributes on which this model will be stratified are age, race/ethnicity, and region. The distribution of these attributes in the network and the way in which they will be categorized in the model are noted below. Except where otherwise noted, we will assume that the effects of each of these attributes on model parameters are independent.
 
 ## Region {#region}
 ### Regional divisions {#regiondiv}
