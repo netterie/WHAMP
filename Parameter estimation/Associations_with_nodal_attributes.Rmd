@@ -948,7 +948,6 @@ There does not appear to be a meaningful trend by age for coital frequency in pe
 ## Sex role
 Sex role is categorized as exclusively bottom, exclusively top, or versatile, based on men's reported role in anal sex over the past 12 months. Responses of "mostly a bottom", "mostly a top", and "equally a bottom and a top" were categorized as versatile. For this analysis, dichotomous indicators was constructed to measure whether men report exclusively topping, exclusively bottoming, or a versatile sex role.
 
-
 We first look at the number of observations that are non-missing for these outcomes and for model predictors
 ```{r}
   #Define indicators
