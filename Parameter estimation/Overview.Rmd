@@ -21,4 +21,4 @@ This document presents the results of data analyses for estimation of parameters
     * Notes on the rate of instantaneous (one-time) partnerships
     * Notes on condom use and coital frequency
     * Notes on limitations to using data from the most recent partner only
-    * Notes on the intertest interval
+    * Notes on HIV testing
