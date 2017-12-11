@@ -202,6 +202,7 @@
     sample_allages$condoms_prob[sample_allages$mrp_condoms_mtonce %in% "Less than half the time"] <- 0.25
     sample_allages$condoms_prob[sample_allages$mrp_condoms_mtonce %in% c("Never", "I don't remember")] <- 0
     sample_allages$condoms_prob[(is.na(sample_allages$mrp_condoms_mtonce) & is.na(sample_allages$mrp_condoms_once)) | sample_allages$mrp_condoms_mtonce %in% "I prefer not to answer"] <- NA
+    
     #Define for main and persistent partners
     sample_allages$condoms_main <- ifelse(sample_allages$mrp_type_r %in% "Main" & !is.na(sample_allages$mrp_type_r) & (sample_allages$mrp_statuscat_now %in% "HIV-negative" | sample_allages$mrp_statuscat_now %in% "Unknown") & !is.na(sample_allages$mrp_statuscat_now), sample_allages$condoms_prob, NA)
     sample_allages$condoms_pers <- ifelse(sample_allages$mrp_type_r %in% "Casual" & !is.na(sample_allages$mrp_type_r) & (sample_allages$mrp_statuscat_now %in% "HIV-negative" | sample_allages$mrp_statuscat_now %in% "Unknown") & !is.na(sample_allages$mrp_statuscat_now), sample_allages$condoms_prob, NA)
