@@ -210,12 +210,6 @@
 #Difference in SQRT of ages
     sample_allages$sqrt_agediff <- abs(sqrt(sample_allages$age) - sqrt(sample_allages$mrp_ageinyears_approx))
     
-#Never tested for HIV by age X (code in HIV testing file defines the age cutoff)
-    evertested <- sample_allages %>%
-        filter(!is.na(evertest_r) & !is.na(race_eth_r)) %>%
-        group_by(age) %>%
-        summarise(prop = mean(evertest_r, na.rm=TRUE))
-    
 #Intertest interval
     #Fix variable for days since last test
         #If tested in the month of the survey, set days ago to half as many days as have elapsed in the month
@@ -266,6 +260,13 @@
 #Drop 18 observations with missing race/ethnicity -- to reweight the sample, can only use non-missing obs
     sample <- sample %>% filter(!is.na(hbo))
 
+#-----------------------------------------------------------------------------------
+# Define proportion never tested based on the age range set for the sample
+#-----------------------------------------------------------------------------------
+    
+    #Never tested for HIV by age 40 (code in HIV testing file defines the age cutoff)
+    #nevertested <- sample %>% filter(age %in% c(40:59) & !is.na(sample$evertest_r) & !(sample$prep_use_r %in% "Currently taking PrEP")) %>% summarise(1 - mean(evertest_r))
+    
 #-----------------------------------------------------------------------------------
 # Save datasets
 #-----------------------------------------------------------------------------------
