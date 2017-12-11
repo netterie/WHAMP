@@ -22,3 +22,4 @@ This document presents the results of data analyses for estimation of parameters
     * Notes on condom use and coital frequency
     * Notes on limitations to using data from the most recent partner only
     * Notes on HIV testing
+    * Notes on PrEP eligiblity and use
