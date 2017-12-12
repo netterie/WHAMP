@@ -275,60 +275,6 @@
     save(sample, file="Data/InternetSurveySample.Rdata")
     save(sample_allages, file="Data/InternetSurveySample_allages.Rdata")
     
-#-----------------------------------------------------------------------------------
-# General settings
-#-----------------------------------------------------------------------------------
-    
-    #Set digits to show 3 decimal places
-        options(digits=3)
-    #Set options for dplyr to print all rows
-        options(dplyr.print_min = Inf)
-    
-#save plot settings 
-    #White background and light grey lines
-    plot_background <- theme(panel.background = element_rect(fill="white", colour = "black")) +
-        theme(panel.grid.major = element_line(colour = "grey90"))
-    #Darken colors
-    darken_color <- scale_colour_hue(l=50)
-    #Title size to 12 and center it 
-    theme_title <- theme(plot.title = element_text(hjust = 0.5, size=12)) 
-    
-#Define multiplot function to arrange multiple plots
-    multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
-        library(grid)
-        
-        # Make a list from the ... arguments and plotlist
-        plots <- c(list(...), plotlist)
-        
-        numPlots = length(plots)
-        
-        # If layout is NULL, then use 'cols' to determine layout
-        if (is.null(layout)) {
-            # Make the panel
-            # ncol: Number of columns of plots
-            # nrow: Number of rows needed, calculated from # of cols
-            layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
-                             ncol = cols, nrow = ceiling(numPlots/cols))
-        }
-        
-        if (numPlots==1) {
-            print(plots[[1]])
-            
-        } else {
-            # Set up the page
-            grid.newpage()
-            pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
-            
-            # Make each plot, in the correct location
-            for (i in 1:numPlots) {
-                # Get the i,j matrix positions of the regions that contain this subplot
-                matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
-                
-                print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
-                                                layout.pos.col = matchidx$col))
-            }
-        }
-    }
     
 ```
     
