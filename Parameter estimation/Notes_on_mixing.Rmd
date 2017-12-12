@@ -25,7 +25,7 @@ options(knitr.table.format = "html")
 #-----------------------------------------------------------------------------------
     load(file="Data/InternetSurveySample.Rdata")
     load(file="Data/InternetSurveySample_allages.Rdata")
-    load(file="Data/InternetSurveySample_reweighted.Rdata")
+    load(file="Data/InternetSurvey_reweighted.Rdata")
    # load(file="Parameter estimation/Data/census_agebyregion.Rdata")
     # load(file="Parameter estimation/Data/census_racebyregion.Rdata")
     # load(file="Parameter estimation/Data/census_totalbyregion.Rdata")
