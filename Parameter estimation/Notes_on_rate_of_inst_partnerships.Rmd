@@ -65,10 +65,10 @@ If we look at the mean within each quartile, we get the following:
 ```
   
 ## Heterogeneity in the rate of instantaneous partnerships by momentary degree
-The statistics and plots below explore heterogeneity in the rate of instantaneous partners by momentary degree. 
+The statistics and plots below explore heterogeneity in the rate of instantaneous partners by momentary degree. In the plots, the rate of instantaneous partnerships is capped at 0.25, excluding 4 outliers.
 
 ```{r rate_inst_degree}
     sample %>% filter(!is.na(rate_inst) & !is.na(deg_matrix)) %>% group_by(deg_matrix) %>% summarise(freq = n(), Min = min(rate_inst), Q1 = quantile(rate_inst, 0.25), Median=median(rate_inst), Q3 = quantile(rate_inst, 0.75), Max = max(rate_inst))
 
-    ggplot(sample[!is.na(sample$rate_inst) & !is.na(sample$deg_matrix),], aes(rate_inst)) + geom_histogram(binwidth = 0.005) + facet_grid(deg_matrix~.) + labs(x="Rate of instantaneous partnerships", title="Rate of instantaneous partnerships by momentary degree") + plot_background + theme_title
+    ggplot(sample[!is.na(sample$rate_inst) & !is.na(sample$deg_matrix) & sample$rate_inst<0.25,], aes(rate_inst)) + geom_histogram(binwidth = 0.005) + facet_grid(deg_matrix~.) + labs(x="Rate of instantaneous partnerships", title="Rate of instantaneous partnerships by momentary degree, capped at 0.25") + plot_background + theme_title
 ```
