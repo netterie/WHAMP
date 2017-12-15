@@ -1047,23 +1047,26 @@ These data do not suggest any clear trend by age. However, because sex role will
 
 
 ## Condom use
-Data on condom use are restricted to dyads in which both the respondent and his partner were HIV-negative or of unknown status. This analysis includes data from all such partnerships, not just those that were ongoing. Because the model will explore the effect of decreased condom use in men on PrEP, we will further restrict this analysis to men who have never taken PrEP. We exclude men tho took PrEP in the past as well because `r 100*(sum(sample$monthsago_lastprep %in% c(0:12))/sum(!is.na(sample$monthsago_lastprep)))`% of men who discontinued took PrEP within the past 12 months, so their reported behavior may reflect behaviors while on PrEP.
+Data on condom use are restricted to dyads in which both the respondent and his partner were HIV-negative or of unknown status. This analysis includes data from all such partnerships, not just those that were ongoing. Because the model will explore the effect of decreased condom use in men on PrEP, we will further restrict this analysis to men who have not taken PrEP in he past 12 months. We exclude all men who have taken PrEP in the past 12 months regardless of whether they are currently using it becasue their reported behaviors in the past 12 months may reflect behaviors while on PrEP.
 
+```{r}
+sample_p12noprep <- sample %>% filter(!(prep_use_r %in% "Currently taking PrEP") & !(monthsago_lastprep %in% c(0:12)))
+```
 ### Main partners
 We first look at the number of observations that are non-missing for this outcome and for model predictors
 ```{r}
  
  #Look at the number of observations that are non-missing for this outcome and for model predictors
-  table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$condoms_main) & sample$prep_use_r %in% "Never taken PrEP"])
-  table(sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$condoms_main) & sample$prep_use_r %in% "Never taken PrEP"])
-  table(sample$region[!is.na(sample$race_eth_m) & !is.na(sample$condoms_main) & sample$prep_use_r %in% "Never taken PrEP"])
+  table(sample_p12noprep$hbo[!is.na(sample_p12noprep$race_eth_m) & !is.na(sample_p12noprep$condoms_main)])
+  table(sample_p12noprep$age_cat[!is.na(sample_p12noprep$race_eth_m) & !is.na(sample_p12noprep$condoms_main)])
+  table(sample_p12noprep$region[!is.na(sample_p12noprep$race_eth_m) & !is.na(sample_p12noprep$condoms_main)])
 
 ```
 
 Next we will look at how to parameterize age by plotting the ceofficients from the full model with age input as a dummy variable with 5-year age bins
 ```{r}
  #Figure out how to parameterize age
-    condoms_main_full_testage <- lm(condoms_main ~ age_cat + race_eth_m.reg + region.bKC, data=sample, subset = prep_use_r %in% "Never taken PrEP")
+    condoms_main_full_testage <- lm(condoms_main ~ age_cat + race_eth_m.reg + region.bKC, data=sample_p12noprep)
     plot.age.coefs(condoms_main_full_testage)
 ```
 
@@ -1072,16 +1075,16 @@ The plot of these coefficients suggests that condom use in main partnerships is 
 ```{r condoms_main}
 
  #Main effects
-  condoms_main_full <- lm(condoms_main ~ age_cat_alt + race_eth_m.reg + region.bKC, data=sample, subset = prep_use_r %in% "Never taken PrEP")
-  condoms_main_noregion <- lm(condoms_main ~ age_cat_alt + race_eth_m.reg, data=sample, subset = prep_use_r %in% "Never taken PrEP")
-  condoms_main_norace <- lm(condoms_main ~ age_cat_alt + region.bKC, data=sample, subset = prep_use_r %in% "Never taken PrEP")
-  condoms_main_noage <- lm(condoms_main ~ race_eth_m.reg + region.bKC, data=sample, subset = prep_use_r %in% "Never taken PrEP")
+  condoms_main_full <- lm(condoms_main ~ age_cat_alt + race_eth_m.reg + region.bKC, data=sample_p12noprep)
+  condoms_main_noregion <- lm(condoms_main ~ age_cat_alt + race_eth_m.reg, data=sample_p12noprep)
+  condoms_main_norace <- lm(condoms_main ~ age_cat_alt + region.bKC, data=sample_p12noprep)
+  condoms_main_noage <- lm(condoms_main ~ race_eth_m.reg + region.bKC, data=sample_p12noprep)
 
  #Interactions
-  condoms_main_full_withint <- lm(condoms_main ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, data=sample, subset = prep_use_r %in% "Never taken PrEP")
-  condoms_main_noraceXreg <- lm(condoms_main ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, data=sample, subset = prep_use_r %in% "Never taken PrEP")
-  condoms_main_noageXreg <- lm(condoms_main ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat_alt, data=sample, subset = prep_use_r %in% "Never taken PrEP")
-  condoms_main_noraceXage <- lm(condoms_main ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*region.bKC, data=sample, subset = prep_use_r %in% "Never taken PrEP")
+  condoms_main_full_withint <- lm(condoms_main ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, data=sample_p12noprep)
+  condoms_main_noraceXreg <- lm(condoms_main ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, data=sample_p12noprep)
+  condoms_main_noageXreg <- lm(condoms_main ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat_alt, data=sample_p12noprep)
+  condoms_main_noraceXage <- lm(condoms_main ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*region.bKC, data=sample_p12noprep)
   
  results_condoms_main <- compare.models(condoms_main_full, condoms_main_noregion, condoms_main_norace, condoms_main_noage, condoms_main_full_withint, condoms_main_noraceXreg, condoms_main_noageXreg, condoms_main_noraceXage)
   results_condoms_main
@@ -1093,16 +1096,16 @@ We first look at the number of observations that are non-missing for this outcom
 ```{r}
  
  #Look at the number of observations that are non-missing for this outcome and for model predictors
-  table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$condoms_pers) & sample$prep_use_r %in% "Never taken PrEP"])
-  table(sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$condoms_pers) & sample$prep_use_r %in% "Never taken PrEP"])
-  table(sample$region[!is.na(sample$race_eth_m) & !is.na(sample$condoms_pers) & sample$prep_use_r %in% "Never taken PrEP"])
+  table(sample_p12noprep$hbo[!is.na(sample_p12noprep$race_eth_m) & !is.na(sample_p12noprep$condoms_pers)])
+  table(sample_p12noprep$age_cat[!is.na(sample_p12noprep$race_eth_m) & !is.na(sample_p12noprep$condoms_pers)])
+  table(sample_p12noprep$region[!is.na(sample_p12noprep$race_eth_m) & !is.na(sample_p12noprep$condoms_pers)])
 
 ```
 
 Next we will look at how to parameterize age by plotting the ceofficients from the full model with age input as a dummy variable with 5-year age bins
 ```{r}
  #Figure out how to parameterize age
-    condoms_pers_full_testage <- lm(condoms_pers ~ age_cat + race_eth_m.reg + region.bKC, data=sample, subset = prep_use_r %in% "Never taken PrEP")
+    condoms_pers_full_testage <- lm(condoms_pers ~ age_cat + race_eth_m.reg + region.bKC, data=sample_p12noprep)
     plot.age.coefs(condoms_pers_full_testage)
 ```
 
@@ -1111,13 +1114,13 @@ These data do not suggest a clear pattern by age for condom use with persistent 
 ```{r condoms_pers}
 
  #Main effects
-  condoms_pers_full <- lm(condoms_pers ~ race_eth_m.reg + region.bKC, data=sample, subset = prep_use_r %in% "Never taken PrEP")
-  condoms_pers_noregion <- lm(condoms_pers ~ race_eth_m.reg, data=sample, subset = prep_use_r %in% "Never taken PrEP")
-  condoms_pers_norace <- lm(condoms_pers ~ region.bKC, data=sample, subset = prep_use_r %in% "Never taken PrEP")
+  condoms_pers_full <- lm(condoms_pers ~ race_eth_m.reg + region.bKC, data=sample_p12noprep)
+  condoms_pers_noregion <- lm(condoms_pers ~ race_eth_m.reg, data=sample_p12noprep)
+  condoms_pers_norace <- lm(condoms_pers ~ region.bKC, data=sample_p12noprep)
 
  #Interactions
-  condoms_pers_full_withint <- lm(condoms_pers ~ race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC, data=sample, subset = prep_use_r %in% "Never taken PrEP")
-  condoms_pers_noraceXreg <- lm(condoms_pers ~ race_eth_m.reg + region.bKC, data=sample, subset = prep_use_r %in% "Never taken PrEP")
+  condoms_pers_full_withint <- lm(condoms_pers ~ race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC, data=sample_p12noprep)
+  condoms_pers_noraceXreg <- lm(condoms_pers ~ race_eth_m.reg + region.bKC, data=sample_p12noprep)
   
   results_condoms_pers <- compare.models.noage(condoms_pers_full, condoms_pers_noregion, condoms_pers_norace, condoms_pers_full_withint, condoms_pers_noraceXreg)
   results_condoms_pers
@@ -1129,16 +1132,16 @@ We first look at the number of observations that are non-missing for this outcom
 ```{r}
 
  #Look at the number of observations that are non-missing for this outcome and for model predictors
-  table(sample$hbo[!is.na(sample$race_eth_m) & !is.na(sample$condoms_inst) & sample$prep_use_r %in% "Never taken PrEP"])
-  table(sample$age_cat[!is.na(sample$race_eth_m) & !is.na(sample$condoms_inst) & sample$prep_use_r %in% "Never taken PrEP"])
-  table(sample$region[!is.na(sample$race_eth_m) & !is.na(sample$condoms_inst) & sample$prep_use_r %in% "Never taken PrEP"])
+  table(sample_p12noprep$hbo[!is.na(sample_p12noprep$race_eth_m) & !is.na(sample_p12noprep$condoms_inst)])
+  table(sample_p12noprep$age_cat[!is.na(sample_p12noprep$race_eth_m) & !is.na(sample_p12noprep$condoms_inst)])
+  table(sample_p12noprep$region[!is.na(sample_p12noprep$race_eth_m) & !is.na(sample_p12noprep$condoms_inst)])
 
 ```
 
 Next we will look at how to parameterize age by plotting the ceofficients from the full model with age input as a dummy variable with 5-year age bins. All men aged 45-49 report condom use with instantaneous partners, so the coefficient for this group is high with a large standard error, masking the variability across other age groups. The second plot imposes restrictions on the y-axis, which results in dropping the point for ages 45-49.
 ```{r}
  #Figure out how to parameterize age
-    condoms_inst_full_testage <- glm(condoms_inst ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample, subset = prep_use_r %in% "Never taken PrEP")
+    condoms_inst_full_testage <- glm(condoms_inst ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample_p12noprep)
     p1 <- plot.age.coefs(condoms_inst_full_testage)
     
     #Setting ylim
@@ -1153,13 +1156,13 @@ The plots of these coefficients do not suggest that there is any meaningful patt
 ```{r condoms_inst}
 
  #Main effects
-  condoms_inst_full <- glm(condoms_inst ~ race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample, subset = prep_use_r %in% "Never taken PrEP")
-  condoms_inst_noregion <- glm(condoms_inst ~ race_eth_m.reg, family=binomial(link="logit"), data=sample, subset = prep_use_r %in% "Never taken PrEP")
-  condoms_inst_norace <- glm(condoms_inst ~ region.bKC, family=binomial(link="logit"), data=sample, subset = prep_use_r %in% "Never taken PrEP")
+  condoms_inst_full <- glm(condoms_inst ~ race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample_p12noprep)
+  condoms_inst_noregion <- glm(condoms_inst ~ race_eth_m.reg, family=binomial(link="logit"), data=sample_p12noprep)
+  condoms_inst_norace <- glm(condoms_inst ~ region.bKC, family=binomial(link="logit"), data=sample_p12noprep)
 
  #Interactions
-  condoms_inst_full_withint <- glm(condoms_inst ~ race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC, family=binomial(link="logit"), data=sample, subset = prep_use_r %in% "Never taken PrEP")
-  condoms_inst_noraceXreg <- glm(condoms_inst ~ race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample, subset = prep_use_r %in% "Never taken PrEP")
+  condoms_inst_full_withint <- glm(condoms_inst ~ race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC, family=binomial(link="logit"), data=sample_p12noprep)
+  condoms_inst_noraceXreg <- glm(condoms_inst ~ race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample_p12noprep)
   
   results_condoms_inst <- compare.models.noage(condoms_inst_full, condoms_inst_noregion, condoms_inst_norace, condoms_inst_full_withint, condoms_inst_noraceXreg)
   results_condoms_inst
