@@ -343,9 +343,7 @@ Next we will look at how to parameterize age by plotting the ceofficients from t
     plot.age.coefs(rateinst_nomain_full_testage)
 ```
 
-This plot suggests that the rate of instantaneous partners is higher for men aged 35-39 and subsequently decreases with age. The point for ages 30-34 does not fit with a trend suggesting that the rate increases with age up through age 39, but it may be an outlier. To further explore the association with age, we will include age as a dummy variable, grouping together men in age groups 40-49 and 50-59.
-
-The models and likelihood ratio tests are below.
+This plot suggests that the rate of instantaneous partners is higher for men aged 35-39 and subsequently decreases with age. The point for ages 30-34 does not fit with a trend suggesting that the rate increases with age up through age 39, but it may be an outlier. To further explore the association with age, we will include age as a dummy variable, grouping together men in age groups 40-49 and 50-59. The models and likelihood ratio tests are below.
 ```{r rateinst_nomain, eval=TRUE, error=TRUE}
  
  #Main effects
@@ -944,7 +942,7 @@ There does not appear to be a meaningful trend by age for coital frequency in pe
 ```
 
 ## Sex role
-Sex role is categorized as exclusively bottom, exclusively top, or versatile, based on men's reported role in anal sex over the past 12 months. Responses of "mostly a bottom", "mostly a top", and "equally a bottom and a top" were categorized as versatile. For this analysis, dichotomous indicators was constructed to measure whether men report exclusively topping, exclusively bottoming, or a versatile sex role.
+Sex role is categorized as exclusively bottom, exclusively top, or versatile, based on men's reported role in anal sex over the past 12 months. Responses of "mostly a bottom", "mostly a top", and "equally a bottom and a top" are categorized as versatile. For this analysis, dichotomous indicators was constructed to measure whether men report exclusively topping, exclusively bottoming, or a versatile sex role.
 
 We first look at the number of observations that are non-missing for these outcomes and for model predictors
 ```{r}
