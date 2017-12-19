@@ -1,4 +1,4 @@
-# Mixing by age, race, and region
+# Mixing by age, race, and region (#mixing)
 
 ```{r, include=FALSE}
 ####################################################################################
@@ -109,3 +109,5 @@ In the internet survey, we observed the following partnership counts for main, p
     kable(agemix_inst, caption="Age mixing in instantaneous partnerships") %>% kable_styling(full_width=F, position="center") %>% add_header_above(c("Ego age", "Partner age" = 4))
 
 ```
+
+<span style="color:red>These data show clear imbalances, which we will need to figure out how to address. In ergm.ego, the default is to take the mean for the off-diagonal elements. For the by-hand ("sausage-making") approach to estimating summary statistics, I could take the mean, take the lower end estimates of mixing, or take the higher end estimates off the diagonal. This coudl be something to explore in sensitivity analyses </span>
