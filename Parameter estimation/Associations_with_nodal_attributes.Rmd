@@ -1279,19 +1279,19 @@ In the plots below, the error bars correspond to the 95% confidence interval (po
 
     #Regional differences
     mainXregion <- sample %>% filter(!is.na(hasmain)) %>% group_by(region) %>% summarise(freq=n(), percent = mean(hasmain), se=sd(hasmain)/sqrt(freq), ci_lower = max((percent - 1.96*se), 0), ci_upper = min((percent + 1.96*se), 1))
-    ggplot(mainXregion) + geom_pointrange(aes(x=region, y=percent, ymin=ci_lower, ymax=ci_upper)) + labs(x="Region", y="Percent", title="Percent of men with an ongoing main partner by region") + guides(size=guide_legend(title="Frequency")) + ylim(0, 1)  + plot_background + theme_title 
+    ggplot(mainXregion) + geom_pointrange(aes(x=region, y=percent, ymin=ci_lower, ymax=ci_upper)) + labs(x="Region", y="Percent", title="Percent of men with an ongoing main partner by region") + guides(size=guide_legend(title="Frequency")) + scale_y_continuous(breaks=seq(0, 1, 0.1),  limits=c(0, 1)) + plot_background + theme_title 
     
     #Racial/ethnic differences
     mainXrace <-  sample %>% filter(!is.na(hasmain) & !is.na(hbo)) %>% group_by(hbo) %>% summarise(freq=n(), percent = mean(hasmain), se=sd(hasmain)/sqrt(freq), ci_lower = max((percent - 1.96*se), 0), ci_upper = min((percent + 1.96*se), 1))
     
-    ggplot(mainXrace) + geom_pointrange(aes(x=hbo, y=percent, ymin=ci_lower, ymax=ci_upper)) + labs(x="Race/ethnicity", y="Percent", title="Percent of men with an ongoing main partner by race/ethnicity") + ylim(0, 1) + plot_background + theme_title
+    ggplot(mainXrace) + geom_pointrange(aes(x=hbo, y=percent, ymin=ci_lower, ymax=ci_upper)) + labs(x="Race/ethnicity", y="Percent", title="Percent of men with an ongoing main partner by race/ethnicity") + scale_y_continuous(breaks=seq(0, 1, 0.1),  limits=c(0, 1)) + plot_background + theme_title
     
     #Interaction of race and region
     mainXraceregion <-  sample %>% filter(!is.na(hasmain) & !is.na(hbo)) %>% group_by(region, hbo) %>% summarise(freq=n(), percent = mean(hasmain), se=sd(hasmain)/sqrt(freq), ci_lower = max((percent - 1.96*se), 0), ci_upper = min((percent + 1.96*se), 1))
-    ggplot(mainXraceregion) + geom_pointrange(aes(x=region, y=percent, ymin=ci_lower, ymax=ci_upper, colour=hbo), position=position_dodge(0.2)) + labs(x="Region", y="Percent", title="Percent of men with an ongoing main partner by region and race/ethnicity") + guides(colour=guide_legend(title="Race/ethnicity"), size=guide_legend(title="Frequency")) + plot_background + theme_title + ylim(0, 1)
+    ggplot(mainXraceregion) + geom_pointrange(aes(x=region, y=percent, ymin=ci_lower, ymax=ci_upper, colour=hbo), position=position_dodge(0.2)) + labs(x="Region", y="Percent", title="Percent of men with an ongoing main partner by region and race/ethnicity") + guides(colour=guide_legend(title="Race/ethnicity"), size=guide_legend(title="Frequency")) + scale_y_continuous(breaks=seq(0, 1, 0.1),  limits=c(0, 1)) + plot_background + theme_title
 ``` 
 
-__Decision__: <span style="color:red"> Fill me in </span>
+__Decision__: Code the model to represent heterogeneity by race and region as main effects, but don't try to represent the interaction between them.
 
 ### Ongoing persistent partners by age
 Examination of the coefficients for age from models adjusting for race/ethnicity and region suggested that men aged 40-49 have a higher probability of having any persistent partners, two or more persistent partners, and persistent partners concurrent with main partners. The plots below exlore these age effects in more detail. Note these plots do not adjust for race/ethnicity or region, as differences on these factors were not found to be significant. The error bars correspond to the 95% confidence intervals (point estimate +/- 1.96*SE).
@@ -1307,9 +1307,31 @@ Examination of the coefficients for age from models adjusting for race/ethnicity
     
     #Main and persistent concurrent
     concurrent_mainpersXage <- sample %>% filter(!is.na(concurrent_mainpers)) %>% group_by(age_cat_alt) %>% summarise(freq=n(), percent = mean(concurrent_mainpers), se=sd(concurrent_mainpers)/sqrt(freq), ci_lower = max((percent - 1.96*se), 0), ci_upper = min((percent + 1.96*se), 1))
-    ggplot(concurrent_mainpersXage) + geom_pointrange(aes(x=age_cat_alt, y=percent, ymin=ci_lower, ymax=ci_upper)) + labs(x="Age group", y="Percent", title="Percent of men with concurrent ongoing persistent partners by age") + guides(size=guide_legend(title="Frequency")) + ylim(0, 0.6)  + plot_background + theme_title 
+    ggplot(concurrent_mainpersXage) + geom_pointrange(aes(x=age_cat_alt, y=percent, ymin=ci_lower, ymax=ci_upper)) + labs(x="Age group", y="Percent", title="Percent of men with concurrent ongoing main and persistent partners by age") + guides(size=guide_legend(title="Frequency")) + ylim(0, 0.6)  + plot_background + theme_title 
 ```
-__Decision__: <span style="color:red"> Fill me in </span>
+
+In the plots below, we define age as a binary variable for men aged 40-49 versus all other ages.
+```{r plots_explore_ongoingpers2}
+#Plot with age parameterized an indicator variable for ages 40-49 vs. all other ages
+    #Define new age variable
+    sample$age40to49 <- ifelse(sample$age %in% c(40:49), "40 to 49", ifelse(!is.na(sample$age), "Other age", NA))
+     sample$age40to49 <- factor(sample$age40to49, levels = c("Other age", "40 to 49"))
+    
+    #Any persistent
+    anypersXage40to49 <- sample %>% filter(!is.na(anypers)) %>% group_by(age40to49) %>% summarise(freq=n(), percent = mean(anypers), se=sd(anypers)/sqrt(freq), ci_lower = max((percent - 1.96*se), 0), ci_upper = min((percent + 1.96*se), 1))
+
+    ggplot(anypersXage40to49) + geom_pointrange(aes(x=age40to49, y=percent, ymin=ci_lower, ymax=ci_upper)) + labs(x="Age", y="Percent", title="Percent of men with one or more ongoing persistent partners by age") + guides(size=guide_legend(title="Frequency")) + scale_y_continuous(breaks=seq(0, .6, .1), limits=c(0, 0.6)) + plot_background + theme_title 
+    
+    #Two or more persistent
+    concurrent_persXage40to49 <- sample %>% filter(!is.na(concurrent_pers)) %>% group_by(age40to49) %>% summarise(freq=n(), percent = mean(concurrent_pers), se=sd(concurrent_pers)/sqrt(freq), ci_lower = max((percent - 1.96*se), 0), ci_upper = min((percent + 1.96*se), 1))
+    ggplot(concurrent_persXage40to49) + geom_pointrange(aes(x=age40to49, y=percent, ymin=ci_lower, ymax=ci_upper)) + labs(x="Age", y="Percent", title="Percent of men with concurrent ongoing persistent partners by age") + guides(size=guide_legend(title="Frequency")) + scale_y_continuous(breaks=seq(0, .6, .1), limits=c(0, 0.6))  + plot_background + theme_title 
+    
+    #Main and persistent concurrent
+    concurrent_mainpersXage40to49 <- sample %>% filter(!is.na(concurrent_mainpers)) %>% group_by(age40to49) %>% summarise(freq=n(), percent = mean(concurrent_mainpers), se=sd(concurrent_mainpers)/sqrt(freq), ci_lower = max((percent - 1.96*se), 0), ci_upper = min((percent + 1.96*se), 1))
+    ggplot(concurrent_mainpersXage40to49) + geom_pointrange(aes(x=age40to49, y=percent, ymin=ci_lower, ymax=ci_upper)) + labs(x="Age", y="Percent", title="Percent of men with concurrent ongoing main and persistent partners by age") + guides(size=guide_legend(title="Frequency")) + scale_y_continuous(breaks=seq(0, .6, .1), limits=c(0, 0.6))  + plot_background + theme_title
+    
+```
+__Decision__: Men aged 40-49 appear to have a higher likelihood of having persistent partners, concurrent persistent partners, and concurrent persistent and main partners. To allow the model to represent these patterns, we will write code to define separate probabilities for men aged 40-49 of forming a persistent partnership, having concurrent persistent partnerships, and having a persistent partnership concurrent with a main partnership. Because this pattern by age doesn't align with our understanding of MSM's sexual behavior, in the base model we will set this probability to be the same as for men of other ages. However, because there was a strong signal in these data, we will run sensitivity analyses in which we define a higher probability for men aged 40 to 49.
 
 ### Rate of instantaneous partnerships by age
 
@@ -1332,7 +1354,7 @@ Figure \@ref(fig:plots_explore_rate_inst_2) groups ages into smaller bins for th
 
 ```
 
-To explore this further, we look at the proportion of men in each age group that fall in each of the quartiles of the distribution of instantaneous partnerships identified in section \@ref(rateinst_explore). The error bars indicate the 95% confidence interval on the point estimates.
+To explore this further, we look at the proportion of men in each age group that fall in each of the quartiles of the distribution of instantaneous partnerships identified in section \@ref(rateinst_explore). The table below shows the cut-points for the quartiles and how many men fall in each group. The numbers in each quartile are not balanced because many men's reported rate fell on the cutpoint between quartiles.  The error bars indicate the 95% confidence interval on the point estimates.
 ```{r plots_explore_rateinst_3}
 
     quartiles <- quantile(sample$rate_inst, c(0.025, 0.5, 0.75, 1), na.rm=TRUE)
@@ -1347,12 +1369,13 @@ table(sample$rate_inst_quart)
 
 ```
 
-In the next plots, we will look to see whether the distribution by age differs by momentary degree. <span style="color:red"> These plots exclude the four outliers identified above </span>. 
+In the next plots, we will look to see whether the distribution by age differs by momentary degree. These plots exclude the four outliers identified above.
 ```{r plots_explore_rateinst_4}
 #Rate of instantaneous partnerships by age and momentary degree
-    p_rateinstXage_main <- ggplot(sample[!is.na(sample$rate_inst) & sample$rate_inst <0.25 & !is.na(sample$degree_main),], aes(x=age, y=rate_inst)) + geom_point() + geom_smooth(method="loess") + facet_grid(.~degree_main) + labs(x="Ego age", y="Rate of instantaneous partnerships", title="Rate of instantaneous partnerships by ego age and main partnership status") + plot_background + theme_title
-    p_rateinstXage_pers <- ggplot(sample[!is.na(sample$rate_inst) & sample$rate_inst <0.25 & !is.na(sample$anypers),], aes(x=age, y=rate_inst)) + geom_point() + geom_smooth(method="loess") + facet_grid(.~anypers) + labs(x="Ego age", y="Rate of instantaneous partnerships", title="Rate of instantaneous partnerships by ego age and persistent partnership status") + plot_background + theme_title
-
+    p_rateinstXage_main <- ggplot() + geom_point(data=sample[!is.na(sample$rate_inst) & sample$rate_inst <0.25 & sample$degree_main %in% 0,], aes(x=age, y=rate_inst, colour="a")) +   geom_point(data=sample[!is.na(sample$rate_inst) & sample$rate_inst <0.25 & sample$degree_main %in% 1,], aes(x=age, y=rate_inst, colour="b")) + geom_smooth(data=sample[!is.na(sample$rate_inst) & sample$rate_inst <0.25 & sample$degree_main %in% 0,], aes(x=age, y=rate_inst, colour="c"), method="loess") + geom_smooth(data=sample[!is.na(sample$rate_inst) & sample$rate_inst <0.25 & sample$degree_main %in% 1,], aes(x=age, y=rate_inst, colour="d"), method="loess") + labs(x="Ego age", y="Rate of instantaneous partnerships", title="Rate of instantaneous partnerships by ego age and main partnership status") + scale_colour_manual(name = "Key", values=c("a"="#fdc086", "b"="#beaed4", "c"="orangered", "d"="mediumorchid4"), labels=c("No main", "Main", "Loess smooth, no main", "Loess smooth, main")) + plot_background + theme_title
+    
+    p_rateinstXage_pers <- ggplot() + geom_point(data=sample[!is.na(sample$rate_inst) & sample$rate_inst <0.25 & sample$anypers %in% 0,], aes(x=age, y=rate_inst, colour="a")) +   geom_point(data=sample[!is.na(sample$rate_inst) & sample$rate_inst <0.25 & sample$anypers %in% 1,], aes(x=age, y=rate_inst, colour="b")) + geom_smooth(data=sample[!is.na(sample$rate_inst) & sample$rate_inst <0.25 & sample$anypers %in% 0,], aes(x=age, y=rate_inst, colour="c"), method="loess") + geom_smooth(data=sample[!is.na(sample$rate_inst) & sample$rate_inst <0.25 & sample$anypers %in% 1,], aes(x=age, y=rate_inst, colour="d"), method="loess") + labs(x="Ego age", y="Rate of instantaneous partnerships", title="Rate of instantaneous partnerships by ego age and persistent partnership status") + scale_colour_manual(name = "Key", values=c("a"="#fbb4ae", "b"="#b3cde3", "c"="indianred3", "d"="steelblue3"), labels=c("No persistent", "1+ persistent", "Loess smooth, no persistent", "Loess smooth, 1+ persistent")) + plot_background + theme_title
+   
     multiplot(p_rateinstXage_main, p_rateinstXage_pers, cols=1)
 ```
 These plots do not suggest any clear differences in the distribution of instantaneous partnerships by age. The plots below examine whether the quantile distribution by age varies by main and persistent partnership status. <span style="color:red">Red</span> indicates zero instantaneous partnerships, <span style="color:orange">orange</span> indicates a low rate, <span style="color:blue">blue</span> indicates a medium rate, and <span style="color:green">green</span> indicates a high rate.
@@ -1373,11 +1396,11 @@ These plots do not suggest any clear differences in the distribution of instanta
     
 ```
 
-__Decision__: <span style="colour:red"> Fill me in</span>
+__Decision__: There seems to be an age effect on the rate of instantaneous partnerships, but it does not appear to vary meaningfully by main or persisent degree. As such, we will define the rate of instantaneous partnerships to vary by age but not by degree. <span style="colour:red">To capture the age effect, we could include terms for centered age (age - mean age) and centered age squared, or we could define a transition matrix wherein men move through the quartiles of the distribution as they age. __Steve, which approach seems better to you?__</span>
 
 ### Age mixing by age and race
 
-The left panel of figure \@ref(fig:plots_explore_agemixing_1) shows a scatter plot of respondents ages against the ages reported for their partners in single years. In partnerships below the diagonal line, the ego is older than his partner; in partnerships above the line, the partner is older than the ego. The right panel plots the absolute value of the difference between ego and alter ages, with a superimposed loess smooth curve.
+The left panel of figure \@ref(fig:plots_explore_agemixing_1) shows a scatter plot of respondents ages against the ages reported for their partners in single years. In partnerships below the diagonal line, the ego is older than his partner; in partnerships above the line, the partner is older than the ego. The right panel plots the absolute value of the difference between ego and alter ages on the y-axis,  <span style="color:red"> the older of the two partners' ages on the x-axis</span>, and a superimposed loess smooth curve.
 ```{r plots_explore_agemixing_1}
 
     #Define a variable for partnership type that includes only ongoing main and persistent but all instantaneous partners
@@ -1386,21 +1409,26 @@ The left panel of figure \@ref(fig:plots_explore_agemixing_1) shows a scatter pl
 
     #Define a variable to indicate the absolute value of the difference in ages
     sample$agediff <- abs(sample$age - sample$mrp_ageinyears_approx)
+    
+    #Define a variable that is the older of the two partner's ages
+    sample$olderpartner <- apply(sample[, c("age", "mrp_ageinyears_approx")], 1, max)
 
     #Scatter plot of ego and alter ages
     age_scatter <- ggplot(sample[!is.na(sample$mrp_ageinyears_approx) & !is.na(sample$ptype_adiff),]) + geom_point(aes(x=age, y=mrp_ageinyears_approx)) + geom_abline(slope=1, intercept= 0) + facet_grid(ptype_adiff ~.) + labs(x="Ego age", y="Most recent partner age", title="Age differences by single year age") + plot_background + theme_title
+    age_scatter
     
-    age_diff <- ggplot(sample[!is.na(sample$agediff) & !is.na(sample$ptype_adiff),], aes(x=age, y=agediff)) + geom_point() + geom_smooth(method="loess") + facet_grid(ptype_adiff ~.) + labs(x="Ego age", y="Absolute value of the difference between ego and alter ages", title = "Age mixing as the difference between ego and alter ages") + theme_title + plot_background + theme_title
+    age_diff <- ggplot(sample[!is.na(sample$agediff) & !is.na(sample$ptype_adiff),], aes(x=olderpartner, y=agediff)) + geom_point() + geom_smooth(method="loess") + facet_grid(ptype_adiff ~.) + labs(x="Older partner's age", y="Age difference", title = "Age mixing as the absolute value of \n the difference between ego and alter ages") + theme_title + plot_background + theme_title
+    age_diff
     
-    multiplot(age_scatter, age_diff, cols=2)
+    #multiplot(age_scatter, age_diff, cols=1)
     
 ```
 
-To inform how to parameterize age differences, plot \@ref(fig:plots_explore_agemixing_2) shows the absolute difference between the square root of ego and alter ages by ego ego, and plot \@ref(fig:plots_explore_agemixing_3) shows the absolute difference between the cube root of ego and alter ages by ego ego.
+To inform how to parameterize age differences, plot \@ref(fig:plots_explore_agemixing_2) shows the absolute difference between the square root of ego and alter ages by ego ego, and plot \@ref(fig:plots_explore_agemixing_3) shows the absolute difference between the cube root of ego and alter ages by ego ego. <span style="color:red"> In both plots, the x-axis shows the older of the two partner's ages (the respondent's age or the age he reported for his partner).</span>
 ```{r plots_explore_agemixing_2}
 
 #Age mixing represented as square root of age differences
-    ggplot(sample[!is.na(sample$sqrt_agediff) & !is.na(sample$ptype_adiff),], aes(x=age, y=sqrt_agediff)) + geom_point() + geom_smooth(method="loess") + facet_grid(ptype_adiff ~.) + labs(x="Ego age", y="Absolute value of the difference between the sqrt of ego and the sqrt of alter ages", title = "Age mixing as the difference between the square root of ego and alter ages") + theme_title
+    ggplot(sample[!is.na(sample$sqrt_agediff) & !is.na(sample$ptype_adiff),], aes(x=olderpartner, y=sqrt_agediff)) + geom_point() + geom_smooth(method="loess") + facet_grid(ptype_adiff ~.) + labs(x="Older partner's age", y="Difference in the sqrt of age", title = "Age mixing as the difference between the square root of ego and alter ages") + theme_title
 
 ```
 
@@ -1408,7 +1436,7 @@ To inform how to parameterize age differences, plot \@ref(fig:plots_explore_agem
     
     sample$cbrt_agediff <- abs(sample$age^(1/3) - sample$mrp_ageinyears_approx^(1/3))
 
-    ggplot(sample[!is.na(sample$cbrt_agediff) & !is.na(sample$ptype_adiff),], aes(x=age, y=cbrt_agediff)) + geom_point() + geom_smooth(method="loess") + facet_grid(ptype_adiff ~.) + labs(x="Ego age", y="Absolute value of the difference between the cube root of ego and the cube root of alter ages", title = "Age mixing as the difference between the cube root of ego and alter ages") + theme_title
+    ggplot(sample[!is.na(sample$cbrt_agediff) & !is.na(sample$ptype_adiff),], aes(x=olderpartner, y=cbrt_agediff)) + geom_point() + geom_smooth(method="loess") + facet_grid(ptype_adiff ~.) + labs(x="Older partner's age", y="Difference in the cube root of age", title = "Age mixing as the difference between the cube root of ego and alter ages") + theme_title
    
 ```
 
@@ -1422,9 +1450,9 @@ To explore variation in age mixing by race/ethnicity, plot \@ref(fig:plots_explo
 
 ```
 
-__Decision__: To capture the age heterogeneity in age mixing, we need to decide how to parameterize the age difference. From plots \@ref(fig:plots_explore_agemixing_2) and \@ref(fig:plots_explore_agemixing_3), taking the difference between the square root of ego and alter ages reduces the heterogeneity by age, but does not fully account for differences by ego age in the age difference with persistent partnerships. Taking the cube root does not lead to a noticeable improvement. <span style="color:red"> How to proceed?</span>
+__Decision__: To capture the age heterogeneity in age mixing, we need to decide how to parameterize the age difference. From plots \@ref(fig:plots_explore_agemixing_2) and \@ref(fig:plots_explore_agemixing_3), taking the difference between the square root of ego and alter ages reduces the heterogeneity by age, but does not fully account for differences by ego age in the age difference with persistent partnerships. Taking the cube root does not lead to a noticeable improvement. <span style="color:red"> How to proceed? Are these plots showing what we want them to?</span>
 
-In the regression analyses, age mixing differed by race/ethnicity only among main partnerships. In the plot, the patterns for non-Hispanic other and Hispanic respondents appear similar. Black men ages 18-24 report partners who are, on average, further in age from themselves than the other racial/ethnic groups. We see this for persistent partnerships as well. However, the numbers are small: `r sum(!is.na(sample$mrp_ageinyears_approx) & sample$race_eth_m %in% "Black" & sample$mrp_type_ongoing %in% "Main" & sample$age_cat %in% "18-24")` black respondents provided data on the age of main partners and only `r sum(!is.na(sample$mrp_ageinyears_approx) & sample$race_eth_m %in% "Black" & sample$mrp_type_ongoing %in% "Persistent" & sample$age_cat %in% "18-24")` provided data on the age of persistent partners. As such, these patterns should be interpreted with caution. <span style="color:red">To capture potential racial ethnic differences, we will represent heterogeneity in age mixing in both main and persistent partnerships by race, but we will not attempt to represent an interaction between race and age on patterns of age mixing.</span>
+In the regression analyses, age mixing differed by race/ethnicity only among main partnerships. In the plot, the patterns for non-Hispanic other and Hispanic respondents appear similar. Black men ages 18-24 report partners who are, on average, further in age from themselves than the other racial/ethnic groups. We see this for persistent partnerships as well However, the numbers are small: `r sum(!is.na(sample$mrp_ageinyears_approx) & sample$race_eth_m %in% "Black" & sample$mrp_type_ongoing %in% "Main" & sample$age_cat %in% "18-24")` black respondents provided data on the age of main partners and only `r sum(!is.na(sample$mrp_ageinyears_approx) & sample$race_eth_m %in% "Black" & sample$mrp_type_ongoing %in% "Persistent" & sample$age_cat %in% "18-24")` provided data on the age of persistent partners. As such, these patterns should be interpreted with caution. Apart from these differences among men aged 18-24, the pattern otherwise appears similar by age. Additionally, interpretation of these data is made difficult by the fact that there are imbalances in reported age mixing (see \@ref(mixing). In light of these issues, we will not stratify age mixing terms by race/ethnicity.
 
 ### Partnership age by respondent age
 These plots show the mean partnership age in main and persistent partnerships, respectively, by respondent age.
@@ -1448,7 +1476,7 @@ The regression analysis indicated that the probability of never having tested fo
     ggplot(nevertestXregion, aes(x=region, y=percent)) + geom_pointrange(aes(ymin=ci_lower, ymax=ci_upper)) + guides(size=guide_legend(title="Frequency")) + labs(x="Region", y="Percent", title="Percent of men aged 40-59 who have never tested for HIV, by region") + plot_background + theme_title 
     
 ```
-__Decision__: <span style="colour:red">This plot indicates that the proportion of men who have never tested for HIV </span>
+__Decision__: This plot indicates that the proportion of men who have never tested for HIV varies by region. We will stratify this parameter by region.
 
 ### Intertest interval by age
 The first figure below looks at the mean and median intertest intervals by age group. The second shows only the median to allow for a closer examination of the variability by age.
@@ -1463,7 +1491,7 @@ The first figure below looks at the mean and median intertest intervals by age g
    ggplot(itiXage) + geom_point(aes(x=age, y=median, size=freq)) + geom_smooth(aes(x=age, y=median), method="loess") + labs(x="Ego age", y="Days since last test", title="Median intertest intervals by age, assuming testing is an interval process") + theme_title + plot_background
         
 ```
-__Decision__: <span style="color:red"> Fill me in</span>
+__Decision__: These data suggest that the intertest interval increases with age. The effect appears to be close to linear up to age 44, at which point it levels out. We will try to fit this with terms for centered age and centered age squared. <span style="color:red"> __Steve, what do you think? When we looked at this before, we just looked at the top plot, which doesn't show the variability in the median. Would this be hard to do?__</span>
 
 ### Anal sex role by age and race/ethnicity
 In the plots below, the error bars indicate the 95% confidence interval of the point estimate (calculated as 1.96 * sqrt(percent(1-percent)/n)).
@@ -1477,7 +1505,9 @@ In the plots below, the error bars indicate the 95% confidence interval of the p
   ggplot(positionXrace) + geom_pointrange(aes(x=hbo, y=percent, ymin=ci_lower, ymax=ci_upper, color = position_cat), position = position_dodge(0.2)) + guides(color=guide_legend(title="Sex role")) + labs(x="Race/ethnicity", y="Percent", title="Anal sex role in the past 12 months, by race/ethnicity") + plot_background + theme_title 
 
 ```
-__Decision__: <span style="color:red"> Fill me in</span>
+__Decision__: These plots suggest that there is a higher probability of exclusive bottoming for younger men and a lower probability of topping, but that these probabilities converge by age 30 and remain roughly similar. <span style="color:red"> __Steve, can you think of a way to capture this? It's complicated because this has implications for age mixing since position is in the network model as an offset. Martina and I felt like if there's no easy way to represent this, we can let it go__</span>
+
+There is no clear difference in anal sex role by race/ethnicity, so we will not stratify on race/ethnicity.
 
 ### Condom use by age
 The plots below show the probability of condom use by respondent age in main partnerships. In regression analyses, condom use differed by age only among  main partnerships, but in the plots below we will explore patterns among persistent and instantaneous partnerships as well.
@@ -1502,7 +1532,7 @@ Probability of condom use in instantaneous partnerships
    condoms_instXage <- sample %>% filter(!is.na(condoms_inst) & prep_use_r %in% "Never taken PrEP") %>% group_by(age_cat) %>% summarise(freq=n(), mean=mean(condoms_inst))
     ggplot(condoms_instXage, aes(x=age_cat, y=mean, size=freq)) + geom_point() + labs(x="Ego age", y="Mean probability of condom use", title = "Mean probability of condom use in instantaneous partnerships by respondent age") + ylim(0, 1) + plot_background + theme_title
     ```
-__Decision__: <span style="color:red"> Fill me in</span>
+__Decision__: These plots indicate that there is a reasonably strong age effect for main and persistent partnerships. We will try to fit these patterns by including terms for centered age and centered age squared. <span style="color:red"> However, this raises the question of how to handle age mixing: if a young man and an older man form a partnership, what will their condom use be? __Steve, did you work on this with Kathryn? Did you decide to take the average in such cases?__</span>
 
 ### PrEP use by age, race, and region
 The plots below illustrate the proportion of men for whom Washington State guidelines recommend PrEP and with whom guidelines recommend providers discuss PrEP who report current use by age, race, and region.
@@ -1547,3 +1577,5 @@ The plots below illustrate the proportion of men for whom Washington State guide
 
    
 ```
+
+__Decision__: These plots show strong effects of age and region. The differences by race/ethnicity are not clear, but we will code the model to represent the main effects of all three given the interest in the impact of potential disparities by race/ethnicity, which we could explore in sensitivity analyses.
