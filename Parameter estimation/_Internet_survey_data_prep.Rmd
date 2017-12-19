@@ -31,9 +31,13 @@
 # Import data 
 #-----------------------------------------------------------------------------------
 
-    prepsurvey <- read.csv("/Volumes/Survey data_manipulated/prepsurvey_clean4R.csv",
+    # Use this version if working from the Rstudio server
+        prepsurvey <- read.csv("Data/prepsurvey_clean4R.csv",
                          header=TRUE, sep=",", row.names = "id", na.strings = c("NA", "", "."))
-    # Use this version if workign from the remote desktop
+    # Use this version if working from personal laptop
+        # prepsurvey <- read.csv("/Volumes/Survey data_manipulated/prepsurvey_clean4R.csv",
+        #                 header=TRUE, sep=",", row.names = "id", na.strings = c("NA", "", "."))
+    # Use this version if workign from the terminal
         # prepsurvey <- read.csv("D:/prepsurvey_clean4R.csv",
         #                        header=TRUE, sep=",", row.names = "id", na.strings = c("NA", "", "."))
 
