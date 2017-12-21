@@ -1,0 +1,142 @@
+# Condom use by dyad age
+This file explores whether condom use differs by dyad age. The file "Associations with nodal attributes" suggests that condom use differs by ego age. One option for how to include that in the model is to set condom use to be the average of the preferred condom use by age of each partner. But the data on preferred condom use by age is based on reported condom use with partners of specific ages. This file looks to see if there are meaningful differences in reported condom use by dyad age. For this analysis, we restrict to dyads in which the ego has not used PrEP in the past 12 months and the alter is not using PrEP (at least not to the ego's knowledge).
+
+There do appear to be some differences by dyad age, but many numbers are very small such that confidence intervals are wide.
+```{r, include=FALSE}
+####################################################################################
+# Setup
+####################################################################################
+#-----------------------------------------------------------------------------------
+# Load packages
+#-----------------------------------------------------------------------------------
+
+library("tidyverse")
+library("knitr")
+library("data.table")
+library("lmtest")
+library("kableExtra")
+library("logbin")
+
+#-----------------------------------------------------------------------------------
+# Knitr options
+#-----------------------------------------------------------------------------------
+opts_chunk$set(echo=FALSE, message=FALSE, warning=TRUE, error=TRUE, fig.align = "center")
+options(knitr.table.format = "html") 
+
+#-----------------------------------------------------------------------------------
+# Plot settings
+#-----------------------------------------------------------------------------------
+#save plot settings for white background and light grey lines and darkening the colors a bit
+plot_background <- theme(panel.background = element_rect(fill="white", colour = "black")) + theme(panel.grid.major = element_line(colour = "grey90"))
+darken_color <- scale_colour_hue(l=50)
+theme_title <- theme(plot.title = element_text(hjust = 0.5, size=12)) 
+
+#-----------------------------------------------------------------------------------
+# Load data
+#-----------------------------------------------------------------------------------
+setwd("/homes/dpwhite/R/GitHub Repos/WHAMP/Parameter estimation")
+load(file="Data/InternetSurveySample.Rdata")
+load(file="Data/InternetSurveySample_allages.Rdata")
+
+#-----------------------------------------------------------------------------------
+# Define alternate age categorization
+#-----------------------------------------------------------------------------------
+sample$age_chunks <-  cut(sample$age, c(17, 29, 39, 44, 59), labels=c("18-29", "30-39", "40-49", "50-59"))   
+sample$age_cat_alt <- cut(sample$age, c(17, 24, 29, 34, 39, 49, 59), labels=c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"))
+
+#-----------------------------------------------------------------------------------
+# Define the subset of the sample that excludes men who are using or used PrEP in the past 12 months or whose partners were using PrEP at last sex
+#-----------------------------------------------------------------------------------
+sample_p12noprep_noalterprep <- sample %>% filter(!(prep_use_r %in% "Currently taking PrEP") & !(monthsago_lastprep %in% c(0:12)) & !(mrp_prep_r %in% 1))
+
+#----------------------------------------------------------------------------------
+# Define multiplot function
+#_---------------------------------------------------------------------------------
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+    library(grid)
+    
+    # Make a list from the ... arguments and plotlist
+    plots <- c(list(...), plotlist)
+    
+    numPlots = length(plots)
+    
+    # If layout is NULL, then use 'cols' to determine layout
+    if (is.null(layout)) {
+        # Make the panel
+        # ncol: Number of columns of plots
+        # nrow: Number of rows needed, calculated from # of cols
+        layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                         ncol = cols, nrow = ceiling(numPlots/cols))
+    }
+    
+    if (numPlots==1) {
+        print(plots[[1]])
+        
+    } else {
+        # Set up the page
+        grid.newpage()
+        pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+        
+        # Make each plot, in the correct location
+        for (i in 1:numPlots) {
+            # Get the i,j matrix positions of the regions that contain this subplot
+            matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+            
+            print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                            layout.pos.col = matchidx$col))
+        }
+    }
+}
+
+#-----------------------------------------------------------------------------------
+# Define dyad age variable
+#-----------------------------------------------------------------------------------
+
+#Define dyad age category variable
+    sample_p12noprep_noalterprep$dyad_age <- ifelse(sample_p12noprep_noalterprep$age %in% c(18:34) & sample_p12noprep_noalterprep$mrp_ageinyears_approx %in% c(18:34), "YY", 
+                                                ifelse(sample_p12noprep_noalterprep$age %in% c(18:34) & sample_p12noprep_noalterprep$mrp_ageinyears_approx %in% c(35:49), "YM",
+                                                       ifelse(sample_p12noprep_noalterprep$age %in% c(18:34) & sample_p12noprep_noalterprep$mrp_ageinyears_approx %in% c(50:59), "YO",
+                                                              ifelse(sample_p12noprep_noalterprep$age %in% c(35:49) & sample_p12noprep_noalterprep$mrp_ageinyears_approx %in% c(18:34), "MY",
+                                                                     ifelse(sample_p12noprep_noalterprep$age %in% c(35:49) & sample_p12noprep_noalterprep$mrp_ageinyears_approx %in% c(35:49), "MM",
+                                                                            ifelse(sample_p12noprep_noalterprep$age %in% c(35:49) & sample_p12noprep_noalterprep$mrp_ageinyears_approx %in% c(50:59), "MO",
+                                                                                   ifelse(sample_p12noprep_noalterprep$age %in% c(50:59) & sample_p12noprep_noalterprep$mrp_ageinyears_approx %in% c(18:34), "OY",
+                                                                                          ifelse(sample_p12noprep_noalterprep$age %in% c(50:59) & sample_p12noprep_noalterprep$mrp_ageinyears_approx %in% c(35:49), "OM",
+                                                                                                 ifelse(sample_p12noprep_noalterprep$age %in% c(50:59) & sample_p12noprep_noalterprep$mrp_ageinyears_approx %in% c(50:59), "OO",
+                                                                                                        NA)))))))))
+
+    #Specify order of dyad age
+    sample_p12noprep_noalterprep$dyad_age <- factor(sample_p12noprep_noalterprep$dyad_age, levels = c("YY", "YM", "YO", "MY", "MM", "MO",
+                                                                                                      "OY", "OM", "OO"))
+```
+
+```{r}
+    
+#-----------------------------------------------------------------------------------
+# Analyses
+#-----------------------------------------------------------------------------------
+
+# Condom use in main partnerships
+condoms_mainXdyadage <- sample_p12noprep_noalterprep %>% filter(!is.na(condoms_main) & !is.na(dyad_age)) %>% group_by(dyad_age) %>% 
+    summarise(freq=n(), mean=mean(condoms_main), se=sd(condoms_main)/sqrt(freq), ci_lower = max((mean - 1.96*se), 0), 
+              ci_upper = min((mean + 1.96*se), 1))
+ggplot(condoms_mainXdyadage) + geom_pointrange(aes(x=dyad_age, y=mean, ymin=ci_lower, ymax=ci_upper)) + 
+    labs(x="Dyad age", y="Mean probability of condom use", title = "Mean probability of condom use in main partnerships by dyad age") + 
+    theme_title + plot_background
+
+# Condom use in persistent partnerships
+condoms_persXdyadage <- sample_p12noprep_noalterprep %>% filter(!is.na(condoms_pers) & !is.na(dyad_age)) %>% group_by(dyad_age) %>% 
+    summarise(freq=n(), mean=mean(condoms_pers), se=sd(condoms_pers)/sqrt(freq), ci_lower = max((mean - 1.96*se), 0), 
+              ci_upper = min((mean + 1.96*se), 1))
+ggplot(condoms_persXdyadage) + geom_pointrange(aes(x=dyad_age, y=mean, ymin=ci_lower, ymax=ci_upper)) + 
+    labs(x="Dyad age", y="Mean probability of condom use", title = "Mean probability of condom use in persistent partnerships by dyad age") + 
+    theme_title + plot_background
+
+# Condom use in intantaneous partnerships
+condoms_instXdyadage <- sample_p12noprep_noalterprep %>% filter(!is.na(condoms_inst) & !is.na(dyad_age)) %>% group_by(dyad_age) %>% 
+    summarise(freq=n(), mean=mean(condoms_inst), se=sd(condoms_inst)/sqrt(freq), ci_lower = max((mean - 1.96*se), 0), 
+              ci_upper = min((mean + 1.96*se), 1))
+ggplot(condoms_instXdyadage) + geom_pointrange(aes(x=dyad_age, y=mean, ymin=ci_lower, ymax=ci_upper)) + 
+    labs(x="Dyad age", y="Mean probability of condom use", title = "Mean probability of condom use in instantaneous partnerships by dyad age") + 
+    theme_title + plot_background
+
+```
