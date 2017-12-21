@@ -510,7 +510,7 @@ Next we will look at how to parameterize age by plotting the ceofficients from t
     multiplot(p1, p2, cols=1)
 ```
 
-These coefficients suggest that racial/ethnic homophily is lower among those aged 30-34 and 50-54 and higher among those aged 40-44 and 55-59, though these latter two estimates are not statistically significant. This does not suggest any meaningful trend, so we will not include age in the models below to test for differences by region.
+These coefficients suggest that racial/ethnic homophily is lower among those aged 50-54 and higher among those aged 40-44 and 55-59, though these latter two estimates are not statistically significant. This does not suggest any meaningful trend, so we will not include age in the models below to test for differences by region.
 
 ```{r samerace_main, eval=TRUE}
  #Main effects
@@ -854,7 +854,7 @@ The coefficients suggest that the intertest interval increases with age, though 
 
 ```{r iti, eval=TRUE}
  #Define age categorization
-  sample$age_cat_iti <- cut(sample_p12noprep$age, c(17, 24, 34, 59), labels=c("18-24", "25-34", "35-59")) 
+  sample_p12noprep$age_cat_iti <- cut(sample_p12noprep$age, c(17, 24, 34, 59), labels=c("18-24", "25-34", "35-59")) 
 
  #Main effects
   iti_full <- lm(iti_int ~ age_cat_iti + race_eth_m.reg + region.bKC, data=sample_p12noprep)
@@ -891,7 +891,7 @@ Next we will look at how to parameterize age by plotting the ceofficients from t
     plot.age.coefs(airate_main_full_testage)
 ```
 
-From these coefficients, coital frequency appears to be higher for men aged 30-34, and then to decrease with age. In subsequent analyses, we will include age as a dummy variable with ages 40-59 in 10-year bins.
+From these coefficients, coital frequency appears to be higher for men aged 30-34 (though not significantly so), and then to decrease with age. In subsequent analyses, we will include age as a dummy variable with ages 40-59 in 10-year bins.
 
 ```{r coitalfreq_main}
  #Main effects
@@ -1051,41 +1051,45 @@ These data do not suggest any clear trend by age. However, because sex role will
 
 
 ## Condom use
-Data on condom use are restricted to dyads in which both the respondent and his partner were HIV-negative or of unknown status. This analysis includes data from all such partnerships, not just those that were ongoing. Because the model will explore the effect of decreased condom use in men on PrEP, we will further restrict this analysis to men who have not taken PrEP in he past 12 months. We exclude all men who have taken PrEP in the past 12 months regardless of whether they are currently using it becasue their reported behaviors in the past 12 months may reflect behaviors while on PrEP.
+Data on condom use are restricted to dyads in which both the respondent and his partner were HIV-negative or of unknown status. This analysis includes data from all such partnerships, not just those that were ongoing. Because the model will explore the effect of decreased condom use in men on PrEP, we will further restrict this analysis to men who have not taken PrEP in he past 12 months. We exclude all men who have taken PrEP in the past 12 months regardless of whether they are currently using it becasue their reported behaviors in the past 12 months may reflect behaviors while on PrEP. We will also exclude men who report that their most recent partner is taking PrEP.
+```{r}
+# Define sample for condom use analyses - exclude partners on PrEP and men who have taken PrEP in the past 12 months
+sample_p12noprep_noalterprep <- sample_p12noprep %>% filter(!(mrp_prep_r %in% 1))
+```
 
 ### Main partners
 We first look at the number of observations that are non-missing for this outcome and for model predictors
 ```{r}
  
  #Look at the number of observations that are non-missing for this outcome and for model predictors
-  table(sample_p12noprep$hbo[!is.na(sample_p12noprep$race_eth_m) & !is.na(sample_p12noprep$condoms_main)])
-  table(sample_p12noprep$age_cat[!is.na(sample_p12noprep$race_eth_m) & !is.na(sample_p12noprep$condoms_main)])
-  table(sample_p12noprep$region[!is.na(sample_p12noprep$race_eth_m) & !is.na(sample_p12noprep$condoms_main)])
+  table(sample_p12noprep_noalterprep$hbo[!is.na(sample_p12noprep_noalterprep$race_eth_m) & !is.na(sample_p12noprep_noalterprep$condoms_main)])
+  table(sample_p12noprep_noalterprep$age_cat[!is.na(sample_p12noprep_noalterprep$race_eth_m) & !is.na(sample_p12noprep_noalterprep$condoms_main)])
+  table(sample_p12noprep_noalterprep$region[!is.na(sample_p12noprep_noalterprep$race_eth_m) & !is.na(sample_p12noprep_noalterprep$condoms_main)])
 
 ```
 
 Next we will look at how to parameterize age by plotting the ceofficients from the full model with age input as a dummy variable with 5-year age bins
 ```{r}
  #Figure out how to parameterize age
-    condoms_main_full_testage <- lm(condoms_main ~ age_cat + race_eth_m.reg + region.bKC, data=sample_p12noprep)
+    condoms_main_full_testage <- lm(condoms_main ~ age_cat + race_eth_m.reg + region.bKC, data=sample_p12noprep_noalterprep)
     plot.age.coefs(condoms_main_full_testage)
 ```
 
-The plot of these coefficients suggests that condom use in main partnerships is lower for men aged 35-49. The number of respondents aged 40 and higher is somewhat small, so we will group ages 40-59 in 10-year bins in subsequent analyses. 
+The plot of these coefficients suggests that condom use in main partnerships is lower for men aged 35-39 and 45-49. The number of respondents aged 40 and higher is somewhat small, so we will group ages 40-59 in 10-year bins in subsequent analyses. 
 
 ```{r condoms_main}
 
  #Main effects
-  condoms_main_full <- lm(condoms_main ~ age_cat_alt + race_eth_m.reg + region.bKC, data=sample_p12noprep)
-  condoms_main_noregion <- lm(condoms_main ~ age_cat_alt + race_eth_m.reg, data=sample_p12noprep)
-  condoms_main_norace <- lm(condoms_main ~ age_cat_alt + region.bKC, data=sample_p12noprep)
-  condoms_main_noage <- lm(condoms_main ~ race_eth_m.reg + region.bKC, data=sample_p12noprep)
+  condoms_main_full <- lm(condoms_main ~ age_cat_alt + race_eth_m.reg + region.bKC, data=sample_p12noprep_noalterprep)
+  condoms_main_noregion <- lm(condoms_main ~ age_cat_alt + race_eth_m.reg, data=sample_p12noprep_noalterprep)
+  condoms_main_norace <- lm(condoms_main ~ age_cat_alt + region.bKC, data=sample_p12noprep_noalterprep)
+  condoms_main_noage <- lm(condoms_main ~ race_eth_m.reg + region.bKC, data=sample_p12noprep_noalterprep)
 
  #Interactions
-  condoms_main_full_withint <- lm(condoms_main ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, data=sample_p12noprep)
-  condoms_main_noraceXreg <- lm(condoms_main ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, data=sample_p12noprep)
-  condoms_main_noageXreg <- lm(condoms_main ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat_alt, data=sample_p12noprep)
-  condoms_main_noraceXage <- lm(condoms_main ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*region.bKC, data=sample_p12noprep)
+  condoms_main_full_withint <- lm(condoms_main ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, data=sample_p12noprep_noalterprep)
+  condoms_main_noraceXreg <- lm(condoms_main ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, data=sample_p12noprep_noalterprep)
+  condoms_main_noageXreg <- lm(condoms_main ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat_alt, data=sample_p12noprep_noalterprep)
+  condoms_main_noraceXage <- lm(condoms_main ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*region.bKC, data=sample_p12noprep_noalterprep)
   
  results_condoms_main <- compare.models(condoms_main_full, condoms_main_noregion, condoms_main_norace, condoms_main_noage, condoms_main_full_withint, condoms_main_noraceXreg, condoms_main_noageXreg, condoms_main_noraceXage)
   results_condoms_main
@@ -1097,16 +1101,16 @@ We first look at the number of observations that are non-missing for this outcom
 ```{r}
  
  #Look at the number of observations that are non-missing for this outcome and for model predictors
-  table(sample_p12noprep$hbo[!is.na(sample_p12noprep$race_eth_m) & !is.na(sample_p12noprep$condoms_pers)])
-  table(sample_p12noprep$age_cat[!is.na(sample_p12noprep$race_eth_m) & !is.na(sample_p12noprep$condoms_pers)])
-  table(sample_p12noprep$region[!is.na(sample_p12noprep$race_eth_m) & !is.na(sample_p12noprep$condoms_pers)])
+  table(sample_p12noprep_noalterprep$hbo[!is.na(sample_p12noprep_noalterprep$race_eth_m) & !is.na(sample_p12noprep_noalterprep$condoms_pers)])
+  table(sample_p12noprep_noalterprep$age_cat[!is.na(sample_p12noprep_noalterprep$race_eth_m) & !is.na(sample_p12noprep_noalterprep$condoms_pers)])
+  table(sample_p12noprep_noalterprep$region[!is.na(sample_p12noprep_noalterprep$race_eth_m) & !is.na(sample_p12noprep_noalterprep$condoms_pers)])
 
 ```
 
 Next we will look at how to parameterize age by plotting the ceofficients from the full model with age input as a dummy variable with 5-year age bins
 ```{r}
  #Figure out how to parameterize age
-    condoms_pers_full_testage <- lm(condoms_pers ~ age_cat + race_eth_m.reg + region.bKC, data=sample_p12noprep)
+    condoms_pers_full_testage <- lm(condoms_pers ~ age_cat + race_eth_m.reg + region.bKC, data=sample_p12noprep_noalterprep)
     plot.age.coefs(condoms_pers_full_testage)
 ```
 
@@ -1115,13 +1119,13 @@ These data do not suggest a clear pattern by age for condom use with persistent 
 ```{r condoms_pers}
 
  #Main effects
-  condoms_pers_full <- lm(condoms_pers ~ race_eth_m.reg + region.bKC, data=sample_p12noprep)
-  condoms_pers_noregion <- lm(condoms_pers ~ race_eth_m.reg, data=sample_p12noprep)
-  condoms_pers_norace <- lm(condoms_pers ~ region.bKC, data=sample_p12noprep)
+  condoms_pers_full <- lm(condoms_pers ~ race_eth_m.reg + region.bKC, data=sample_p12noprep_noalterprep)
+  condoms_pers_noregion <- lm(condoms_pers ~ race_eth_m.reg, data=sample_p12noprep_noalterprep)
+  condoms_pers_norace <- lm(condoms_pers ~ region.bKC, data=sample_p12noprep_noalterprep)
 
  #Interactions
-  condoms_pers_full_withint <- lm(condoms_pers ~ race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC, data=sample_p12noprep)
-  condoms_pers_noraceXreg <- lm(condoms_pers ~ race_eth_m.reg + region.bKC, data=sample_p12noprep)
+  condoms_pers_full_withint <- lm(condoms_pers ~ race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC, data=sample_p12noprep_noalterprep)
+  condoms_pers_noraceXreg <- lm(condoms_pers ~ race_eth_m.reg + region.bKC, data=sample_p12noprep_noalterprep)
   
   results_condoms_pers <- compare.models.noage(condoms_pers_full, condoms_pers_noregion, condoms_pers_norace, condoms_pers_full_withint, condoms_pers_noraceXreg)
   results_condoms_pers
@@ -1133,21 +1137,21 @@ We first look at the number of observations that are non-missing for this outcom
 ```{r}
 
  #Look at the number of observations that are non-missing for this outcome and for model predictors
-  table(sample_p12noprep$hbo[!is.na(sample_p12noprep$race_eth_m) & !is.na(sample_p12noprep$condoms_inst)])
-  table(sample_p12noprep$age_cat[!is.na(sample_p12noprep$race_eth_m) & !is.na(sample_p12noprep$condoms_inst)])
-  table(sample_p12noprep$region[!is.na(sample_p12noprep$race_eth_m) & !is.na(sample_p12noprep$condoms_inst)])
+  table(sample_p12noprep_noalterprep$hbo[!is.na(sample_p12noprep_noalterprep$race_eth_m) & !is.na(sample_p12noprep_noalterprep$condoms_inst)])
+  table(sample_p12noprep_noalterprep$age_cat[!is.na(sample_p12noprep_noalterprep$race_eth_m) & !is.na(sample_p12noprep_noalterprep$condoms_inst)])
+  table(sample_p12noprep_noalterprep$region[!is.na(sample_p12noprep_noalterprep$race_eth_m) & !is.na(sample_p12noprep_noalterprep$condoms_inst)])
 
 ```
 
 Next we will look at how to parameterize age by plotting the ceofficients from the full model with age input as a dummy variable with 5-year age bins. All men aged 45-49 report condom use with instantaneous partners, so the coefficient for this group is high with a large standard error, masking the variability across other age groups. The second plot imposes restrictions on the y-axis, which results in dropping the point for ages 45-49.
 ```{r}
  #Figure out how to parameterize age
-    condoms_inst_full_testage <- glm(condoms_inst ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample_p12noprep)
+    condoms_inst_full_testage <- glm(condoms_inst ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample_p12noprep_noalterprep)
     p1 <- plot.age.coefs(condoms_inst_full_testage)
     
     #Setting ylim
      agecoefs_condoms_inst <- cbind.data.frame(age_cat = c("25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59"), coefs = as.vector(condoms_inst_full_testage$coefficients[2:8]), se = as.vector(coef(summary(condoms_inst_full_testage))[2:8,2]))
-    p2 <- ggplot(agecoefs_condoms_inst, aes(x=age_cat, y=coefs)) + geom_pointrange(aes(ymin=coefs - 1.96*se, ymax=coefs + 1.96*se)) + labs(x="Age groups", y="Adjusted coefficients and CI", title="Adjusted coefficients and 95% confidence intervals for age, dropping the 55-59 year-old group") + theme_title + ylim(-3, 5)
+    p2 <- ggplot(agecoefs_condoms_inst, aes(x=age_cat, y=coefs)) + geom_pointrange(aes(ymin=coefs - 1.96*se, ymax=coefs + 1.96*se)) + labs(x="Age groups", y="Adjusted coefficients and CI", title="Adjusted coefficients and 95% confidence intervals for age, dropping the 55-59 year-old group") + theme_title + ylim(-3.5, 3.5)
     
     multiplot(p1, p2, cols=1)
 ```
@@ -1157,13 +1161,13 @@ The plots of these coefficients do not suggest that there is any meaningful patt
 ```{r condoms_inst}
 
  #Main effects
-  condoms_inst_full <- glm(condoms_inst ~ race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample_p12noprep)
-  condoms_inst_noregion <- glm(condoms_inst ~ race_eth_m.reg, family=binomial(link="logit"), data=sample_p12noprep)
-  condoms_inst_norace <- glm(condoms_inst ~ region.bKC, family=binomial(link="logit"), data=sample_p12noprep)
+  condoms_inst_full <- glm(condoms_inst ~ race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample_p12noprep_noalterprep)
+  condoms_inst_noregion <- glm(condoms_inst ~ race_eth_m.reg, family=binomial(link="logit"), data=sample_p12noprep_noalterprep)
+  condoms_inst_norace <- glm(condoms_inst ~ region.bKC, family=binomial(link="logit"), data=sample_p12noprep_noalterprep)
 
  #Interactions
-  condoms_inst_full_withint <- glm(condoms_inst ~ race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC, family=binomial(link="logit"), data=sample_p12noprep)
-  condoms_inst_noraceXreg <- glm(condoms_inst ~ race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample_p12noprep)
+  condoms_inst_full_withint <- glm(condoms_inst ~ race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC, family=binomial(link="logit"), data=sample_p12noprep_noalterprep)
+  condoms_inst_noraceXreg <- glm(condoms_inst ~ race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample_p12noprep_noalterprep)
   
   results_condoms_inst <- compare.models.noage(condoms_inst_full, condoms_inst_noregion, condoms_inst_norace, condoms_inst_full_withint, condoms_inst_noraceXreg)
   results_condoms_inst
@@ -1265,7 +1269,7 @@ In these tables, "NA" indicates that age was not included in the model based on 
     
     ```
 
-These analyses were intended as a guide to suggest which nodal attributes appear to shape patterns of partnership formation/persistence and behaviors related to transmission and diagnosis. For network model parameters, it appears that **the probability of having a main partner differs by race/ethnicity, region, and the interaction of race/ethnicity and region**, **the probabilities of having any persistent and concurrent persistent partners differs by age**, and **the rate of instantaneous partners differs by age**. We expect the probability of having a partner of the same race/ethnicity to to differ by race/ethnicity, which the network model will capture, so this does not warrant further exploration. Parameterizing age mixing using the difference between the square root of ego and alter ages does not seem to fully account for **differences in age mixing by ego age**, and we will also explore **differences in age mixing by race among main partnerships**. **Partnership age appears to differ by ego age**, but this is complicated due to censoring; younger men's partnerships will be shorter because they started more recently. To better understand the underlying pattern and confirm that it aligns with our expectations, we will explore it using plots.
+These analyses were intended as a guide to suggest which nodal attributes appear to shape patterns of partnership formation/persistence and behaviors related to transmission and diagnosis. For network model parameters, it appears that **the probability of having a main partner differs by race/ethnicity, region, and the interaction of race/ethnicity and region**, **the probabilities of having any persistent and concurrent persistent partners differs by age**, and **the rate of instantaneous partners differs by age**. We expect the probability of having a partner of the same race/ethnicity to to differ by race/ethnicity, which the network model will capture, so this does not warrant further exploration. Parameterizing age mixing using the difference between the square root of ego and alter ages does not seem to fully account for **differences in age mixing by ego age**, and we will also explore **differences in age mixing by race among main partnerships and by region among persistent partnerships**. **Partnership age appears to differ by ego age**, but this is complicated due to censoring; younger men's partnerships will be shorter because they started more recently. To better understand the underlying pattern and confirm that it aligns with our expectations, we will explore it using plots.
 
 For epidemic model parameters, we will explore **regional differences in the proportion never tested**, **age differences in the intertest interval**, **age and racial/ethnic differences in anal sex role**, **and age differences in condom use among main partners**. For **PrEP use, we will exlpore differences by all three nodal attributes**.
 
@@ -1481,13 +1485,26 @@ To explore variation in age mixing by race/ethnicity, plot \@ref(fig:plots_explo
 #Age mixing by age and race 
 
     agemixingXrace <- sample %>% filter(!is.na(agediff) & !is.na(ptype_adiff)) %>% group_by(ptype_adiff, age_cat, race_eth_m) %>% summarise(freq= n(), mean = mean(agediff))
-    ggplot(agemixingXrace) + geom_point(aes(x=age_cat, y=mean, size=freq, colour=race_eth_m)) + facet_grid(ptype_adiff ~.) + geom_hline(yintercept=0) + labs(x="Ego age group", y="Mean difference between ego and partner age (absolute value)", title="Age differences by race and age category") + theme_title + plot_background
+    ggplot(agemixingXrace) + geom_point(aes(x=age_cat, y=mean, size=freq, colour=race_eth_m)) + facet_grid(ptype_adiff ~.) + labs(x="Ego age group", y="Mean difference between ego and alter age (absolute value)", title="Age differences by race/ethnicity and age category") + theme_title + plot_background
+
+```
+
+To explore variation in age mixing by region, plot \@ref(fig:plots_explore_agemixing_5) shows age mixing by age group and region in terms of the mean absolute difference in age between the ego and his partner in each age group.
+
+```{r plots_explore_agemixing_5}
+
+#Age mixing by age and region 
+
+    agemixingXregion <- sample %>% filter(!is.na(agediff) & !is.na(ptype_adiff)) %>% group_by(ptype_adiff, age_cat, region) %>% summarise(freq= n(), mean = mean(agediff))
+    ggplot(agemixingXregion) + geom_point(aes(x=age_cat, y=mean, size=freq, colour=region)) + facet_grid(ptype_adiff ~.) + labs(x="Ego age group", y="Mean difference between ego and alter age (absolute value)", title="Age differences by region and age category") + theme_title + plot_background
 
 ```
 
 __Decision__: To capture the age heterogeneity in age mixing, we need to decide how to parameterize the age difference. From plots \@ref(fig:plots_explore_agemixing_2) and \@ref(fig:plots_explore_agemixing_3), taking the difference between the square root of ego and alter ages reduces the heterogeneity by age, but does not fully account for differences by ego age in the age difference with persistent partnerships. Taking the cube root does not lead to a noticeable improvement. <span style="color:red"> How to proceed? Are these plots showing what we want them to?</span>
 
 In the regression analyses, age mixing differed by race/ethnicity only among main partnerships. In the plot, the patterns for non-Hispanic other and Hispanic respondents appear similar. Black men ages 18-24 report partners who are, on average, further in age from themselves than the other racial/ethnic groups. We see this for persistent partnerships as well However, the numbers are small: `r sum(!is.na(sample$mrp_ageinyears_approx) & sample$race_eth_m %in% "Black" & sample$mrp_type_ongoing %in% "Main" & sample$age_cat %in% "18-24")` black respondents aged 18-24 provided data on the age of main partners and only `r sum(!is.na(sample$mrp_ageinyears_approx) & sample$race_eth_m %in% "Black" & sample$mrp_type_ongoing %in% "Persistent" & sample$age_cat %in% "18-24")` provided data on the age of persistent partners. As such, these patterns should be interpreted with caution. Apart from these differences among men aged 18-24, the pattern otherwise appears similar by age. Additionally, interpretation of these data is made difficult by the fact that there are imbalances in reported age mixing (see \@ref(mixing). In light of these issues, we will not stratify age mixing terms by race/ethnicity.
+
+Age mixing differed by region only among persistent partnerships. Plot \@ref(fig:plots_explore_agemixing_5) indicates that men ages 18-24 in Western Washington had larger absolute differences in age with their persistent partners, but this is based on a sample size of only `r sum(!is.na(sample$mrp_ageinyears_approx) & sample$region %in% "Western WA" & sample$mrp_type_ongoing %in% "Persistent" & sample$age_cat %in% "18-24")` in this region and age group. The data otherwise do not indicate clear patterns by region, so we will not stratify age mixing by region.
 
 ### Partnership age by respondent age
 These plots show the mean partnership age in main and persistent partnerships, respectively, by respondent age.
@@ -1535,6 +1552,10 @@ __Decision__: These data suggest that the intertest interval increases with age.
 Plot \@ref(fig:iti_fit) below shows the median intertest interval by age with a superimposed line with predicted values from a linear model for median intertest interval that includes centered age and centered age squared terms. <span style="color:red"> Does this seem like an okay fit? </span>
 
 ```{r iti_fit}
+#Define centered age and centered age squared variables for the dataframe that excludes past 12 month prep users
+sample_p12noprep$age_centered <- sample_p12noprep$age - mean(sample_p12noprep$age, na.rm=TRUE)
+sample_p12noprep$age_cent_sq <- sample_p12noprep$age_centered^2
+
 #Define a new tibble with columns for centered age and age squared
 itiXage_centered <- sample_p12noprep %>% filter(!is.na(iti_int)) %>% group_by(age, age_centered) %>% summarise(freq=n(), median=median(iti_int, na.rm=TRUE), mean=mean(iti_int, na.rm=TRUE)) %>% mutate(age_cent_sq = age_centered^2)
 
@@ -1571,9 +1592,9 @@ The plots below show the probability of condom use by respondent age in main par
 
 ```{r plotsexplore_condoms_main}
 #Condom use in main partnerships by ego age
-   p_condoms_main <- ggplot(sample_p12noprep[!is.na(sample_p12noprep$condoms_main), ], aes(x=age, y=condoms_main)) + geom_point() + labs(x="Ego age", y="Probability of condom use", title = "Probability of condom use in main partnerships by respondent age") + plot_background + theme_title
+   p_condoms_main <- ggplot(sample_p12noprep_noalterprep[!is.na(sample_p12noprep_noalterprep$condoms_main), ], aes(x=age, y=condoms_main)) + geom_point() + labs(x="Ego age", y="Probability of condom use", title = "Probability of condom use in main partnerships by respondent age") + plot_background + theme_title
    
-    condoms_mainXage <- sample_p12noprep %>% filter(!is.na(condoms_main)) %>% group_by(age_cat) %>% summarise(freq=n(), mean=mean(condoms_main))
+    condoms_mainXage <- sample_p12noprep_noalterprep %>% filter(!is.na(condoms_main)) %>% group_by(age_cat) %>% summarise(freq=n(), mean=mean(condoms_main))
     p_condoms_main_mean <- ggplot(condoms_mainXage, aes(x=age_cat, y=mean, size=freq)) + geom_point() + labs(x="Ego age", y="Mean probability of condom use", title = "Mean probability of condom use in main partnerships by respondent age") + ylim(0, 1)  + plot_background + theme_title
     multiplot(p_condoms_main, p_condoms_main_mean, cols=1)
 ```
@@ -1582,9 +1603,9 @@ Probability of condom use by respondent age in persistent partnerships:
 
 ```{r plotsexplore_condoms_pers}
 #Condom use in persistent partnerships by ego age
- p_condoms_pers <- ggplot(sample_p12noprep[!is.na(sample_p12noprep$condoms_pers),], aes(x=age, y=condoms_pers)) + geom_point() + labs(x="Ego age", y="Probability of condom use", title = "Probability of condom use in persistent partnerships by respondent age") + plot_background + theme_title
+ p_condoms_pers <- ggplot(sample_p12noprep_noalterprep[!is.na(sample_p12noprep_noalterprep$condoms_pers),], aes(x=age, y=condoms_pers)) + geom_point() + labs(x="Ego age", y="Probability of condom use", title = "Probability of condom use in persistent partnerships by respondent age") + plot_background + theme_title
    
-    condoms_persXage <- sample_p12noprep %>% filter(!is.na(condoms_pers)) %>% group_by(age_cat) %>% summarise(freq=n(), mean=mean(condoms_pers))
+    condoms_persXage <- sample_p12noprep_noalterprep %>% filter(!is.na(condoms_pers)) %>% group_by(age_cat) %>% summarise(freq=n(), mean=mean(condoms_pers))
     p_condoms_pers_mean <- ggplot(condoms_persXage, aes(x=age_cat, y=mean, size=freq)) + geom_point() + labs(x="Ego age", y="Mean probability of condom use", title = "Mean probability of condom use in persistent partnerships by respondent age") + ylim(0, 1) + plot_background + theme_title
     multiplot(p_condoms_pers, p_condoms_pers_mean, cols=1)
     ```
@@ -1593,32 +1614,36 @@ Probability of condom use in instantaneous partnerships:
 
 ```{r plotsexplore_condoms_inst}
 #Condom use in instantaneous partnerships by ego age
-   condoms_instXage <- sample_p12noprep %>% filter(!is.na(condoms_inst)) %>% group_by(age_cat) %>% summarise(freq=n(), mean=mean(condoms_inst))
+   condoms_instXage <- sample_p12noprep_noalterprep %>% filter(!is.na(condoms_inst)) %>% group_by(age_cat) %>% summarise(freq=n(), mean=mean(condoms_inst))
     ggplot(condoms_instXage, aes(x=age_cat, y=mean, size=freq)) + geom_point() + labs(x="Ego age", y="Mean probability of condom use", title = "Mean probability of condom use in instantaneous partnerships by respondent age") + ylim(0, 1) + plot_background + theme_title
     ```
 
 __Decision__: These plots indicate that there is a reasonably strong age effect for main and persistent partnerships. We will try to fit these patterns by including terms for centered age and centered age squared. <span style="color:red"> However, this raises the question of how to handle age mixing: if a young man and an older man form a partnership, what will their condom use be? __Steve, did you work on this with Kathryn? Did you decide to take the average in such cases?__</span>
 
 The plots below superimpose predicted condom use from a regression model adjusting for centered age and centered age squared (red) and from a regression model additionally adjusting for centered age cubed (green). It looks like the model with the age cubed term fits the data for main partnerships slightly better, but it perhaps puts too much weight on the high reported condom use at the end of the age distribution. Similarly, the regression line from the model with the age cubed term may fit the persistent partner data slightly better except at the ends of the distribution. The regression models for instantaneous partnerships definitely do not fit the data well: the predictions for ages 18 to 25 are negative, and the data plotted with single years of age are much more scattered due to small cell counts. <span style="color:red"> What do you make of this? How should I proceed? Note that these plots exclude men who have taken PrEP in the past 12 months, which we may decide not to do. </span>
+```{r}
+#Define age centered, age centered squared, and age centered cubed terms for the no PrEP dataframe
+sample_p12noprep_noalterprep$age_centered <- sample_p12noprep_noalterprep$age - mean(sample_p12noprep_noalterprep$age, na.rm=TRUE)
+sample_p12noprep_noalterprep$age_cent_sq <- sample_p12noprep_noalterprep$age_centered^2
+sample_p12noprep_noalterprep$age_cent_cube <- sample_p12noprep_noalterprep$age_centered^3
+
+```
 
 ```{r condoms_main_fit}
 ##MAIN PARTNERS##
 #Define a new tibble that takes the mean condom use by age rather than age group
-condoms_mainXageinyrs <- sample_p12noprep %>% filter(!is.na(condoms_main)) %>% group_by(age) %>% summarise(freq=n(), mean=mean(condoms_main))
-
-#Define a variable for centered age cubed
-sample_p12noprep$age_cent_cube <- sample_p12noprep$age_centered^3
+condoms_mainXageinyrs <- sample_p12noprep_noalterprep %>% filter(!is.na(condoms_main)) %>% group_by(age) %>% summarise(freq=n(), mean=mean(condoms_main))
 
 #Fit linear model to the mean condom use, adjusting for centered age and centered age squared
-lm_condoms_mainXage2 <- lm(condoms_main ~ age_centered + age_cent_sq, data=sample_p12noprep)
+lm_condoms_mainXage2 <- lm(condoms_main ~ age_centered + age_cent_sq, data=sample_p12noprep_noalterprep)
 
 #Fit linear model to the mean condom use, adjusting for centered age, centered age squared, and centered age cubed
-lm_condoms_mainXage3 <- lm(condoms_main ~ age_centered + age_cent_sq + age_cent_cube, data=sample_p12noprep)
+lm_condoms_mainXage3 <- lm(condoms_main ~ age_centered + age_cent_sq + age_cent_cube, data=sample_p12noprep_noalterprep)
 
 #Create a data frame with predictions from the models and age
-condoms_main_pred_age2 <- cbind.data.frame(prediction = predict(lm_condoms_mainXage2, list(age_centered = sample_p12noprep$age_centered, age_cent_sq = (sample_p12noprep$age_centered)^2)), age = sample_p12noprep$age)
+condoms_main_pred_age2 <- cbind.data.frame(prediction = predict(lm_condoms_mainXage2, list(age_centered = sample_p12noprep_noalterprep$age_centered, age_cent_sq = (sample_p12noprep_noalterprep$age_centered)^2)), age = sample_p12noprep_noalterprep$age)
 
-condoms_main_pred_age3 <- cbind.data.frame(prediction = predict(lm_condoms_mainXage3, list(age_centered = sample_p12noprep$age_centered, age_cent_sq = (sample_p12noprep$age_centered)^2, age_cent_cube = (sample_p12noprep$age_centered)^3)), age = sample_p12noprep$age)
+condoms_main_pred_age3 <- cbind.data.frame(prediction = predict(lm_condoms_mainXage3, list(age_centered = sample_p12noprep_noalterprep$age_centered, age_cent_sq = (sample_p12noprep_noalterprep$age_centered)^2, age_cent_cube = (sample_p12noprep_noalterprep$age_centered)^3)), age = sample_p12noprep_noalterprep$age)
 
 #Plot
  ggplot() + geom_point(data=condoms_mainXageinyrs, aes(x=age, y=mean, size=freq)) + geom_line(data=condoms_main_pred_age2, aes(x=age, y=prediction), colour="red") + geom_line(data=condoms_main_pred_age3, aes(x=age, y=prediction), colour="green") + labs(x="Ego age", y="Mean probability of condom use", title = "Mean probability of condom use in main partnerships by respondent age \n with predicted condom use from a regression model ") + ylim(0, 1) + theme_title + plot_background
@@ -1626,18 +1651,18 @@ condoms_main_pred_age3 <- cbind.data.frame(prediction = predict(lm_condoms_mainX
 
 ```{r condoms_pers_fit}
 ##PERSISTENT PARTNERS##
-condoms_persXageinyrs <- sample_p12noprep %>% filter(!is.na(condoms_pers)) %>% group_by(age) %>% summarise(freq=n(), mean=mean(condoms_pers))
+condoms_persXageinyrs <- sample_p12noprep_noalterprep %>% filter(!is.na(condoms_pers)) %>% group_by(age) %>% summarise(freq=n(), mean=mean(condoms_pers))
 
 #Fit linear model to the mean condom use, adjusting for centered age and centered age squared
-lm_condoms_persXage2 <- lm(condoms_pers ~ age_centered + age_cent_sq, data=sample_p12noprep)
+lm_condoms_persXage2 <- lm(condoms_pers ~ age_centered + age_cent_sq, data=sample_p12noprep_noalterprep)
 
 #Fit linear model to the mean condom use, adjusting for centered age, centered age squared, and centered age cubed
-lm_condoms_persXage3 <- lm(condoms_pers ~ age_centered + age_cent_sq + age_cent_cube, data=sample_p12noprep)
+lm_condoms_persXage3 <- lm(condoms_pers ~ age_centered + age_cent_sq + age_cent_cube, data=sample_p12noprep_noalterprep)
 
 #Create a data frame with predictions from the models and age
-condoms_pers_pred_age2 <- cbind.data.frame(prediction = predict(lm_condoms_persXage2, list(age_centered = sample_p12noprep$age_centered, age_cent_sq = (sample_p12noprep$age_centered)^2)), age = sample_p12noprep$age)
+condoms_pers_pred_age2 <- cbind.data.frame(prediction = predict(lm_condoms_persXage2, list(age_centered = sample_p12noprep_noalterprep$age_centered, age_cent_sq = (sample_p12noprep_noalterprep$age_centered)^2)), age = sample_p12noprep_noalterprep$age)
 
-condoms_pers_pred_age3 <- cbind.data.frame(prediction = predict(lm_condoms_persXage3, list(age_centered = sample_p12noprep$age_centered, age_cent_sq = (sample_p12noprep$age_centered)^2, age_cent_cube = (sample_p12noprep$age_centered)^3)), age = sample_p12noprep$age)
+condoms_pers_pred_age3 <- cbind.data.frame(prediction = predict(lm_condoms_persXage3, list(age_centered = sample_p12noprep_noalterprep$age_centered, age_cent_sq = (sample_p12noprep_noalterprep$age_centered)^2, age_cent_cube = (sample_p12noprep_noalterprep$age_centered)^3)), age = sample_p12noprep_noalterprep$age)
 
 #Plot
  ggplot() + geom_point(data=condoms_persXageinyrs, aes(x=age, y=mean, size=freq)) + geom_line(data=condoms_pers_pred_age2, aes(x=age, y=prediction), colour="red") + geom_line(data=condoms_pers_pred_age3, aes(x=age, y=prediction), colour="green") + labs(x="Ego age", y="Mean probability of condom use", title = "Mean probability of condom use in persistent partnerships by respondent age \n with predicted condom use from a regression model ") + ylim(0, 1) + theme_title + plot_background
@@ -1645,18 +1670,18 @@ condoms_pers_pred_age3 <- cbind.data.frame(prediction = predict(lm_condoms_persX
 
 ```{r condoms_inst_fit}
 ##INST PARTNERS##
-condoms_instXageinyrs <- sample_p12noprep %>% filter(!is.na(condoms_inst)) %>% group_by(age) %>% summarise(freq=n(), mean=mean(condoms_inst))
+condoms_instXageinyrs <- sample_p12noprep_noalterprep %>% filter(!is.na(condoms_inst)) %>% group_by(age) %>% summarise(freq=n(), mean=mean(condoms_inst))
 
 #Fit linear model to the mean condom use, adjusting for centered age and centered age squared
-lm_condoms_instXage2 <- glm(condoms_inst ~ age_centered + age_cent_sq, family=binomial(link="logit"), data=sample_p12noprep, subset = prep_use_r %in% "Never taken PrEP")
+lm_condoms_instXage2 <- glm(condoms_inst ~ age_centered + age_cent_sq, family=binomial(link="logit"), data=sample_p12noprep_noalterprep, subset = prep_use_r %in% "Never taken PrEP")
 
 #Fit linear model to the mean condom use, adjusting for centered age, centered age squared, and centered age cubed
-lm_condoms_instXage3 <- glm(condoms_inst ~ age_centered + age_cent_sq + age_cent_cube, family=binomial(link="logit"), data=sample_p12noprep, subset = prep_use_r %in% "Never taken PrEP")
+lm_condoms_instXage3 <- glm(condoms_inst ~ age_centered + age_cent_sq + age_cent_cube, family=binomial(link="logit"), data=sample_p12noprep_noalterprep, subset = prep_use_r %in% "Never taken PrEP")
 
 #Create a data frame with predictions from the models and age
-condoms_inst_pred_age2 <- cbind.data.frame(prediction = predict(lm_condoms_instXage2, list(age_centered = sample_p12noprep$age_centered, age_cent_sq = (sample_p12noprep$age_centered)^2)), age = sample_p12noprep$age)
+condoms_inst_pred_age2 <- cbind.data.frame(prediction = predict(lm_condoms_instXage2, list(age_centered = sample_p12noprep_noalterprep$age_centered, age_cent_sq = (sample_p12noprep_noalterprep$age_centered)^2)), age = sample_p12noprep_noalterprep$age)
 
-condoms_inst_pred_age3 <- cbind.data.frame(prediction = predict(lm_condoms_instXage3, list(age_centered = sample_p12noprep$age_centered, age_cent_sq = (sample_p12noprep$age_centered)^2, age_cent_cube = (sample_p12noprep$age_centered)^3)), age = sample_p12noprep$age)
+condoms_inst_pred_age3 <- cbind.data.frame(prediction = predict(lm_condoms_instXage3, list(age_centered = sample_p12noprep_noalterprep$age_centered, age_cent_sq = (sample_p12noprep_noalterprep$age_centered)^2, age_cent_cube = (sample_p12noprep_noalterprep$age_centered)^3)), age = sample_p12noprep_noalterprep$age)
 
 #Plot
  ggplot() + geom_point(data=condoms_instXageinyrs, aes(x=age, y=mean, size=freq)) + geom_line(data=condoms_inst_pred_age2, aes(x=age, y=prediction), colour="red") + geom_line(data=condoms_inst_pred_age3, aes(x=age, y=prediction), colour="green") + labs(x="Ego age", y="Mean probability of condom use", title = "Mean probability of condom use in instantaneous partnerships by respondent age \n with predicted condom use from a regression model ") + ylim(0, 1) + theme_title + plot_background
