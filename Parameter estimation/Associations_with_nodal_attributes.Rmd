@@ -1,3 +1,9 @@
+---
+output:
+  html_document:
+    toc: true
+    toc_float: true
+---
 # Model structure: Heterogeneity on nodal attributes {#explore_heterogeneity}
 ```{r, include=FALSE}
 ####################################################################################
@@ -131,17 +137,18 @@ plot.age.coefs <- function(full) {
 ```
 
 
-This section documents the results of regression analyses aimed at identifying which variables vary by region, race, and/or age to determine the combination of attributes on which to stratify each parameter. The first step looks at associations by age after adjusting for race/ethnicty and region to determine whether the data show any age effects and, if so, how age should be parameterized. After fitting a model adjusted for the main effects of race/ethnicity, region, and age (categorized as a factor variable with categories 18-24, 25-34... 54-59), we plot the coefficients for age and examine the pattern. Error bars on these plots show the 95% confidence interval around the estimates (1.96 times the standard error of the estimate). If the plots suggest a meaningful trend or other pattern by age, we re-run the models including age in the form indicated by the plot. If not, we fit models excluding age to examine the associations with race and region. We first examine main effects and then test the significance of all two-way interactions. 
+This section documents the results of regression analyses aimed at identifying which variables vary by region, race, and/or age to determine the combination of attributes on which to stratify each parameter. The first step looks at associations by age after adjusting for race/ethnicity and region to determine whether the data show any age effects and, if so, how age should be parameterized. After fitting a model adjusted for the main effects of race/ethnicity, region, and age (categorized as a factor variable with categories 18-24, 25-34... 54-59), we plot the coefficients for age and examine the pattern. Error bars on these plots show the 95% confidence interval around the estimates (1.96 times the standard error of the estimate). If the plots suggest a meaningful trend or other pattern by age, we re-run the models including age in the form indicated by the plot. If not, we fit models excluding age to examine the associations with race and region. We first examine main effects and then test the significance of all two-way interactions. 
 
 P-values are to be used as a guide but not as the sole criteria determining which differences may be worth modeling. The purpose of this analysis is to determine how to specify parameters in order to get the network to reproduce the data. It is not an analysis to determine from the data which parameters differ significantly by region, race, or age in the population (since the sample is not probability-based, this would be difficult to conclude even if it were our goal). As such, corrections for multiple comparisons are not necessary, as these adjust the false discovery rate in analyses attempting to make inference about the population. We use likelihood ratio tests (package `lmtest`) to compare models for joint significance testing.
 
 For variables from which the models suggest meaningful heterogeneity by age, race/ethnicity, and/or region, we further explore this heterogeneity by plotting the data stratified by the indicated nodal attributes. These plots are used to inform how, or if at all, to represent the observed heterogeneity in the model.
 
-## Degree distribution
+## Regression analyses
+### Degree distribution
 
 To look for differences in the degree distribution, we will break it down to four binary indicators corresponding to: 1) whether men have any ongoing main partners, 2) whether they have any ongoing persistent partners, 3) whether they have two or more ongoing persistent partners, and 4) whether men who reported an ongoing main partner reported any concurrent persistent partners.
 
-### Any ongoing main partner
+#### Any ongoing main partner
 We first look at the number of observations that are non-missing for this outcome and for model predictors
 ```{r}
   #Look at the number of observations that are non-missing for this outcome and for model predictors
@@ -174,7 +181,7 @@ From this there does not appear to be any significant pattern by age, so we will
 ```
 
 
-### Any ongoing persistent partners
+#### Any ongoing persistent partners
 We first look at the number of observations that are non-missing for this outcome and for model predictors
 ```{r}
   #Look at the number of observations that are non-missing for this outcome and for model predictors
@@ -225,7 +232,7 @@ The data suggest that the likelihood of having any persistent partner is higher 
   results_anypers_age40to49
 ```
 
-### Two or more ongoing persistent partners
+#### Two or more ongoing persistent partners
 We first look at the number of observations that are non-missing for this outcome and for model predictors
 ```{r}
   #Look at the number of observations that are non-missing for this outcome and for model predictors
@@ -275,7 +282,7 @@ The pattern of concurrent persistent partnerships by age is similar to the patte
   results_concurrent_pers_age40to49
 ```
 
-### Ongoing main partners with concurrent persistent partners
+#### Ongoing main partners with concurrent persistent partners
 We first look at the number of observations that are non-missing for this outcome and for model predictors
 ```{r}
   #Look at the number of observations that are non-missing for this outcome and for model predictors
@@ -325,9 +332,9 @@ It appears that the probability of having persistent partners concurrently with 
   results_concurrent_mainpers_age40to49
 ```
 
-## Rate of instantaneous partners
+### Rate of instantaneous partners
 This analysis looks at heterogeneity in the rate of one-time partnerships separately for men who have 0 main, those who have 1 main, those who have 0 persistent, and those who have one or more persistent partnerships.
-### No main partners
+#### No main partners
 We first look at the number of observations that are non-missing for this outcome and for model predictors
 ```{r}
     #Look at the number of observations that are non-missing for this outcome and for model predictors
@@ -362,7 +369,7 @@ This plot suggests that the rate of instantaneous partners is higher for men age
     results_rateinst_nomain
 ```
 
-### Main partner
+#### Main partner
 We first look at the number of observations that are non-missing for this outcome and for model predictors
 ```{r}
     #Look at the number of observations that are non-missing for this outcome and for model predictors
@@ -399,7 +406,7 @@ The models and likelihood ratio tests are below.
     results_rateinst_main
 ```
 
-### No persistent partners
+#### No persistent partners
 We first look at the number of observations that are non-missing for this outcome and for model predictors
 ```{r}
     #Look at the number of observations that are non-missing for this outcome and for model predictors
@@ -436,7 +443,7 @@ The models and likelihood ratio tests are below.
     results_rateinst_nopers
 ```
 
-### Any persistent partners
+#### Any persistent partners
 We first look at the number of observations that are non-missing for this outcome and for model predictors
 ```{r}
     #Look at the number of observations that are non-missing for this outcome and for model predictors
@@ -473,7 +480,7 @@ The models and likelihood ratio tests are below.
     results_rateinst_anypers
 ```
 
-## Race/ethnicity mixing
+### Race/ethnicity mixing
 To examine differences in mixing by race/ethnicity, we will look at the proportion of men reporting that their most recent partner was in the same racial/ethnic group (Hispanic, black, or other) as themselves. For main and persistent partner types, this analysis is restricted to most recent partners who are _ongoing_. __Note__: The outcome is based on ego reports of their partners race and, at this point, does not adjust for imbalances in reported partnering patterns.
 
 ```{r samerace_define}
@@ -488,7 +495,7 @@ To examine differences in mixing by race/ethnicity, we will look at the proporti
                                           NA))
 ```
 
-### Main partners
+#### Main partners
 We first look at the number of observations that are non-missing for this outcome and for model predictors
 ```{r}
      #Look at the number of observations that are non-missing for this outcome and for model predictors
@@ -528,7 +535,7 @@ These coefficients suggest that racial/ethnic homophily is lower among those age
 ```
 
 
-### Persistent partners
+#### Persistent partners
 We first look at the number of observations that are non-missing for this outcome and for model predictors
 ```{r}
     
@@ -569,7 +576,7 @@ As with main partnerships, there does not appear to be a meaningful pattern by a
 
 ```
 
-### Instantaneous partners
+#### Instantaneous partners
 We first look at the number of observations that are non-missing for this outcome and for model predictors
 ```{r}
   
@@ -605,10 +612,10 @@ This plot does not show any clear pattern of racial/ethnic mixing by age. As suc
 ```
 
 
-## Age mixing
+### Age mixing
 As with race/ethnicity, examination of age differences with main and persistent partners is restricted to most recent partners who are _ongoing_. For this analysis, we model age mixing using a linear model with the outcome being the absolute difference between the square root of the ego and alter's ages.
 
-### Main partners
+#### Main partners
 We first look at the number of observations that are non-missing for this outcome and for model predictors
 ```{r}
  #Look at the number of observations that are non-missing for this outcome and for model predictors
@@ -645,7 +652,7 @@ With the exception of the coefficients for ages 50-54 and 55-59, these appear cl
 
 ```
 
-### Persistent partners
+#### Persistent partners
 We first look at the number of observations that are non-missing for this outcome and for model predictors
 ```{r}
 #Look at the number of observations that are non-missing for this outcome and for model predictors
@@ -683,7 +690,7 @@ The models and likelihood ratio tests are below.
   results_adiff_pers
 ```
 
-### Instantaneous partners
+#### Instantaneous partners
 We first look at the number of observations that are non-missing for this outcome and for model predictors
 ```{r}
 #Look at the number of observations that are non-missing for this outcome and for model predictors
@@ -721,10 +728,10 @@ The models and likelihood ratio tests are below.
   results_adiff_inst
 ```
 
-## Partnership age
+### Partnership age
 Partnership age was modeled as a linear outcome.
 
-### Main partners
+#### Main partners
 We first look at the number of observations that are non-missing for this outcome and for model predictors
 ```{r}
  #Look at the number of observations that are non-missing for this outcome and for model predictors
@@ -763,7 +770,7 @@ The models and likelihood ratio tests are below.
 ```
 
                 
-### Persistent partners
+#### Persistent partners
 We first look at the number of observations that are non-missing for this outcome and for model predictors
 ```{r}
   #Look at the number of observations that are non-missing for this outcome and for model predictors
@@ -797,7 +804,7 @@ The coefficients do not seem to indicate any meaningful pattern by age. As such,
   
 ```
 
-## Proportion never tested
+### Proportion never tested
 The parameter indicating the proportion of men who never test is meant to indicate the proportion of men who will not be screened for HIV. As documented in section \@ref(hivtesting), it appears that if men do not test by age 40 they are unlikely to. As such, we will estimate the proportion of men who never test for HIV based on the proportion of men aged 40 and above who report never having tested. <span style="color:red">This analysis includes men who have taken PrEP, because many men who go on PrEP are likely to have come in for testing as the precipitating event to initiating PrEP. Excluding them would overestimate the proportion never tested. </span> To see if this varies by race and region, we will model the probability of having never tested among men aged 40 to 59.
 
 We first look at the number of observations that are non-missing for this outcome and for model predictors.
@@ -827,7 +834,7 @@ Because this outcome is defined based on age, we will not include age as a covar
 ```
 
 
-## Intertest interval
+### Intertest interval
 The last test interval is estimated as the days since men reported their last HIV test, assuming men test as an interval process (see Section \@ref(iti). This analysis is restricted to men who reported having ever tested, and excludes men who reported use of PrEP in the past 12 months, as testing patterns on PrEP will be different and will be represented with a separate parameter in the model.
 ```{r}
 #Define dataframe excluding men who used PrEP in the past 12 months
@@ -872,10 +879,10 @@ The coefficients suggest that the intertest interval increases with age, though 
   results_iti
 ```
 
-## Coital frequency
+### Coital frequency
 Data on coital frequency are from all most recent partnerships, not just those that are ongoing. 
 
-### Main partners
+#### Main partners
 We first look at the number of observations that are non-missing for this outcome and for model predictors
 ```{r}
  #Look at the number of observations that are non-missing for this outcome and for model predictors
@@ -912,7 +919,7 @@ From these coefficients, coital frequency appears to be higher for men aged 30-3
 ```
 
 
-### Persistent partners
+#### Persistent partners
 We first look at the number of observations that are non-missing for this outcome and for model predictors
 ```{r}
  #Look at the number of observations that are non-missing for this outcome and for model predictors
@@ -945,7 +952,7 @@ There does not appear to be a meaningful trend by age for coital frequency in pe
   results_coitalfreq_pers
 ```
 
-## Sex role
+### Sex role
 Sex role is categorized as exclusively bottom, exclusively top, or versatile, based on men's reported role in anal sex over the past 12 months. Responses of "mostly a bottom", "mostly a top", and "equally a bottom and a top" are categorized as versatile. For this analysis, dichotomous indicators was constructed to measure whether men report exclusively topping, exclusively bottoming, or a versatile sex role.
 
 We first look at the number of observations that are non-missing for these outcomes and for model predictors
@@ -965,7 +972,7 @@ We first look at the number of observations that are non-missing for these outco
 
 ```
 
-### Exclusively topping
+#### Exclusively topping
 To inform parameterization of age in models exploring heterogeneity in the proportion of men who report exclusively topping, we will plot the ceofficients from a model with age input as a dummy variable with 5-year age bins, adjusting for race/ethnicity and region.
 ```{r}
  #Figure out how to parameterize age
@@ -993,7 +1000,7 @@ Although the proportion of men reporting that they are exclusive tops seems to i
   
 ```
 
-### Exclusively bottoming
+#### Exclusively bottoming
 As above, to inform parameterization of age in models exploring heterogeneity in the proportion of men who report exclusively bottoming, we will plot the ceofficients from a model with age input as a dummy variable with 5-year age bins, adjusting for race/ethnicity and region.
 ```{r}
  #Figure out how to parameterize age
@@ -1021,7 +1028,7 @@ The proportion of men reporting that they are exclusive bottoms seems to drop fo
   
 ```
 
-### Versatile
+#### Versatile
 To inform parameterization of age in models exploring heterogeneity in the proportion of men who report being versatile in their anal sex role, we will plot the ceofficients from a model with age input as a dummy variable with 5-year age bins, adjusting for race/ethnicity and region.
 ```{r}
  #Figure out how to parameterize age
@@ -1050,14 +1057,14 @@ These data do not suggest any clear trend by age. However, because sex role will
 ```
 
 
-## Condom use
+### Condom use
 Data on condom use are restricted to dyads in which both the respondent and his partner were HIV-negative or of unknown status. This analysis includes data from all such partnerships, not just those that were ongoing. Because the model will explore the effect of decreased condom use in men on PrEP, we will further restrict this analysis to men who have not taken PrEP in he past 12 months. We exclude all men who have taken PrEP in the past 12 months regardless of whether they are currently using it becasue their reported behaviors in the past 12 months may reflect behaviors while on PrEP. We will also exclude men who report that their most recent partner is taking PrEP.
 ```{r}
 # Define sample for condom use analyses - exclude partners on PrEP and men who have taken PrEP in the past 12 months
 sample_p12noprep_noalterprep <- sample_p12noprep %>% filter(!(mrp_prep_r %in% 1))
 ```
 
-### Main partners
+#### Main partners
 We first look at the number of observations that are non-missing for this outcome and for model predictors
 ```{r}
  
@@ -1096,7 +1103,7 @@ The plot of these coefficients suggests that condom use in main partnerships is 
 ```
 
 
-### Persistent partners
+#### Persistent partners
 We first look at the number of observations that are non-missing for this outcome and for model predictors
 ```{r}
  
@@ -1132,7 +1139,7 @@ These data do not suggest a clear pattern by age for condom use with persistent 
   
 ```
 
-### Instantaneous partners
+#### Instantaneous partners
 We first look at the number of observations that are non-missing for this outcome and for model predictors
 ```{r}
 
@@ -1175,10 +1182,10 @@ The plots of these coefficients do not suggest that there is any meaningful patt
 ```
 
 
-## PrEP use
+### PrEP use
 To look at differences in PrEP use, we define two outcomes: reported current use of PrEP _among those for whom PrEP is recommended_, and reported current use of PrEP _among those with whom PrEP should be discussed_ based on [Washington State guidelines](http://www.kingcounty.gov/healthservices/health/communicable/~/media/health/publichealth/documents/hiv/PrEP-Implementation-Guidelines.ashx).^[In the WHPP survey, any diagnosis of syphilis was considered an indication for recommending PrEP, regardless of the stage of infection. We classified respondents in the "discuss PrEP" candidacy category if they did not meet the criteria for recommending PrEP and reported any of the following in the prior 12 months: condomless anal sex (CAS) with a partner not considered to be main or primary, CAS with a partner of unknown or positive HIV status, diagnosis of urethral gonorrhea or rectal chlamydia, or use of non-prescription injection drugs. Men also fit into this category if they reported any ongoing partnerships with HIV-positive persons who had been on ART for more than 6 months and were virologically suppressed. We did not measure whether men reported HIV-positive female partners with whom they are trying to become pregnant, completion of a course of post-exposure prophylaxis for non-occupational exposure, or seeking a prescription for PrEP.]
 
-### PrEP use among men recommended to initiate PrEP
+#### PrEP use among men recommended to initiate PrEP
 We first look at the number of observations that are non-missing for this outcome and for model predictors
 ```{r}
  
@@ -1216,7 +1223,7 @@ The plot of these coefficients suggests that the probability of PrEP use is sign
 
 ```
 
-### PrEP use among men who should discuss PrEP with a provider
+#### PrEP use among men who should discuss PrEP with a provider
 We first look at the number of observations that are non-missing for this outcome and for model predictors
 ```{r}
  
@@ -1256,7 +1263,7 @@ As among men recommended to initiate PrEP, this plot suggests that the probabili
 
 
 ## Summary tables
-In these tables, "NA" indicates that age was not included in the model based on examination of the coefficients.
+In these tables, "NA" indicates that age was not included in the regression model based on examination of the coefficients.
 ```{r summaries}
 
   summary_network <- cbind.data.frame("Parameter" = c("Ongoing main partner", "Any ongoing persistent partners", "Any ongoing persistent partners (with age)", "Concurrent ongoing persistent partners", "Concurrent ongoing persistent partners (with age)", "Ongoing main with concurrent persistent partners", "Ongoing main with concurrent persistent partners (with age)", "No main partners", "Main partner", "No persistent partners", "Persistent partners", "Main partnerships", "Persistent partnerships", "Instantaneous partnerships", "Main partnerships", "Persistent partnerships", "Instantaneous partnerships", "Main partnerships", "Persistent partnerships"), "Region" = c(results_hasmain[[1]][1,3], results_anypers[[1]][1,3], results_anypers_age40to49[[1]][1,3], results_concurrent_pers[[1]][1,3], results_concurrent_pers_age40to49[[1]][1,3], results_concurrent_mainpers[[1]][1,3], results_concurrent_mainpers_age40to49[[1]][1,3], results_rateinst_nomain[[1]][1,3], results_rateinst_main[[1]][1,3], results_rateinst_nopers[[1]][1,3], results_rateinst_anypers[[1]][1,3], results_samerace_main[[1]][1,3], results_samerace_pers[[1]][1,3], results_samerace_inst[[1]][1,3], results_adiff_main[[1]][1,3], results_adiff_pers[[1]][1,3], results_adiff_inst[[1]][1,3], results_pshipage_main[[1]][1,3], results_pshipage_pers[[1]][1,3]), "Race" = c(results_hasmain[[1]][2,3], results_anypers[[1]][2,3], results_anypers_age40to49[[1]][2,3], results_concurrent_pers[[1]][2,3], results_concurrent_pers_age40to49[[1]][2,3], results_concurrent_mainpers[[1]][2,3], results_concurrent_mainpers_age40to49[[1]][2,3], results_rateinst_nomain[[1]][2,3], results_rateinst_main[[1]][2,3], results_rateinst_nopers[[1]][2,3], results_rateinst_anypers[[1]][2,3], results_samerace_main[[1]][2,3], results_samerace_pers[[1]][2,3], results_samerace_inst[[1]][2,3], results_adiff_main[[1]][2,3], results_adiff_pers[[1]][2,3], results_adiff_inst[[1]][2,3], results_pshipage_main[[1]][2,3], results_pshipage_pers[[1]][2,3]), "Age" = c(results_hasmain[[1]][3,3], results_anypers[[1]][3,3], results_anypers_age40to49[[1]][3,3], results_concurrent_pers[[1]][3,3], results_concurrent_pers_age40to49[[1]][3,3], results_concurrent_mainpers[[1]][3,3], results_concurrent_mainpers_age40to49[[1]][3,3], results_rateinst_nomain[[1]][3,3], results_rateinst_main[[1]][3,3], results_rateinst_nopers[[1]][3,3], results_rateinst_anypers[[1]][3,3], results_samerace_main[[1]][3,3], results_samerace_pers[[1]][3,3], results_samerace_inst[[1]][3,3], results_adiff_main[[1]][3,3], results_adiff_pers[[1]][3,3], results_adiff_inst[[1]][3,3], results_pshipage_main[[1]][3,3], results_pshipage_pers[[1]][3,3]), "Race_by_region" = c(results_hasmain[[2]][1,3], results_anypers[[2]][1,3], results_anypers_age40to49[[2]][1,3], results_concurrent_pers[[2]][1,3], results_concurrent_pers_age40to49[[2]][1,3], results_concurrent_mainpers[[2]][1,3], results_concurrent_mainpers_age40to49[[2]][1,3], results_rateinst_nomain[[2]][1,3], results_rateinst_main[[2]][1,3], results_rateinst_nopers[[2]][1,3], results_rateinst_anypers[[2]][1,3], results_samerace_main[[2]][1,3], results_samerace_pers[[2]][1,3], results_samerace_inst[[2]][1,3], results_adiff_main[[2]][1,3], results_adiff_pers[[2]][1,3], results_adiff_inst[[2]][1,3], results_pshipage_main[[2]][1,3], results_pshipage_pers[[2]][1,3]), "Age_by_region" = c(results_hasmain[[2]][2,3], results_anypers[[2]][2,3], results_anypers_age40to49[[2]][2,3], results_concurrent_pers[[2]][2,3], results_concurrent_pers_age40to49[[2]][2,3], results_concurrent_mainpers[[2]][2,3], results_concurrent_mainpers_age40to49[[2]][2,3], results_rateinst_nomain[[2]][2,3], results_rateinst_main[[2]][2,3], results_rateinst_nopers[[2]][2,3], results_rateinst_anypers[[2]][2,3], results_samerace_main[[2]][2,3], results_samerace_pers[[2]][2,3], results_samerace_inst[[2]][2,3], results_adiff_main[[2]][2,3], results_adiff_pers[[2]][2,3], results_adiff_inst[[2]][2,3], results_pshipage_main[[2]][2,3], results_pshipage_pers[[2]][2,3]), "Race_by_age" = c(results_hasmain[[2]][3,3], results_anypers[[2]][3,3], results_anypers_age40to49[[2]][3,3], results_concurrent_pers[[2]][3,3], results_concurrent_pers_age40to49[[2]][3,3], results_concurrent_mainpers[[2]][3,3], results_concurrent_mainpers_age40to49[[2]][3,3], results_rateinst_nomain[[2]][3,3], results_rateinst_main[[2]][3,3], results_rateinst_nopers[[2]][3,3], results_rateinst_anypers[[2]][3,3], results_samerace_main[[2]][3,3], results_samerace_pers[[2]][3,3], results_samerace_inst[[2]][3,3], results_adiff_main[[2]][3,3], results_adiff_pers[[2]][3,3], results_adiff_inst[[2]][3,3], results_pshipage_main[[2]][3,3], results_pshipage_pers[[2]][3,3]))
@@ -1384,7 +1391,7 @@ table(sample$rate_inst_quart)
 
 ```
 
-It looks like the proportion of men reporting zero instantaneous partners drops with age until ~age 30, then stabilizes and increases for men aged 50+. The proportion of men in the top quartile for the rate of instantaneous mirrors this trend, increasing and then dropping off again in the older ages. The proportion of men in the middle quartiles does not show any meaningful pattern with age. 
+It looks like the proportion of men reporting zero instantaneous partners drops slightly with age until ~age 30, then stabilizes and increases for men aged 50+. The proportion of men in the top quartile for the rate of instantaneous mirrors this trend, increasing slightly and then dropping off again in the older ages. The proportion of men in the middle quartiles does not show any meaningful pattern with age. 
 
 In the next plots, we will look to see whether the distribution by age differs by momentary degree. These plots exclude the four outliers identified above. We first look at the rate of instantaneous partnerships by single year of age, with superimposed loess smooth curves.
 
@@ -1416,23 +1423,7 @@ These plots do not suggest any clear differences in the rate of instantaneous pa
     
 ```
 
-__Decision__: There seems to be an age effect on the rate of instantaneous partnerships, but it does not appear to vary meaningfully by main or persisent degree. As such, we will define the rate of instantaneous partnerships to vary by age but not by degree. <span style="color:red"> To capture the age effect, we could include terms for centered age (age - mean age) and centered age squared, or we could define a transition matrix wherein men move through the quartiles of the distribution as they age. Plot \@ref(fig:rate_inst_fit) shows the rate of instantanoues partnerships by age with the lowess smooth (in blue) and the predicted rate from a model adjusting for centered age and centered age squared (red). __Steve, which approach seems better to you?__</span>
-
-```{r rate_inst_fit}
-#Define centered age and centered age squared variables
-sample$age_centered <- sample$age - mean(sample$age, na.rm=TRUE)
-sample$age_cent_sq <- sample$age_centered^2
-
-#Fit linear model
-lm_rate_instXage <- lm(rate_inst ~ age_centered + age_cent_sq, data=sample)
-
-#Create a data frame with prediction from the model and age
-rate_inst_pred <- cbind.data.frame(prediction = predict(lm_rate_instXage, list(age_centered = sample$age_centered, age_cent_sq = sample$age_centered^2)), age = sample$age)
-
-#Plot
-ggplot(sample[!is.na(sample$rate_inst) & sample$rate_inst <0.25,], aes(x=age, y=rate_inst)) + geom_point() + geom_smooth(method="loess") + geom_line(data=rate_inst_pred, aes(x=age, y=prediction), colour="red") + labs(x="Ego age", y="Rate of instantaneous partnerships", title="Rate of instantaneous partnerships by ego age, \n outliers removed and with fitted regression line") + plot_background + theme_title 
-
-```
+__Decision__: There seems to be an age effect on the rate of instantaneous partnerships, and in the quantile disutribution plots, the rate appears to differ by main and persistent degree. This latter effect is important because it implies different levels of concurrency. As such, we will represent main effects on the rate of instantaneous partnerships for both momentary degree and age. For momentary degree, we will stratify the rate of instantaneous partnerships by main and persistent partnership status, but not by the joint degree distribution. For age, although the rate of instantaneous partnerships decreases slightly from ages 18 to 30, the biggest change appears to be an increase in the proportion with zero instantaneous partners at age 50. So we will assign everyone to an instantaneous partnership quantile at entry to the population, and at age 50 we will specify probabilities that men move to the zero partnership quantile. 
 
 ### Age mixing by age and race
 
@@ -1500,7 +1491,7 @@ To explore variation in age mixing by region, plot \@ref(fig:plots_explore_agemi
 
 ```
 
-__Decision__: To capture the age heterogeneity in age mixing, we need to decide how to parameterize the age difference. From plots \@ref(fig:plots_explore_agemixing_2) and \@ref(fig:plots_explore_agemixing_3), taking the difference between the square root of ego and alter ages reduces the heterogeneity by age, but does not fully account for differences by ego age in the age difference with persistent partnerships. Taking the cube root does not lead to a noticeable improvement. <span style="color:red"> How to proceed? Are these plots showing what we want them to?</span>
+__Decision__: To capture the age heterogeneity in age mixing, we need to decide how to parameterize the age difference. From plots \@ref(fig:plots_explore_agemixing_2) and \@ref(fig:plots_explore_agemixing_3), taking the difference between the square root of ego and alter ages reduces the heterogeneity by age, but does not fully account for differences by ego age. Taking the cube root does not lead to a noticeable improvement. Although taking the square root of ego and alter ages leaves some heterogeneity by age, it seems good enough. We will parameterize age mixing using this approach.
 
 In the regression analyses, age mixing differed by race/ethnicity only among main partnerships. In the plot, the patterns for non-Hispanic other and Hispanic respondents appear similar. Black men ages 18-24 report partners who are, on average, further in age from themselves than the other racial/ethnic groups. We see this for persistent partnerships as well However, the numbers are small: `r sum(!is.na(sample$mrp_ageinyears_approx) & sample$race_eth_m %in% "Black" & sample$mrp_type_ongoing %in% "Main" & sample$age_cat %in% "18-24")` black respondents aged 18-24 provided data on the age of main partners and only `r sum(!is.na(sample$mrp_ageinyears_approx) & sample$race_eth_m %in% "Black" & sample$mrp_type_ongoing %in% "Persistent" & sample$age_cat %in% "18-24")` provided data on the age of persistent partners. As such, these patterns should be interpreted with caution. Apart from these differences among men aged 18-24, the pattern otherwise appears similar by age. Additionally, interpretation of these data is made difficult by the fact that there are imbalances in reported age mixing (see \@ref(mixing). In light of these issues, we will not stratify age mixing terms by race/ethnicity.
 
@@ -1547,9 +1538,9 @@ The first figure below looks at the mean and median intertest intervals by age g
         
 ```
 
-__Decision__: These data suggest that the intertest interval increases with age. The effect appears to be close to linear up to age 44, at which point it levels out. We will try to fit this with terms for centered age and centered age squared. <span style="color:red"> __Steve, what do you think? When we looked at this before, we just looked at the top plot, which doesn't show the variability in the median because the scale for the y-axis is too big. Would this be hard to do?__</span>
+__Decision__: These data suggest that the intertest interval increases with age. The effect appears to be close to linear up to age 44, at which point it levels out. We will try to fit this with terms for centered age and centered age squared.
 
-Plot \@ref(fig:iti_fit) below shows the median intertest interval by age with a superimposed line with predicted values from a linear model for median intertest interval that includes centered age and centered age squared terms. <span style="color:red"> Does this seem like an okay fit? </span>
+Plot \@ref(fig:iti_fit) below shows the median intertest interval by age with a superimposed line with predicted values from a linear model for median intertest interval that includes centered age and centered age squared terms. This seem like an decent fit, so we will include centered age and centered age squared terms for the intertest interval in the model.
 
 ```{r iti_fit}
 #Define centered age and centered age squared variables for the dataframe that excludes past 12 month prep users
@@ -1583,12 +1574,19 @@ In the plots below, the error bars indicate the 95% confidence interval of the p
 
 ```
 
-__Decision__: These plots suggest that there is a higher probability of exclusive bottoming for younger men and a lower probability of topping, but that these probabilities converge by age 30 and remain roughly similar. <span style="color:red"> __Steve, can you think of a good way to capture this? It's complicated because this has implications for age mixing since position is in the network model as an offset. Martina and I felt that, if there's no easy way to represent this, we can let it go.__</span>
+__Decision__: These plots suggest that there is a higher probability of exclusive bottoming for younger men and a lower probability of topping, but that these probabilities converge by age 30 and remain roughly similar. Because these effects are fairly small and capturing heterogeneity in sex role by age is difficult becuase it introduces complexity in ensuring balance in age mixing, we will not stratify sex role by age in the model. We will flag this as something to explore in the future with more data.
 
 There is no clear difference in anal sex role by race/ethnicity, so we will not stratify on race/ethnicity.
 
 ### Condom use by age
-The plots below show the probability of condom use by respondent age in main partnerships. In regression analyses, condom use differed by age only among  main partnerships, but in the plots below we will explore patterns among persistent and instantaneous partnerships as well.
+The plots below show the probability of condom use by respondent age in main partnerships. In regression analyses, condom use differed by age only among  main partnerships, but in the plots below we will explore patterns among persistent and instantaneous partnerships as well. These plots show condom use by ego age and by dyad age, as condom use in any given partnership is influenced by the preferences of both partners.
+```{r}
+#Define dyad age category variable
+    sample_p12noprep_noalterprep$dyad_age <- ifelse(sample_p12noprep_noalterprep$age %in% c(18:34) & sample_p12noprep_noalterprep$mrp_ageinyears_approx %in% c(18:34), "YY", ifelse(sample_p12noprep_noalterprep$age %in% c(18:34) & sample_p12noprep_noalterprep$mrp_ageinyears_approx %in% c(35:59), "YO", ifelse(sample_p12noprep_noalterprep$age %in% c(35:59) & sample_p12noprep_noalterprep$mrp_ageinyears_approx %in% c(18:34), "OY", ifelse(sample_p12noprep_noalterprep$age %in% c(35:59) & sample_p12noprep_noalterprep$mrp_ageinyears_approx %in% c(35:59), "OO", NA))))
+                                                                            
+    #Specify order of dyad age
+    sample_p12noprep_noalterprep$dyad_age <- factor(sample_p12noprep_noalterprep$dyad_age, levels = c("YY", "YO", "OY", "OO"))
+```
 
 ```{r plotsexplore_condoms_main}
 #Condom use in main partnerships by ego age
@@ -1597,6 +1595,12 @@ The plots below show the probability of condom use by respondent age in main par
     condoms_mainXage <- sample_p12noprep_noalterprep %>% filter(!is.na(condoms_main)) %>% group_by(age_cat) %>% summarise(freq=n(), mean=mean(condoms_main))
     p_condoms_main_mean <- ggplot(condoms_mainXage, aes(x=age_cat, y=mean, size=freq)) + geom_point() + labs(x="Ego age", y="Mean probability of condom use", title = "Mean probability of condom use in main partnerships by respondent age") + ylim(0, 1)  + plot_background + theme_title
     multiplot(p_condoms_main, p_condoms_main_mean, cols=1)
+
+#Condom use in main partnerships by dyad age
+    condoms_mainXdyadage <- sample_p12noprep_noalterprep %>% filter(!is.na(condoms_main) & !is.na(dyad_age)) %>% group_by(dyad_age) %>% summarise(freq=n(), mean=mean(condoms_main), se=sd(condoms_main)/sqrt(freq), ci_lower = max((mean - 1.96*se), 0), ci_upper = min((mean + 1.96*se), 1))
+    ggplot(condoms_mainXdyadage) + geom_pointrange(aes(x=dyad_age, y=mean, ymin=ci_lower, ymax=ci_upper)) + labs(x="Dyad age", y="Mean probability of condom use", title = "Mean probability of condom use in main partnerships by dyad age") + theme_title + plot_background
+
+
 ```
 
 Probability of condom use by respondent age in persistent partnerships:
@@ -1608,6 +1612,11 @@ Probability of condom use by respondent age in persistent partnerships:
     condoms_persXage <- sample_p12noprep_noalterprep %>% filter(!is.na(condoms_pers)) %>% group_by(age_cat) %>% summarise(freq=n(), mean=mean(condoms_pers))
     p_condoms_pers_mean <- ggplot(condoms_persXage, aes(x=age_cat, y=mean, size=freq)) + geom_point() + labs(x="Ego age", y="Mean probability of condom use", title = "Mean probability of condom use in persistent partnerships by respondent age") + ylim(0, 1) + plot_background + theme_title
     multiplot(p_condoms_pers, p_condoms_pers_mean, cols=1)
+    
+    
+# Condom use in persistent partnerships by dyad age
+    condoms_persXdyadage <- sample_p12noprep_noalterprep %>% filter(!is.na(condoms_pers) & !is.na(dyad_age)) %>% group_by(dyad_age) %>% summarise(freq=n(), mean=mean(condoms_pers), se=sd(condoms_pers)/sqrt(freq), ci_lower = max((mean - 1.96*se), 0), ci_upper = min((mean + 1.96*se), 1))
+    ggplot(condoms_persXdyadage) + geom_pointrange(aes(x=dyad_age, y=mean, ymin=ci_lower, ymax=ci_upper)) + labs(x="Dyad age", y="Mean probability of condom use", title = "Mean probability of condom use in persistent partnerships by dyad age") + theme_title + plot_background
     ```
 
 Probability of condom use in instantaneous partnerships:
@@ -1616,76 +1625,13 @@ Probability of condom use in instantaneous partnerships:
 #Condom use in instantaneous partnerships by ego age
    condoms_instXage <- sample_p12noprep_noalterprep %>% filter(!is.na(condoms_inst)) %>% group_by(age_cat) %>% summarise(freq=n(), mean=mean(condoms_inst))
     ggplot(condoms_instXage, aes(x=age_cat, y=mean, size=freq)) + geom_point() + labs(x="Ego age", y="Mean probability of condom use", title = "Mean probability of condom use in instantaneous partnerships by respondent age") + ylim(0, 1) + plot_background + theme_title
+    
+    # Condom use in intantaneous partnerships by dyad age
+    condoms_instXdyadage <- sample_p12noprep_noalterprep %>% filter(!is.na(condoms_inst) & !is.na(dyad_age)) %>% group_by(dyad_age) %>% summarise(freq=n(), mean=mean(condoms_inst), se=sd(condoms_inst)/sqrt(freq), ci_lower = max((mean - 1.96*se), 0), ci_upper = min((mean + 1.96*se), 1))
+    ggplot(condoms_instXdyadage) + geom_pointrange(aes(x=dyad_age, y=mean, ymin=ci_lower, ymax=ci_upper)) + labs(x="Dyad age", y="Mean probability of condom use", title = "Mean probability of condom use in instantaneous partnerships by dyad age") + theme_title + plot_background
     ```
 
-__Decision__: These plots indicate that there is a reasonably strong age effect for main and persistent partnerships. We will try to fit these patterns by including terms for centered age and centered age squared. <span style="color:red"> However, this raises the question of how to handle age mixing: if a young man and an older man form a partnership, what will their condom use be? __Steve, did you work on this with Kathryn? Did you decide to take the average in such cases?__</span>
-
-The plots below superimpose predicted condom use from a regression model adjusting for centered age and centered age squared (red) and from a regression model additionally adjusting for centered age cubed (green). It looks like the model with the age cubed term fits the data for main partnerships slightly better, but it perhaps puts too much weight on the high reported condom use at the end of the age distribution. Similarly, the regression line from the model with the age cubed term may fit the persistent partner data slightly better except at the ends of the distribution. The regression models for instantaneous partnerships definitely do not fit the data well: the predictions for ages 18 to 25 are negative, and the data plotted with single years of age are much more scattered due to small cell counts. <span style="color:red"> What do you make of this? How should I proceed? Note that these plots exclude men who have taken PrEP in the past 12 months, which we may decide not to do. </span>
-```{r}
-#Define age centered, age centered squared, and age centered cubed terms for the no PrEP dataframe
-sample_p12noprep_noalterprep$age_centered <- sample_p12noprep_noalterprep$age - mean(sample_p12noprep_noalterprep$age, na.rm=TRUE)
-sample_p12noprep_noalterprep$age_cent_sq <- sample_p12noprep_noalterprep$age_centered^2
-sample_p12noprep_noalterprep$age_cent_cube <- sample_p12noprep_noalterprep$age_centered^3
-
-```
-
-```{r condoms_main_fit}
-##MAIN PARTNERS##
-#Define a new tibble that takes the mean condom use by age rather than age group
-condoms_mainXageinyrs <- sample_p12noprep_noalterprep %>% filter(!is.na(condoms_main)) %>% group_by(age) %>% summarise(freq=n(), mean=mean(condoms_main))
-
-#Fit linear model to the mean condom use, adjusting for centered age and centered age squared
-lm_condoms_mainXage2 <- lm(condoms_main ~ age_centered + age_cent_sq, data=sample_p12noprep_noalterprep)
-
-#Fit linear model to the mean condom use, adjusting for centered age, centered age squared, and centered age cubed
-lm_condoms_mainXage3 <- lm(condoms_main ~ age_centered + age_cent_sq + age_cent_cube, data=sample_p12noprep_noalterprep)
-
-#Create a data frame with predictions from the models and age
-condoms_main_pred_age2 <- cbind.data.frame(prediction = predict(lm_condoms_mainXage2, list(age_centered = sample_p12noprep_noalterprep$age_centered, age_cent_sq = (sample_p12noprep_noalterprep$age_centered)^2)), age = sample_p12noprep_noalterprep$age)
-
-condoms_main_pred_age3 <- cbind.data.frame(prediction = predict(lm_condoms_mainXage3, list(age_centered = sample_p12noprep_noalterprep$age_centered, age_cent_sq = (sample_p12noprep_noalterprep$age_centered)^2, age_cent_cube = (sample_p12noprep_noalterprep$age_centered)^3)), age = sample_p12noprep_noalterprep$age)
-
-#Plot
- ggplot() + geom_point(data=condoms_mainXageinyrs, aes(x=age, y=mean, size=freq)) + geom_line(data=condoms_main_pred_age2, aes(x=age, y=prediction), colour="red") + geom_line(data=condoms_main_pred_age3, aes(x=age, y=prediction), colour="green") + labs(x="Ego age", y="Mean probability of condom use", title = "Mean probability of condom use in main partnerships by respondent age \n with predicted condom use from a regression model ") + ylim(0, 1) + theme_title + plot_background
-```
-
-```{r condoms_pers_fit}
-##PERSISTENT PARTNERS##
-condoms_persXageinyrs <- sample_p12noprep_noalterprep %>% filter(!is.na(condoms_pers)) %>% group_by(age) %>% summarise(freq=n(), mean=mean(condoms_pers))
-
-#Fit linear model to the mean condom use, adjusting for centered age and centered age squared
-lm_condoms_persXage2 <- lm(condoms_pers ~ age_centered + age_cent_sq, data=sample_p12noprep_noalterprep)
-
-#Fit linear model to the mean condom use, adjusting for centered age, centered age squared, and centered age cubed
-lm_condoms_persXage3 <- lm(condoms_pers ~ age_centered + age_cent_sq + age_cent_cube, data=sample_p12noprep_noalterprep)
-
-#Create a data frame with predictions from the models and age
-condoms_pers_pred_age2 <- cbind.data.frame(prediction = predict(lm_condoms_persXage2, list(age_centered = sample_p12noprep_noalterprep$age_centered, age_cent_sq = (sample_p12noprep_noalterprep$age_centered)^2)), age = sample_p12noprep_noalterprep$age)
-
-condoms_pers_pred_age3 <- cbind.data.frame(prediction = predict(lm_condoms_persXage3, list(age_centered = sample_p12noprep_noalterprep$age_centered, age_cent_sq = (sample_p12noprep_noalterprep$age_centered)^2, age_cent_cube = (sample_p12noprep_noalterprep$age_centered)^3)), age = sample_p12noprep_noalterprep$age)
-
-#Plot
- ggplot() + geom_point(data=condoms_persXageinyrs, aes(x=age, y=mean, size=freq)) + geom_line(data=condoms_pers_pred_age2, aes(x=age, y=prediction), colour="red") + geom_line(data=condoms_pers_pred_age3, aes(x=age, y=prediction), colour="green") + labs(x="Ego age", y="Mean probability of condom use", title = "Mean probability of condom use in persistent partnerships by respondent age \n with predicted condom use from a regression model ") + ylim(0, 1) + theme_title + plot_background
-```
-
-```{r condoms_inst_fit}
-##INST PARTNERS##
-condoms_instXageinyrs <- sample_p12noprep_noalterprep %>% filter(!is.na(condoms_inst)) %>% group_by(age) %>% summarise(freq=n(), mean=mean(condoms_inst))
-
-#Fit linear model to the mean condom use, adjusting for centered age and centered age squared
-lm_condoms_instXage2 <- glm(condoms_inst ~ age_centered + age_cent_sq, family=binomial(link="logit"), data=sample_p12noprep_noalterprep, subset = prep_use_r %in% "Never taken PrEP")
-
-#Fit linear model to the mean condom use, adjusting for centered age, centered age squared, and centered age cubed
-lm_condoms_instXage3 <- glm(condoms_inst ~ age_centered + age_cent_sq + age_cent_cube, family=binomial(link="logit"), data=sample_p12noprep_noalterprep, subset = prep_use_r %in% "Never taken PrEP")
-
-#Create a data frame with predictions from the models and age
-condoms_inst_pred_age2 <- cbind.data.frame(prediction = predict(lm_condoms_instXage2, list(age_centered = sample_p12noprep_noalterprep$age_centered, age_cent_sq = (sample_p12noprep_noalterprep$age_centered)^2)), age = sample_p12noprep_noalterprep$age)
-
-condoms_inst_pred_age3 <- cbind.data.frame(prediction = predict(lm_condoms_instXage3, list(age_centered = sample_p12noprep_noalterprep$age_centered, age_cent_sq = (sample_p12noprep_noalterprep$age_centered)^2, age_cent_cube = (sample_p12noprep_noalterprep$age_centered)^3)), age = sample_p12noprep_noalterprep$age)
-
-#Plot
- ggplot() + geom_point(data=condoms_instXageinyrs, aes(x=age, y=mean, size=freq)) + geom_line(data=condoms_inst_pred_age2, aes(x=age, y=prediction), colour="red") + geom_line(data=condoms_inst_pred_age3, aes(x=age, y=prediction), colour="green") + labs(x="Ego age", y="Mean probability of condom use", title = "Mean probability of condom use in instantaneous partnerships by respondent age \n with predicted condom use from a regression model ") + ylim(0, 1) + theme_title + plot_background
-```
+__Decision__: These plots indicate that there is a reasonably strong age effect for main partnerships. <span style="color:red">In the model, we will stratify condom use with main partners by dyad age, defined based on combinations of two age groups: young = 18-34, old = 35-59.</span>
 
 ### PrEP use by age, race, and region
 The plots below illustrate the proportion of men for whom Washington State guidelines recommend PrEP and with whom guidelines recommend providers discuss PrEP who report current use by age, race, and region.
@@ -1729,7 +1675,6 @@ The plots below illustrate the proportion of men for whom Washington State guide
    
     multiplot(p_prepXregion_rec, p_prepXregion_disc, cols=2)
 
-   
 ```
 
 __Decision__: These plots show strong effects of age and region. The differences by race/ethnicity are not clear, but we will code the model to represent the main effects of all three given the interest in the impact of potential disparities by race/ethnicity, which we could explore in sensitivity analyses.
