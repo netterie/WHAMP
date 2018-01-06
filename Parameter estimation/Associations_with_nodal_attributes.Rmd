@@ -838,7 +838,7 @@ Because this outcome is defined based on age, we will not include age as a covar
 The last test interval is estimated as the days since men reported their last HIV test, assuming men test as an interval process (see section \@ref(hivtesting). This analysis is restricted to men who reported having ever tested, and excludes men who reported use of PrEP in the past 12 months, as testing patterns on PrEP will be different and will be represented with a separate parameter in the model.
 ```{r}
 #Define dataframe excluding men who used PrEP in the past 12 months
-sample_p12noprep <- sample %>% filter(!(prep_use_r %in% "Currently taking PrEP") & !(monthsago_lastprep %in% c(0:12)))
+sample_p12noprep <- sample %>% filter((prep_use_r %in% c("Took PrEP in the past", "Never taken PrEP")) & !(monthsago_lastprep %in% c(0:12)))
 ```
 
 We first look at the number of observations that are non-missing for this outcome and for model predictors
@@ -1058,7 +1058,7 @@ These data do not suggest any clear trend by age. However, because sex role will
 
 
 ### Condom use
-Data on condom use are restricted to dyads in which both the respondent and his partner were HIV-negative or of unknown status. This analysis includes data from all such partnerships, not just those that were ongoing. Because the model will explore the effect of decreased condom use in men on PrEP, we will further restrict this analysis to men who have not taken PrEP in he past 12 months. We exclude all men who have taken PrEP in the past 12 months regardless of whether they are currently using it becasue their reported behaviors in the past 12 months may reflect behaviors while on PrEP. We will also exclude men who report that their most recent partner is taking PrEP.
+Data on condom use are restricted to dyads in which both the respondent and his partner were HIV-negative or of unknown status. This analysis includes data from all such partnerships, not just those that were ongoing. Because the model will explore the effect of decreased condom use in men on PrEP, we will further restrict this analysis to men who have not taken PrEP in he past 12 months. We exclude all men who have taken PrEP in the past 12 months regardless of whether they are currently using it because their reported behaviors in the past 12 months may reflect behaviors while on PrEP. We will also exclude men who report that their most recent partner is taking PrEP.
 ```{r}
 # Define sample for condom use analyses - exclude partners on PrEP and men who have taken PrEP in the past 12 months
 sample_p12noprep_noalterprep <- sample_p12noprep %>% filter(!(mrp_prep_r %in% 1))
@@ -1584,7 +1584,7 @@ __Decision__: These plots suggest that there is a higher probability of exclusiv
 There is no clear difference in anal sex role by race/ethnicity, so we will not stratify on race/ethnicity.
 
 ### Condom use by age
-The plots below show the probability of condom use by respondent age in main partnerships. In regression analyses, condom use differed by age only among  main partnerships, but in the plots below we will explore patterns among persistent and instantaneous partnerships as well. These plots show condom use by ego age and by dyad age, as condom use in any given partnership is influenced by the preferences of both partners.
+The plots below show the probability of condom use by respondent age in main partnerships. In regression analyses, condom use differed by age only among  main partnerships, but in the plots below we will explore patterns among persistent and instantaneous partnerships as well. These plots show condom use by ego age and by dyad age, as condom use in any given partnership is influenced by the preferences of both partners. We exclude data from men who used PrEP in the past 12 months or who report that their partner was using PrEP.
 ```{r}
 #Define dyad age category variable
     sample_p12noprep_noalterprep$dyad_age <- ifelse(sample_p12noprep_noalterprep$age %in% c(18:34) & sample_p12noprep_noalterprep$mrp_ageinyears_approx %in% c(18:34), "YY", ifelse(sample_p12noprep_noalterprep$age %in% c(18:34) & sample_p12noprep_noalterprep$mrp_ageinyears_approx %in% c(35:59), "YO", ifelse(sample_p12noprep_noalterprep$age %in% c(35:59) & sample_p12noprep_noalterprep$mrp_ageinyears_approx %in% c(18:34), "OY", ifelse(sample_p12noprep_noalterprep$age %in% c(35:59) & sample_p12noprep_noalterprep$mrp_ageinyears_approx %in% c(35:59), "OO", NA))))
