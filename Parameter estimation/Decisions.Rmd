@@ -9,6 +9,7 @@ This file summarizes the decisions made about parameter estimation and model str
 - 18-59
 
 ## Region
+- King County, other western Washington, eastern Washington [fill me in]
 
 ## Using data from ongoing vs all partnerships
 - We decided to use data only from ongoing partnerships to inform parameters relating to race and age mixing. This is because the formation model, to which these parameters are relevant, aims to recreate the network we observe at the cross-section. An issue is that the NHBS and MMP, datasets I will also be using to inform parameters, do not ask whether partnerships are ongoing. But we will just work with what we have.
@@ -17,25 +18,42 @@ This file summarizes the decisions made about parameter estimation and model str
 ## Using data on most recent partners
 - In analyses comparing the characteristics of most recent partners by momentary degree (i.e. comparing main most recent partners described by men with 0 vs. 1+ ongoing persistent partner and comparing persistent most recent partners described by men with 0 vs. 1 ongoing main partners) (\@ref(mrp_limitations)), no significant differences were observed. This suggests that it is appropriate to use data reported on all ongoing partners of a given type to impute the characteristics (implicitly or explicitly) of other ongoing partners who were not reported on as the most recent partner.
 
-## Heterogeneity by age
-- Racial/ethnic mixing: Although racial/ethnic mixing (the proportion of partnerships reported with men of the same racial/ethnic group) appeared to differ significantly by age in regression analyses, examination of the plots did not reveal any meaningful or clear patterns (see \@ref(plots)). As such, we will not stratify this parameter by ego age.
-- Age mixing: This appears to differ by age (see \@ref(plots)). To simplify the model code, we will try to find a corection for age differences that adjusts for this heterogeneity (e.g. taking the difference between the square or cube root of ego and alter ages). <span style="color:red">Update when make final decision</span>.
-- Rate of instantaneous partnerships: Exploratory analyses reveal differences in the rate of instantaneous partnerships by age. <span style="color:red"> Fill in with decisions about how to handle this. We will code this as a transition matrix detailing how men move through quantiles by age group </span>.
-- Partnership age: Exploratory analyses suggest that the age of main partnerships varies by age, but this is a complex phenomenon. For instance, the data are subject to censoring by age, in that the partnerships of younger men can only have persisted a relatively short time simply due to how long it has been since their presumed debut. <span style="color:red">Steve suggests not trying to represent age heterogeneity in duration at this point, but to simulate from the model and plot the distribution by age that it produces to see how well it aligns with what we observe.</span>
-- Intertest interval: The intertest interval does not appear to vary meaningfully by age, so we will not stratify this parameter on age.
-
-## Heterogeneity by race/ethincity
-- Age mixing: There appear to be some racial/ethnic differences in age mixing, though it's difficult to tell due to small numbers of black men. Since the model is already set up to stratify age mixing terms by race, we will keep that structure, but we will not try to represent the interaction between age and race on age mixing (see \@ref(plots)).
-
-## Heterogeneity by region
-- In regression models to test the significance of the main effects of age, race, and region and all three 2-way interactions with model parameters, region did not appear to be an important factor for netowrk parameters. The only factor that appears to vary by region is PrEP use among those indicated to initiate PrEP. <span style="color:red">Note that this analysis did not look at treatment-related parameters, which may be significnat.</span>
+## Momentary degree (partnership formation)
+- Main partnership status: The probability of having an ongoing main aprtner appears to differ by race/ethnicity and region (\@ref(explore_heterogeneity)), so we will include main effect terms for race/ethnicity and region in model code relating to main partner degree.
+- Persistent partnership status: The probabilities of having any persistent partners, concurrent persistent partners, and having a persistent partner concurrent with a main partner were all higher for men aged 40-49. As such, we will code the model to define separate probabilities for men aged 40-49 of forming a persistent partnership, having concurrent persistent partnerships, and having a persistent partnership concurrent with a main partnership. However, because this pattern by age doesn’t align with our understanding of MSM’s sexual behavior, in the base model we will set this probability to be the same as for men of other ages. We will run sensitivity analyses in which we define a higher probability for men aged 40 to 49.  
 
 ## Rate of instantaneous partners
-- <span style="color:red"> Decision about definition of quantiles and how to represent heterogeneity by degree</span>
+- We will code the model to represent heterogeneity in the rate of instantantous partnerships by assigning men into one of four categories based on the quartile distribution of the rate of instantaneous partnerships. By age, there appears to be an increased probability of having zero instantaneous partnerships after age 50 (\@ref(plots_explore_rateinst_3)). As such, men assigned to have >0 instantaneous partnerships at entry will be reassigned a quantile at age 50, with some of these men transitioning into the zero instantaneous partnerships category. This assumes that men who were assigned zero instantaneous partnerships at entry stay in that category for the entire duration of the simulation.
+- In addition to age heterogeneity, the rate of instantaneous partnerships appears to differ by momentary degree (\@ref(fig:plotsexplore_rateinst_5)). <span style="color:red">We will define separate rates of instantaneous partnerships by main and persistent partnership status, but not by the joint degree distribution.</span> 
+
+## Age mixing
+- Age mixing appears to differ by ego age (see \@ref(explore_heterogeneity)), even after parameterizing it as the absolute difference in the square root of ego and later ages. However, this parameterization seems good enough, so we will not represent additional heterogeneity in age mixing by age.
+- <span style="color:red">Age mixing did not appear to differ meaningfully by race/ethnicity (\@ref(fig:plots_explore_agemixing_4)) or region (\@ref(fig:plots_explore_agemixing_5)).<span>
+
+## Partnership age
+- Exploratory analyses (section \@ref(explore_heterogeneity) suggest that the age of main partnerships varies by age, but this is a complex phenomenon. For instance, the data are subject to censoring by age, in that the partnerships of younger men can only have persisted a relatively short time simply due to how long it has been since their presumed debut. We will not model heterogeneity in partnership duration by age at this point. 
 
 ## Proportion never tested for HIV
-- To represent the proportion of men who do not test for HIV, we will use data on the proportion of men aged 40 and above who indicate that they've never tested. This was informed by examination of plots of the proportion of men who reported ever testing by age (section \@ref(hivtesting)). These plots suggested that the probability of having tested peaks around age 40, suggesting that if men don't test by this age they are unlikely to. Of course the data reflect a mix of age and cohort effects, but this provides a rough indication of the testing pattern in the population.
+- To represent the proportion of men who do not test for HIV, we will use data on the proportion of men aged 40 and above who indicate that they've never tested. This was informed by examination of plots of the proportion of men who reported ever testing by age (section \@ref(hivtesting)). These plots indicate that the probability of having tested peaks around age 40, suggesting that if men don't test by this age they are unlikely to. Of course the data reflect a mix of age and cohort effects, but this provides a rough indication of the testing pattern in the population.
+- The proportion of men who have not tested for HIV by age 40 appears to differ by region (section \@ref(explore_heterogeneity)). As such, we will stratify this parameter by region.
 
 ## Intertest interval
-- <span style="color:red">Model as an interval process (Section \@ref(hivtesting). With this setting, the intertest interval is estimated as twice the time since the last test since the survey was not administered in connection with any testing event. The assumption is that the date of survey is randomly distributed throughout men's time between tests, such that on average it will come halfway through their intertest interval. We will use the median as the summary statistic, because for interval data that can be easily skewed by outliers, the median may be more stable. Additionally, using the median we get results that match what we've seen in other studies (~365 days bewteen tests). </span>
-- This parameter should be restricted to men who do not report current use of PrEP, as we expect PrEP to change testing frequency and the model will represnt the change in testing frequency with PrEP.
+- We will model the intertest interval as an interval process, as this yields summary statistics that more closely match what we've seen in other sources (section \@ref(hivtesting)). With this assumption, the intertest interval is estimated as twice the time since the last test since the survey was not administered in connection with any testing event. The assumption is that the date of survey is randomly distributed throughout men's time between tests, such that on average it will come halfway through their intertest interval. We will use the median as the summary statistic, because for interval data that can be easily skewed by outliers, the median may be more stable. Additionally, using the median we get results that match what we've seen in other studies (see section \@ref(hivtesting)).
+- Estimation of this parameter will use data from men who did not report use of PrEP in the past 12 months, as we expect PrEP to change testing frequency and the model will represnt the change in testing frequency with PrEP.
+- The intertest interval appears to vary by age (section \@ref(explore_heterogeneity)). To capture this heterogeneity, we will represent the intertest interval as a function of centered age and centered age squared.
+
+## Anal sex role
+- Although there is some indication that anal sex role differs by age and race/ethnicity, these patterns do not appear meaningful (see section \@ref(explore_heterogeneity)). Additionally, representing heterogeneity in anal sex role by these attributes introduces complexity into the model because it will affect balance in mixing. We have flagged this as something to explore in the future (section \@ref(future_explore)), but we will not stratify sex role by race/ethnicity or age in the current model.
+
+## Condom use
+- Condom use in main partnerships appears to differ by age. <span style="color:red">In the model, we will stratify condom use with main partners by dyad age, defined based on combinations of two age groups: young = 18-34, old = 35-59.</span>
+
+## PrEP use
+- PrEP use among men for whom Washington guidelines recommend initiation or indicate discussion of PrEP with a provider differs in the sample by age and region. There is some suggestion of variabiltiy by race/ethnicity, but it is not very clear. However, we will code the model to represent the main effects of all three nodal attributes given the interest in disparities by race/ethnicity. We could explore the impact of graeter disparities in sensitivity analyses.
+
+
+
+
+
+# Things to check against simulated data
+- Make sure that the distribution of the age of partnerships by ego age produced by the model corresponds to the observed distributions (see \@ref(fig:plotsexplore_pshipage)).
