@@ -12,6 +12,7 @@ This document presents the results of data analyses for estimation of parameters
 * Regional mixing
 * One-time network
 * Summary of decisions made
+* Issues for future exploration
 * References
 * Appendices:
     * Notes on the demographic composition of the Washington HIV Prevention Project sample
