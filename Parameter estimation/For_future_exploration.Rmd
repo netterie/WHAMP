@@ -1,0 +1,15 @@
+# Issues flagged for future exploration {#future_explore}
+
+This section documents issues that we decided to flag for future consideration, perhaps when more data are available.
+
+## Age mixing by age
+Section \@ref(explore_heterogeneity) documents that parameterizing age mixing as the absolute difference in the square root of ego and alter ages does not fully acount for heterogeneity in age mixing by the age of the partners. Even after taking the difference in the cube root of ego and alter ages, age differences are greater for older egos. Further research is needed to identify ways to paramterize age mixing to remove heterogeneity by age.
+
+## Sex role by age
+In section \@ref(explore_heterogeneity), we observed that sex role varies by age. Plot \@ref(fig:plots_explore_sexrole) show some heterogeneity by age, but the effects are fairly modest. We decided not to stratify sex role by age in the model for this reason and because capturing heterogeneity in sex role by age is difficult; sex role influences the network model, such that this would introduce complexity in ensuring balance in age mixing. With more data and time to code and debug the model, this could be further explored.
+
+## Three condom use typologies
+The plots of condom use probabilites (\@ref(fig:plotsexplore_condoms_main), \@ref(fig:plotsexplore_condoms_pers), \@ref(fig:plotsexplore_condoms_inst)) suggest that there are three typologies of condom user: never, sometimes, and always. The trick with modeling condom use this way is that we would need to decide what happens at the dyad level: if a never and sometimes user pair up, are condoms used? What about if two sometimes users meet? The assigned probabilities of condom use would need to recreate the global mean probability. It would also be worth considering men's patterns of condom use across partner types and momentary degree: coudl define a type of men who never use condoms with main partners, but do with everyone else. The data from the WHPP survey do not seem adequate to address this issue, as men only reported on condom use with their most recent partner, so we don't know if that is representative of their condom use with all partners of that type or parnters of other types. Also, reported condom use is with a specific partner and we don't know what that partners' condom use preferences were and how they influenced use of condoms.
+
+## PrEP use by race and region interaction
+With more data, consider exploring whether PrEP uptake differs by the interaction of race/ethnicity and region.
