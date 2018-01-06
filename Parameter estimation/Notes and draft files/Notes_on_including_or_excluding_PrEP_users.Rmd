@@ -1,5 +1,6 @@
-# Exploring the effects of including/excluding PrEP users in estimation of behavioral parameters
-This file examines the effects of including or excluding data from men who have used PrEP or whose partners are using PrEP in examining associations with condom use, the rate of instantaneous partnerships, and sex role. These behaviors may change with PrEP use due to risk compensation, such that including data from PrEP users may over-estimate risk. But excluding PrEP users also means excluding high-risk men, as PrEP use is targeted to those with higher risk behaviors.
+# Exploring whether certain behavioral parameters differ for PrEP users
+This section explores whether condom use, the rate of instantaneous partnerships, and sex role differ by PrEP use, comparing men who are using PrEP or whose partners are using PrEP with men who have not used PREP in the past 12 months and who do not know that their partners are using PrEP. This analysis is to explore whether we need to specify values for these parameters for PrEP users and non-users. If so, we will use data from men not on PrEP who are similar to PrEP users (e.g. matchd on demographics and risk behaviors) to impute what the behaviors of PrEP users woudl be in the absence of PrEP. If we were to just exclude these men, we would be excluding higher risk men from the network, since PrEP use is targeted to those with higher risk behaiors.
+
 ```{r, include=FALSE}
 ####################################################################################
 # Setup
@@ -39,13 +40,23 @@ load(file="Data/InternetSurveySample_allages.Rdata")
 #-----------------------------------------------------------------------------------
 # Define alternate age categorization
 #-----------------------------------------------------------------------------------
-   sample$age_chunks <-  cut(sample$age, c(17, 29, 39, 44, 59), labels=c("18-29", "30-39", "40-49", "50-59"))   
     sample$age_cat_alt <- cut(sample$age, c(17, 24, 29, 34, 39, 49, 59), labels=c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"))
+
+#-----------------------------------------------------------------------------------
+# Define a variable that differentiates men using PrEP from those who have not used PREP in the past 12 months
+#-----------------------------------------------------------------------------------
+    #Taking into account ego's PrEP use for looking at rate inst and sex role
+    sample$egoprep_p12 <- ifelse((sample$prep_use_r %in% "Currently taking PrEP" | sample$monthsago_lastprep %in% c(0:12)), "PrEP use",
+                    ifelse((sample$prep_use_r %in% c("Took PrEP in the past", "Never taken PrEP")) & !(sample$monthsago_lastprep %in% c(0:12)), 
+                    "No recent PrEP use", NA))
+    #Also taking into account alter's PREP user for looking at condom use
+    sample$dyadprep_p12 <- ifelse((sample$prep_use_r %in% "Currently taking PrEP" | sample$monthsago_lastprep %in% c(0:12)) | (sample$mrp_prep_r %in% 1), "PrEP use", ifelse((sample$prep_use_r %in% c("Took PrEP in the past", "Never taken PrEP")) & !(sample$monthsago_lastprep %in% c(0:12)) & !(sample$mrp_prep_r %in% 99), "No recent PrEP use", NA))
 
 #-----------------------------------------------------------------------------------
 # Define the subset of the sample that excludes men who are using or used PrEP in the past 12 months or whose partners were using PrEP at last sex
 #-----------------------------------------------------------------------------------
-    sample_p12noprep_noalterprep <- sample %>% filter(!(prep_use_r %in% "Currently taking PrEP") & !(monthsago_lastprep %in% c(0:12)) & !(mrp_prep_r %in% 1))
+    sample_p12noprep <- sample %>% filter((prep_use_r %in% c("Took PrEP in the past", "Never taken PrEP")) & !(monthsago_lastprep %in% c(0:12)))
+    sample_p12noprep_noalterprep <- sample %>% filter((prep_use_r %in% c("Took PrEP in the past", "Never taken PrEP")) & !(monthsago_lastprep %in% c(0:12)) & !(mrp_prep_r %in% 1))
     
 #----------------------------------------------------------------------------------
 # Define multiplot function
@@ -136,6 +147,132 @@ plot.age.coefs <- function(full) {
 
 ```
 
+## Rate of instantaneous partnerships
+First we look at whether the rate of instantaneous partnerships overall differs by PrEP use.
+```{r}
+#Distribution of instantaneous partnerships by PrEP use
+    rateinst_distXprep <- sample %>% filter(!is.na(egoprep_p12) & !is.na(rate_inst)) %>% mutate(noinst = ifelse(rate_inst %in% 0, 1, ifelse(!is.na(rate_inst), 0, NA))) %>% group_by(egoprep_p12) %>% summarise(freq=n(), prop.noinst=mean(noinst, na.rm=TRUE), median = median(rate_inst, na.rm = TRUE), mean = mean(rate_inst, na.rm=TRUE))
+    kable(rateinst_distXprep, col.names=c("PrEP use", "N", "% with 0 partners", "Median rate", "Mean rate"), digits=c(0, 0, 3, 3, 3), caption="Rate of instantaneous partnerships by PrEP use") %>% kable_styling(full_width=F, position="center")
+```
+
+The plots below show the proportion of men in each quartile of the distribution of the rate of instantaneous partnerships (quartiles defined for the entire sample) by PrEP use.
+```{r}
+#Plot of the proportion in each quartile (quartiles defined for the full sample) by PrEP use
+    quartiles <- quantile(sample$rate_inst, c(0.025, 0.5, 0.75, 1), na.rm=TRUE)
+    sample$rate_inst_quart <- cut(sample$rate_inst, c(-0.01, quartiles), labels=c("Zero", "Low", "Med", "High"))
+    
+     quartileXnoprep <- sample %>% filter(!is.na(rate_inst) & egoprep_p12 %in% "No recent PrEP use") %>% add_tally() %>% group_by(rate_inst_quart) %>% summarise(freq = n(), n=max(n), prop = freq/n, se = sqrt((prop*(1-prop))/n), lower_ci = max((prop - 1.96*se), 0), upper_ci = min((prop + 1.96*se), 1))
+     quartileXprep <- sample %>% filter(!is.na(rate_inst) & egoprep_p12 %in% "PrEP use") %>% add_tally() %>% group_by(rate_inst_quart) %>% summarise(freq = n(), n=max(n), prop = freq/n, se = sqrt((prop*(1-prop))/n), lower_ci = max((prop - 1.96*se), 0), upper_ci = min((prop + 1.96*se), 1))
+     
+    ggplot() + geom_pointrange(data=quartileXnoprep, aes(x=rate_inst_quart, y=prop, ymin=lower_ci, ymax=upper_ci, colour="a")) +  geom_pointrange(data=quartileXprep, aes(x=rate_inst_quart, y=prop, ymin=lower_ci, ymax=upper_ci, colour="b")) + scale_colour_manual(name = "PrEP use", values=c("a"="blue", "b"="orange"), labels=c("No recent PrEP", "PrEP use")) + labs(x="Quartile", y="Percent", title="Quantile distribution of the rate of instantaneous partners by PrEP use") + theme_title + plot_background 
+```
+
+The plot below shows the proportion of men in each quartile by PrEP use and momentary degree.
+```{r}
+# Plot of the proportion in each quartile by momentary degree and PrEP use
+     quartileXnoprep_nomain <- sample %>% filter(!is.na(rate_inst) & egoprep_p12 %in% "No recent PrEP use" & degree_main %in% 0) %>% add_tally() %>% group_by(rate_inst_quart) %>% summarise(freq = n(), n=max(n), prop = freq/n, se = sqrt((prop*(1-prop))/n), lower_ci = max((prop - 1.96*se), 0), upper_ci = min((prop + 1.96*se), 1))
+     quartileXnoprep_main <- sample %>% filter(!is.na(rate_inst) & egoprep_p12 %in% "No recent PrEP use" & degree_main %in% 1) %>% add_tally() %>% group_by(rate_inst_quart) %>% summarise(freq = n(), n=max(n), prop = freq/n, se = sqrt((prop*(1-prop))/n), lower_ci = max((prop - 1.96*se), 0), upper_ci = min((prop + 1.96*se), 1))
+     quartileXnoprep_nopers <- sample %>% filter(!is.na(rate_inst) & egoprep_p12 %in% "No recent PrEP use" & anypers %in% 0) %>% add_tally() %>% group_by(rate_inst_quart) %>% summarise(freq = n(), n=max(n), prop = freq/n, se = sqrt((prop*(1-prop))/n), lower_ci = max((prop - 1.96*se), 0), upper_ci = min((prop + 1.96*se), 1))
+     quartileXnoprep_pers <- sample %>% filter(!is.na(rate_inst) & egoprep_p12 %in% "No recent PrEP use" & anypers %in% 1) %>% add_tally() %>% group_by(rate_inst_quart) %>% summarise(freq = n(), n=max(n), prop = freq/n, se = sqrt((prop*(1-prop))/n), lower_ci = max((prop - 1.96*se), 0), upper_ci = min((prop + 1.96*se), 1))
+     
+      quartileXprep_nomain <- sample %>% filter(!is.na(rate_inst) & egoprep_p12 %in% "PrEP use" & degree_main %in% 0) %>% add_tally() %>% group_by(rate_inst_quart) %>% summarise(freq = n(), n=max(n), prop = freq/n, se = sqrt((prop*(1-prop))/n), lower_ci = max((prop - 1.96*se), 0), upper_ci = min((prop + 1.96*se), 1))
+     quartileXprep_main <- sample %>% filter(!is.na(rate_inst) & egoprep_p12 %in% "PrEP use" & degree_main %in% 1) %>% add_tally() %>% group_by(rate_inst_quart) %>% summarise(freq = n(), n=max(n), prop = freq/n, se = sqrt((prop*(1-prop))/n), lower_ci = max((prop - 1.96*se), 0), upper_ci = min((prop + 1.96*se), 1))
+     quartileXprep_nopers <- sample %>% filter(!is.na(rate_inst) & egoprep_p12 %in% "PrEP use" & anypers %in% 0) %>% add_tally() %>% group_by(rate_inst_quart) %>% summarise(freq = n(), n=max(n), prop = freq/n, se = sqrt((prop*(1-prop))/n), lower_ci = max((prop - 1.96*se), 0), upper_ci = min((prop + 1.96*se), 1))
+     quartileXprep_pers <- sample %>% filter(!is.na(rate_inst) & egoprep_p12 %in% "PrEP use" & anypers %in% 1) %>% add_tally() %>% group_by(rate_inst_quart) %>% summarise(freq = n(), n=max(n), prop = freq/n, se = sqrt((prop*(1-prop))/n), lower_ci = max((prop - 1.96*se), 0), upper_ci = min((prop + 1.96*se), 1))
+     
+    p_nomain <- ggplot() + geom_pointrange(data=quartileXnoprep_nomain, aes(x=rate_inst_quart, y=prop, ymin=lower_ci, ymax=upper_ci, colour="a")) +  geom_pointrange(data=quartileXprep_nomain, aes(x=rate_inst_quart, y=prop, ymin=lower_ci, ymax=upper_ci, colour="b")) + scale_colour_manual(name = "PrEP use", values=c("a"="blue", "b"="orange"), labels=c("No recent PrEP", "PrEP use")) + labs(x="Quartile", y="Percent", title="No main partner") + theme_title + plot_background + ylim(0, .8) + theme(legend.position="none")
+     p_main <- ggplot() + geom_pointrange(data=quartileXnoprep_main, aes(x=rate_inst_quart, y=prop, ymin=lower_ci, ymax=upper_ci, colour="a")) +  geom_pointrange(data=quartileXprep_main, aes(x=rate_inst_quart, y=prop, ymin=lower_ci, ymax=upper_ci, colour="b")) + scale_colour_manual(name = "PrEP use", values=c("a"="blue", "b"="orange"), labels=c("No recent PrEP", "PrEP use")) + labs(x="Quartile", y="Percent", title="Main partner") + theme_title + plot_background + ylim(0, .8) + theme(legend.position="none")
+      p_nopers <- ggplot() + geom_pointrange(data=quartileXnoprep_nopers, aes(x=rate_inst_quart, y=prop, ymin=lower_ci, ymax=upper_ci, colour="a")) +  geom_pointrange(data=quartileXprep_nopers, aes(x=rate_inst_quart, y=prop, ymin=lower_ci, ymax=upper_ci, colour="b")) + scale_colour_manual(name = "PrEP use", values=c("a"="blue", "b"="orange"), labels=c("No recent PrEP", "PrEP use")) + labs(x="Quartile", y="Percent", title="No persistent partners") + theme_title + plot_background + ylim(0, .8) + theme(legend.position="none")
+       p_pers <- ggplot() + geom_pointrange(data=quartileXnoprep_pers, aes(x=rate_inst_quart, y=prop, ymin=lower_ci, ymax=upper_ci, colour="a")) +  geom_pointrange(data=quartileXprep_pers, aes(x=rate_inst_quart, y=prop, ymin=lower_ci, ymax=upper_ci, colour="b")) + scale_colour_manual(name = "PrEP use", values=c("a"="blue", "b"="orange"), labels=c("No recent PrEP", "PrEP use")) + labs(x="Quartile", y="Percent", title="One or more persistent partners") + theme_title + plot_background + ylim(0, .8) + theme(legend.position="none")
+    
+    multiplot(p_nomain, p_nopers, p_main, p_pers, cols=2)
+    
+ ```
+ 
+ And this plot shows the proportion of men in each quartile by PrEP use and age.
+ ```{r}
+# Plot the proportion in each quartile by age and PrEP use
+    ageXquartile_noprep <- sample %>% filter(!is.na(rate_inst) & egoprep_p12 %in% "No recent PrEP use") %>% group_by(age_cat) %>% summarise(freq=n(), zero = sum(rate_inst_quart %in% "Zero")/freq, se_zero = sqrt((zero*(1-zero))/freq), lower_zero = max((zero - 1.96*se_zero), 0), upper_zero = min((zero + 1.96*se_zero), 1), low = sum(rate_inst_quart %in% "Low")/freq, se_low = sqrt((low*(1-low))/freq), lower_low = max((low - 1.96*se_low), 0), upper_low = min((low + 1.96*se_low), 1), med = sum(rate_inst_quart %in% "Med")/freq, se_med = sqrt((med*(1-med))/freq), lower_med = max((med - 1.96*se_med), 0), upper_med = min((med + 1.96*se_med), 1), high = sum(rate_inst_quart %in% "High")/freq, se_high = sqrt((high*(1-high))/freq), lower_high = max((high - 1.96*se_high), 0), upper_high = min((high + 1.96*se_high), 1))
+      ageXquartile_prep <- sample %>% filter(!is.na(rate_inst) & egoprep_p12 %in% "PrEP use") %>% group_by(age_cat) %>% summarise(freq=n(), zero = sum(rate_inst_quart %in% "Zero")/freq, se_zero = sqrt((zero*(1-zero))/freq), lower_zero = max((zero - 1.96*se_zero), 0), upper_zero = min((zero + 1.96*se_zero), 1), low = sum(rate_inst_quart %in% "Low")/freq, se_low = sqrt((low*(1-low))/freq), lower_low = max((low - 1.96*se_low), 0), upper_low = min((low + 1.96*se_low), 1), med = sum(rate_inst_quart %in% "Med")/freq, se_med = sqrt((med*(1-med))/freq), lower_med = max((med - 1.96*se_med), 0), upper_med = min((med + 1.96*se_med), 1), high = sum(rate_inst_quart %in% "High")/freq, se_high = sqrt((high*(1-high))/freq), lower_high = max((high - 1.96*se_high), 0), upper_high = min((high + 1.96*se_high), 1))
+    
+      p_zero <- ggplot() + geom_pointrange(data=ageXquartile_noprep, aes(x=age_cat, y=zero, ymin=lower_zero, ymax=upper_zero, colour="a")) + geom_pointrange(data=ageXquartile_prep, aes(x=age_cat, y=zero, ymin=lower_zero, ymax=upper_zero, colour="b")) + scale_colour_manual(name = "PrEP use", values=c("a"="blue", "b"="orange"), labels=c("No recent PrEP", "PrEP use")) + labs(x="Age group", y="Percent", title="Zero instantaneous partners") + theme_title + plot_background + theme(legend.position="none")
+      p_low <- ggplot() + geom_pointrange(data=ageXquartile_noprep, aes(x=age_cat, y=low, ymin=lower_low, ymax=upper_low, colour="a")) + geom_pointrange(data=ageXquartile_prep, aes(x=age_cat, y=low, ymin=lower_low, ymax=upper_low, colour="b")) + scale_colour_manual(name = "PrEP use", values=c("a"="blue", "b"="orange"), labels=c("No recent PrEP", "PrEP use")) + labs(x="Age group", y="Percent", title="Low rate of instantaneous partners") + theme_title + plot_background + theme(legend.position="none")
+      p_med <- ggplot() + geom_pointrange(data=ageXquartile_noprep, aes(x=age_cat, y=med, ymin=lower_med, ymax=upper_med, colour="a")) + geom_pointrange(data=ageXquartile_prep, aes(x=age_cat, y=med, ymin=lower_med, ymax=upper_med, colour="b")) + scale_colour_manual(name = "PrEP use", values=c("a"="blue", "b"="orange"), labels=c("No recent PrEP", "PrEP use")) + labs(x="Age group", y="Percent", title="Medium rate of instantaneous partners") + theme_title + plot_background + theme(legend.position="none")
+     p_high <- ggplot() + geom_pointrange(data=ageXquartile_noprep, aes(x=age_cat, y=high, ymin=lower_high, ymax=upper_high, colour="a")) + geom_pointrange(data=ageXquartile_prep, aes(x=age_cat, y=high, ymin=lower_high, ymax=upper_high, colour="b")) + scale_colour_manual(name = "PrEP use", values=c("a"="blue", "b"="orange"), labels=c("No recent PrEP", "PrEP use")) + labs(x="Age group", y="Percent", title="High rate of instantaneous partners") + theme_title + plot_background + theme(legend.position="none")
+    
+     multiplot(p_zero, p_med, p_low, p_high, cols=2)
+
+```
+
+The data indicate that there are clear differences between PrEP users and non-PrEP users in terms of the rate of instantaneous partnerships, with a general pattern of greater proportion of PrEP users being in the highest quartile of the distribution and a lower proportion having zero instantaneous partners. This could be simply a reflection of the fact that PrEP use is targeted to higher risk men, but it could also be due to risk compensation. Either way, it is clear that using data only from non-PrEP users would yield a very different estimate of the rate of instantaneous partnerships than using data from the full sample.
+
+## Condom use
+The table below presents the mean probability of condom use by partner type and PrEP use (by the ego in the past 12 months or by his partner at last sex), and the proportion of men who report always and never using condoms. For instantaneous partnerships, these latter two measures convey the same information as the mean since men only reported on sex with one one-time partner. The plot shows the mean probobability with error bars indicating the 95% condfidence intervals.
+```{r}
+    condoms_mainXprep <- sample %>% filter(!is.na(dyadprep_p12) & !is.na(condoms_main)) %>% group_by(dyadprep_p12) %>% summarise(freq = n(), mean = mean(condoms_main), prop.never = sum((condoms_main %in% 0)/freq), prop.always = sum(condoms_main %in% 1)/freq, se=sd(condoms_main)/sqrt(freq), ci_lower = max((mean - 1.96*se), 0), ci_upper = min((mean + 1.96*se), 1), ptype = "Main")
+    condoms_persXprep <- sample %>% filter(!is.na(dyadprep_p12) & !is.na(condoms_pers)) %>% group_by(dyadprep_p12) %>% summarise(freq = n(), mean = mean(condoms_pers), prop.never = sum((condoms_pers %in% 0)/freq), prop.always = sum(condoms_pers %in% 1)/freq, se=sd(condoms_pers)/sqrt(freq), ci_lower = max((mean - 1.96*se), 0), ci_upper = min((mean + 1.96*se), 1), ptype = "Persistent")
+    condoms_instXprep <- sample %>% filter(!is.na(dyadprep_p12) & !is.na(condoms_inst)) %>% group_by(dyadprep_p12) %>% summarise(freq = n(), mean = mean(condoms_inst), prop.never = sum((condoms_inst %in% 0)/freq), prop.always = sum(condoms_inst %in% 1)/freq, se=sd(condoms_inst)/sqrt(freq), ci_lower = max((mean - 1.96*se), 0), ci_upper = min((mean + 1.96*se), 1), ptype = "Instantaneous")
+    
+# Table
+    condomsXprep_tbl <- rbind.data.frame(condoms_mainXprep[,1:5], condoms_persXprep[,1:5], condoms_instXprep[,1:5])
+    
+    kable(condomsXprep_tbl, col.names=c("PrEP use", "N", "Mean", "% never", "% always"), digits=c(0, 0, 3, 3, 3), caption="Condom use by past 12 month PrEP use") %>% group_rows("Main partnerships", 1, 2) %>% group_rows("Persistent partnerships", 3, 4) %>% group_rows("Instantaneous partnerships", 5, 6) %>% kable_styling(full_width=T, position="center")
+    
+# Plot
+    condomsXprep_plot <- rbind.data.frame(condoms_mainXprep, condoms_persXprep, condoms_instXprep)
+    condomsXprep_plot$ptype <- factor(condomsXprep_plot$ptype, levels = c("Main", "Persistent", "Instantaneous"))
+
+    ggplot(condomsXprep_plot) + geom_pointrange(aes(x=ptype, y=mean, ymin=ci_lower, ymax=ci_upper, colour=dyadprep_p12),  position=position_dodge(0.1)) +  labs(x="Partnership type", y="Mean probability", title="Mean probability of condom use by PrEP use") + guides(colour = guide_legend(title=NULL)) + plot_background + theme_title
+    
+    
+    
+```
+
+The plots below show the mean probability of condom use in each partnership type by dyad age and PrEP use.
+
+```{r}
+#Define dyad age category variable
+    sample$dyad_age <- ifelse(sample$age %in% c(18:34) & sample$mrp_ageinyears_approx %in% c(18:34), "YY", ifelse(sample$age %in% c(18:34) & sample$mrp_ageinyears_approx %in% c(35:59), "YO", ifelse(sample$age %in% c(35:59) & sample$mrp_ageinyears_approx %in% c(18:34), "OY", ifelse(sample$age %in% c(35:59) & sample$mrp_ageinyears_approx %in% c(35:59), "OO", NA))))
+    #Specify order of dyad age
+    sample$dyad_age <- factor(sample$dyad_age, levels = c("YY", "YO", "OY", "OO"))
+
+#Condom use in main partnerships by dyad age
+    condoms_mainXdyadage_noprep <- sample %>% filter(!is.na(condoms_main) & !is.na(dyad_age) & dyadprep_p12 %in% "No recent PrEP use") %>% group_by(dyad_age) %>% summarise(freq=n(), mean=mean(condoms_main), se=sd(condoms_main)/sqrt(freq), ci_lower = max((mean - 1.96*se), 0), ci_upper = min((mean + 1.96*se), 1))
+    condoms_mainXdyadage_prep <- sample %>% filter(!is.na(condoms_main) & !is.na(dyad_age) & dyadprep_p12 %in% "PrEP use") %>% group_by(dyad_age) %>% summarise(freq=n(), mean=mean(condoms_main), se=sd(condoms_main)/sqrt(freq), ci_lower = max((mean - 1.96*se), 0), ci_upper = min((mean + 1.96*se), 1))
+    
+    ggplot() + geom_pointrange(data=condoms_mainXdyadage_noprep, aes(x=dyad_age, y=mean, ymin=ci_lower, ymax=ci_upper, colour="a")) + geom_pointrange(data=condoms_mainXdyadage_prep, aes(x=dyad_age, y=mean, ymin=ci_lower, ymax=ci_upper, colour="b")) + scale_colour_manual(name = "PrEP use", values=c("a"="blue", "b"="orange"), labels=c("No recent PrEP", "PrEP use")) + labs(x="Dyad age", y="Mean probability of condom use", title = "Mean probability of condom use in main partnerships \n by dyad age and PrEP use") + theme_title + plot_background
+
+#Condom use in persistent partnerships by dyad age
+    condoms_persXdyadage_noprep <- sample %>% filter(!is.na(condoms_pers) & !is.na(dyad_age) & dyadprep_p12 %in% "No recent PrEP use") %>% group_by(dyad_age) %>% summarise(freq=n(), mean=mean(condoms_pers), se=sd(condoms_pers)/sqrt(freq), ci_lower = max((mean - 1.96*se), 0), ci_upper = min((mean + 1.96*se), 1))
+    condoms_persXdyadage_prep <- sample %>% filter(!is.na(condoms_pers) & !is.na(dyad_age) & dyadprep_p12 %in% "PrEP use") %>% group_by(dyad_age) %>% summarise(freq=n(), mean=mean(condoms_pers), se=sd(condoms_pers)/sqrt(freq), ci_lower = max((mean - 1.96*se), 0), ci_upper = min((mean + 1.96*se), 1))
+    
+    ggplot() + geom_pointrange(data=condoms_persXdyadage_noprep, aes(x=dyad_age, y=mean, ymin=ci_lower, ymax=ci_upper, colour="a")) + geom_pointrange(data=condoms_persXdyadage_prep, aes(x=dyad_age, y=mean, ymin=ci_lower, ymax=ci_upper, colour="b")) + scale_colour_manual(name = "PrEP use", values=c("a"="blue", "b"="orange"), labels=c("No recent PrEP", "PrEP use")) + labs(x="Dyad age", y="Mean probability of condom use", title = "Mean probability of condom use in persistent partnerships \n by dyad age and PrEP use") + theme_title + plot_background
+    
+    #Condom use in instantaneous partnerships by dyad age
+    condoms_instXdyadage_noprep <- sample %>% filter(!is.na(condoms_inst) & !is.na(dyad_age) & dyadprep_p12 %in% "No recent PrEP use") %>% group_by(dyad_age) %>% summarise(freq=n(), mean=mean(condoms_inst), se=sd(condoms_inst)/sqrt(freq), ci_lower = max((mean - 1.96*se), 0), ci_upper = min((mean + 1.96*se), 1))
+    condoms_instXdyadage_prep <- sample %>% filter(!is.na(condoms_inst) & !is.na(dyad_age) & dyadprep_p12 %in% "PrEP use") %>% group_by(dyad_age) %>% summarise(freq=n(), mean=mean(condoms_inst), se=sd(condoms_inst)/sqrt(freq), ci_lower = max((mean - 1.96*se), 0), ci_upper = min((mean + 1.96*se), 1))
+    
+    ggplot() + geom_pointrange(data=condoms_instXdyadage_noprep, aes(x=dyad_age, y=mean, ymin=ci_lower, ymax=ci_upper, colour="a")) + geom_pointrange(data=condoms_instXdyadage_prep, aes(x=dyad_age, y=mean, ymin=ci_lower, ymax=ci_upper, colour="b")) + scale_colour_manual(name = "PrEP use", values=c("a"="blue", "b"="orange"), labels=c("No recent PrEP", "PrEP use")) + labs(x="Dyad age", y="Mean probability of condom use", title = "Mean probability of condom use in instantaneous partnerships \n by dyad age and PrEP use") + theme_title + plot_background
+```
+
+As with the rate of instantaneous partnerships, we see that condom use differs in dyads in which one or both parters used PrEP from dyads in which neither partner used PREP in the past 12 months. By age, these differences were primarily in main and persistent partnerships between two young men and in instantaneous partnerships between two older men. Again, this could be simply a reflection of the fact that PrEP use is targeted to higher risk men who may have been less likely to use condoms before starting PrEP, but it could also be due to risk compensation. Either way, using data only from non-PrEP users will produce different estimates of the rate of instantaneous partnerships than using data from the full sample, and it is unclear how much of this difference is due to risk compensation. These data suggest that imputing the likely counterfactual values for condom use in PrEP users is indicated.
+
+## Sex role
+
+```{r}
+    sexroleXnoprep <- sample %>% filter(!is.na(position_cat) & egoprep_p12 %in% "No recent PrEP use") %>% add_tally() %>% group_by(position_cat) %>% summarise(freq=n(), n=max(n), prop = freq/n, se = sqrt((prop*(1-prop))/n), ci_lower = max((prop- 1.96*se), 0), ci_upper = min((prop + 1.96*se), 1))
+    sexroleXprep <- sample %>% filter(!is.na(position_cat) & egoprep_p12 %in% "PrEP use") %>% add_tally() %>% group_by(position_cat) %>% summarise(freq=n(), n=max(n), prop = freq/n, se = sqrt((prop*(1-prop))/n), ci_lower = max((prop- 1.96*se), 0), ci_upper = min((prop + 1.96*se), 1))
+    
+    ggplot() + geom_pointrange(data=sexroleXnoprep, aes(x=position_cat, y=prop, ymin=ci_lower, ymax=ci_upper, colour="a")) + geom_pointrange(data=sexroleXprep, aes(x=position_cat, y=prop, ymin=ci_lower, ymax=ci_upper, colour="b")) + scale_colour_manual(name = "PrEP use", values=c("a"="blue", "b"="orange"), labels=c("No recent PrEP", "PrEP use")) + labs(x="Anal sex role", y="Proportion", title = "Anal sex role by PrEP use") + theme_title + plot_background
+
+```
+
+The plot for sex role also suggests some differences in anal sex role by PrEP use. Interestingly, PrEP non-users are more likely to report being exclusive bottoms than PrEP users.
+
+
+# Exploring the effects of including/excluding PrEP users in estimation of behavioral parameters
+Above we saw that there are differnences in the reported behaviors of PrEP users and PrEP non-users. This section examines the implications for determining the model structure by looking at whether we would reach different conclusions on how to structure the model on age, race/ethnicity and region by including or excluding data from men who have used PrEP or whose partners are using PrEP.
+
 ## Rate of instantaneous partners
 This analysis looks at heterogeneity in the rate of one-time partnerships separately for men who have 0 main, those who have 1 main, those who have 0 persistent, and those who have one or more persistent partnerships. __In this analysis, we compare the findings from models including and excluding data from men who used PrEP in the past 12 months or whose partners used PrEP.__
 
@@ -150,7 +287,7 @@ We first look at how to parameterize age by plotting the ceofficients from the f
     ageplot_rateinst_nomain_all <- ggplot(agecoefs_rateinst_nomain_all, aes(x=age_cat, y=coefs)) + geom_pointrange(aes(ymin=coefs - 1.96*se, ymax=coefs + 1.96*se)) + labs(x="Age groups", y="Adjusted coefficients and CI", title="Adjusted coefficients and 95% CI for age: full sample") + theme_title + plot_background
 
 #Men who haven't used PrEP in the past 12 months
-    rateinst_nomain_testage_noprep <- lm(rate_inst ~ age_cat + race_eth_m.reg + region.bKC, data=sample_p12noprep_noalterprep, subset = degree_main %in% 0)
+    rateinst_nomain_testage_noprep <- lm(rate_inst ~ age_cat + race_eth_m.reg + region.bKC, data=sample_p12noprep, subset = degree_main %in% 0)
     agecoefs_rateinst_nomain_noprep <- cbind.data.frame(age_cat = c("25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59"), coefs = as.vector(rateinst_nomain_testage_noprep$coefficients[2:8]), se = as.vector(coef(summary(rateinst_nomain_testage_noprep))[2:8,2]))
     ageplot_rateinst_nomain_noprep <- ggplot(agecoefs_rateinst_nomain_noprep, aes(x=age_cat, y=coefs)) + geom_pointrange(aes(ymin=coefs - 1.96*se, ymax=coefs + 1.96*se)) + labs(x="Age groups", y="Adjusted coefficients and CI", title="Adjusted coefficients and 95% CI for age: No recent PrEP use") + theme_title + plot_background
     
@@ -183,16 +320,16 @@ The results of the regression analyses excluding data from men who have used PrE
 ```{r  rateinst_nomain_noprep, eval=TRUE, error=TRUE}
 ##No use of PrEP in the past 12 months##
  #Main effects
-  rateinst_nomain_full_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC, data=sample_p12noprep_noalterprep, subset = degree_main %in% 0)
-  rateinst_nomain_noregion_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg,  data=sample_p12noprep_noalterprep, subset = degree_main %in% 0)
-  rateinst_nomain_norace_noprep <- lm(rate_inst ~ age_cat_alt + region.bKC,  data=sample_p12noprep_noalterprep, subset = degree_main %in% 0)
-  rateinst_nomain_noage_noprep <- lm(rate_inst ~ race_eth_m.reg + region.bKC, data=sample_p12noprep_noalterprep, subset = degree_main %in% 0)
+  rateinst_nomain_full_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC, data=sample_p12noprep, subset = degree_main %in% 0)
+  rateinst_nomain_noregion_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg,  data=sample_p12noprep, subset = degree_main %in% 0)
+  rateinst_nomain_norace_noprep <- lm(rate_inst ~ age_cat_alt + region.bKC,  data=sample_p12noprep, subset = degree_main %in% 0)
+  rateinst_nomain_noage_noprep <- lm(rate_inst ~ race_eth_m.reg + region.bKC, data=sample_p12noprep, subset = degree_main %in% 0)
 
  #Interactions
-  rateinst_nomain_full_withint_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, data=sample_p12noprep_noalterprep, subset = degree_main %in% 0)
-  rateinst_nomain_noraceXreg_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, data=sample_p12noprep_noalterprep, subset = degree_main %in% 0)
-  rateinst_nomain_noageXreg_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat_alt, data=sample_p12noprep_noalterprep, subset = degree_main %in% 0)
-  rateinst_nomain_noraceXage_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*region.bKC, data=sample_p12noprep_noalterprep, subset = degree_main %in% 0)
+  rateinst_nomain_full_withint_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, data=sample_p12noprep, subset = degree_main %in% 0)
+  rateinst_nomain_noraceXreg_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, data=sample_p12noprep, subset = degree_main %in% 0)
+  rateinst_nomain_noageXreg_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat_alt, data=sample_p12noprep, subset = degree_main %in% 0)
+  rateinst_nomain_noraceXage_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*region.bKC, data=sample_p12noprep, subset = degree_main %in% 0)
   
   results_rateinst_nomain_noprep <- compare.models(rateinst_nomain_full_noprep, rateinst_nomain_noregion_noprep, rateinst_nomain_norace_noprep, rateinst_nomain_noage_noprep, rateinst_nomain_full_withint_noprep, rateinst_nomain_noraceXreg_noprep, rateinst_nomain_noageXreg_noprep, rateinst_nomain_noraceXage_noprep)
     results_rateinst_nomain_noprep
@@ -209,7 +346,7 @@ We first look at how to parameterize age by plotting the ceofficients from the f
     ageplot_rateinst_main_all <- ggplot(agecoefs_rateinst_main_all, aes(x=age_cat, y=coefs)) + geom_pointrange(aes(ymin=coefs - 1.96*se, ymax=coefs + 1.96*se)) + labs(x="Age groups", y="Adjusted coefficients and CI", title="Adjusted coefficients and 95% CI for age: full sample") + theme_title + plot_background
 
 #Men who haven't used PrEP in the past 12 months
-    rateinst_main_testage_noprep <- lm(rate_inst ~ age_cat + race_eth_m.reg + region.bKC, data=sample_p12noprep_noalterprep, subset = degree_main %in% 1)
+    rateinst_main_testage_noprep <- lm(rate_inst ~ age_cat + race_eth_m.reg + region.bKC, data=sample_p12noprep, subset = degree_main %in% 1)
     agecoefs_rateinst_main_noprep <- cbind.data.frame(age_cat = c("25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59"), coefs = as.vector(rateinst_main_testage_noprep$coefficients[2:8]), se = as.vector(coef(summary(rateinst_main_testage_noprep))[2:8,2]))
     ageplot_rateinst_main_noprep <- ggplot(agecoefs_rateinst_main_noprep, aes(x=age_cat, y=coefs)) + geom_pointrange(aes(ymin=coefs - 1.96*se, ymax=coefs + 1.96*se)) + labs(x="Age groups", y="Adjusted coefficients and CI", title="Adjusted coefficients and 95% CI for age: No recent PrEP use") + theme_title + plot_background
     
@@ -244,16 +381,16 @@ The results of the regression analyses excluding men who had used PrEP in the pa
 
 ##No use of PrEP in the past 12 months##
  #Main effects
-  rateinst_main_full_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC, data=sample_p12noprep_noalterprep, subset = degree_main %in% 1)
-  rateinst_main_noregion_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg, data=sample_p12noprep_noalterprep, subset = degree_main %in% 1)
-  rateinst_main_norace_noprep <- lm(rate_inst ~ age_cat_alt + region.bKC, data=sample_p12noprep_noalterprep, subset = degree_main %in% 1)
-  rateinst_main_noage_noprep <- lm(rate_inst ~ race_eth_m.reg + region.bKC, data=sample_p12noprep_noalterprep, subset = degree_main %in% 1)
+  rateinst_main_full_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC, data=sample_p12noprep, subset = degree_main %in% 1)
+  rateinst_main_noregion_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg, data=sample_p12noprep, subset = degree_main %in% 1)
+  rateinst_main_norace_noprep <- lm(rate_inst ~ age_cat_alt + region.bKC, data=sample_p12noprep, subset = degree_main %in% 1)
+  rateinst_main_noage_noprep <- lm(rate_inst ~ race_eth_m.reg + region.bKC, data=sample_p12noprep, subset = degree_main %in% 1)
 
  #Interactions
-  rateinst_main_full_withint_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, data=sample_p12noprep_noalterprep, subset = degree_main %in% 1)
-  rateinst_main_noraceXreg_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, data=sample_p12noprep_noalterprep, subset = degree_main %in% 1)
-  rateinst_main_noageXreg_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat_alt, data=sample_p12noprep_noalterprep, subset = degree_main %in% 1)
-  rateinst_main_noraceXage_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*region.bKC, data=sample_p12noprep_noalterprep, subset = degree_main %in% 1)
+  rateinst_main_full_withint_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, data=sample_p12noprep, subset = degree_main %in% 1)
+  rateinst_main_noraceXreg_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, data=sample_p12noprep, subset = degree_main %in% 1)
+  rateinst_main_noageXreg_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat_alt, data=sample_p12noprep, subset = degree_main %in% 1)
+  rateinst_main_noraceXage_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*region.bKC, data=sample_p12noprep, subset = degree_main %in% 1)
   
   results_rateinst_main_noprep <- compare.models(rateinst_main_full_noprep, rateinst_main_noregion_noprep, rateinst_main_norace_noprep, rateinst_main_noage_noprep, rateinst_main_full_withint_noprep, rateinst_main_noraceXreg_noprep, rateinst_main_noageXreg_noprep, rateinst_main_noraceXage_noprep)
     results_rateinst_main_noprep
@@ -269,7 +406,7 @@ The plots below shoe the ceofficients for age from a model adjusting for race/et
     ageplot_rateinst_nopers_all <- ggplot(agecoefs_rateinst_nopers_all, aes(x=age_cat, y=coefs)) + geom_pointrange(aes(ymin=coefs - 1.96*se, ymax=coefs + 1.96*se)) + labs(x="Age groups", y="Adjusted coefficients and CI", title="Adjusted coefficients and 95% CI for age: full sample") + theme_title + plot_background
 
 #Men who haven't used PrEP in the past 12 months
-    rateinst_nopers_testage_noprep <- lm(rate_inst ~ age_cat + race_eth_m.reg + region.bKC, data=sample_p12noprep_noalterprep, subset = degreecat_cas %in% "None")
+    rateinst_nopers_testage_noprep <- lm(rate_inst ~ age_cat + race_eth_m.reg + region.bKC, data=sample_p12noprep, subset = degreecat_cas %in% "None")
     agecoefs_rateinst_nopers_noprep <- cbind.data.frame(age_cat = c("25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59"), coefs = as.vector(rateinst_nopers_testage_noprep$coefficients[2:8]), se = as.vector(coef(summary(rateinst_nopers_testage_noprep))[2:8,2]))
     ageplot_rateinst_nopers_noprep <- ggplot(agecoefs_rateinst_nopers_noprep, aes(x=age_cat, y=coefs)) + geom_pointrange(aes(ymin=coefs - 1.96*se, ymax=coefs + 1.96*se)) + labs(x="Age groups", y="Adjusted coefficients and CI", title="Adjusted coefficients and 95% CI for age: No recent PrEP use") + theme_title + plot_background
     
@@ -304,16 +441,16 @@ The results of the regression analyses excluding men who had used PrEP in the pa
 
 ##No use of PrEP in the past 12 months##
  #Main effects
-  rateinst_nopers_full_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC, data=sample_p12noprep_noalterprep, subset = degreecat_cas %in% "None")
-  rateinst_nopers_noregion_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg, data=sample_p12noprep_noalterprep, subset = degreecat_cas %in% "None")
-  rateinst_nopers_norace_noprep <- lm(rate_inst ~ age_cat_alt + region.bKC, data=sample_p12noprep_noalterprep, subset = degreecat_cas %in% "None")
-  rateinst_nopers_noage_noprep <- lm(rate_inst ~ race_eth_m.reg + region.bKC, data=sample_p12noprep_noalterprep, subset = degreecat_cas %in% "None")
+  rateinst_nopers_full_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC, data=sample_p12noprep, subset = degreecat_cas %in% "None")
+  rateinst_nopers_noregion_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg, data=sample_p12noprep, subset = degreecat_cas %in% "None")
+  rateinst_nopers_norace_noprep <- lm(rate_inst ~ age_cat_alt + region.bKC, data=sample_p12noprep, subset = degreecat_cas %in% "None")
+  rateinst_nopers_noage_noprep <- lm(rate_inst ~ race_eth_m.reg + region.bKC, data=sample_p12noprep, subset = degreecat_cas %in% "None")
 
  #Interactions
-  rateinst_nopers_full_withint_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, data=sample_p12noprep_noalterprep, subset = degreecat_cas %in% "None")
-  rateinst_nopers_noraceXreg_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, data=sample_p12noprep_noalterprep, subset = degreecat_cas %in% "None")
-  rateinst_nopers_noageXreg_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat_alt, data=sample_p12noprep_noalterprep, subset = degreecat_cas %in% "None")
-  rateinst_nopers_noraceXage_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*region.bKC, data=sample_p12noprep_noalterprep, subset = degreecat_cas %in% "None")
+  rateinst_nopers_full_withint_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, data=sample_p12noprep, subset = degreecat_cas %in% "None")
+  rateinst_nopers_noraceXreg_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, data=sample_p12noprep, subset = degreecat_cas %in% "None")
+  rateinst_nopers_noageXreg_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat_alt, data=sample_p12noprep, subset = degreecat_cas %in% "None")
+  rateinst_nopers_noraceXage_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*region.bKC, data=sample_p12noprep, subset = degreecat_cas %in% "None")
   
   results_rateinst_nopers_noprep <- compare.models(rateinst_nopers_full_noprep, rateinst_nopers_noregion_noprep, rateinst_nopers_norace_noprep, rateinst_nopers_noage_noprep, rateinst_nopers_full_withint_noprep, rateinst_nopers_noraceXreg_noprep, rateinst_nopers_noageXreg_noprep, rateinst_nopers_noraceXage_noprep)
     results_rateinst_nopers_noprep
@@ -329,7 +466,7 @@ The plots below show the ceofficients for age from a model adjusting for race/et
     ageplot_rateinst_anypers_all <- ggplot(agecoefs_rateinst_anypers_all, aes(x=age_cat, y=coefs)) + geom_pointrange(aes(ymin=coefs - 1.96*se, ymax=coefs + 1.96*se)) + labs(x="Age groups", y="Adjusted coefficients and CI", title="Adjusted coefficients and 95% CI for age: full sample") + theme_title + plot_background
 
 #Men who haven't used PrEP in the past 12 months
-    rateinst_anypers_testage_noprep <- lm(rate_inst ~ age_cat + race_eth_m.reg + region.bKC, data=sample_p12noprep_noalterprep, subset = degreecat_cas %in% c("One", "Two or more"))
+    rateinst_anypers_testage_noprep <- lm(rate_inst ~ age_cat + race_eth_m.reg + region.bKC, data=sample_p12noprep, subset = degreecat_cas %in% c("One", "Two or more"))
     agecoefs_rateinst_anypers_noprep <- cbind.data.frame(age_cat = c("25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59"), coefs = as.vector(rateinst_anypers_testage_noprep$coefficients[2:8]), se = as.vector(coef(summary(rateinst_anypers_testage_noprep))[2:8,2]))
     ageplot_rateinst_anypers_noprep <- ggplot(agecoefs_rateinst_anypers_noprep, aes(x=age_cat, y=coefs)) + geom_pointrange(aes(ymin=coefs - 1.96*se, ymax=coefs + 1.96*se)) + labs(x="Age groups", y="Adjusted coefficients and CI", title="Adjusted coefficients and 95% CI for age: No recent PrEP use") + theme_title + plot_background
     
@@ -364,16 +501,16 @@ The results of the regression analyses excluding men who had used PrEP in the pa
 
 ##No use of PrEP in the past 12 months##
  #Main effects
-  rateinst_anypers_full_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC, data=sample_p12noprep_noalterprep, subset = degreecat_cas %in% c("One", "Two or more"))
-  rateinst_anypers_noregion_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg, data=sample_p12noprep_noalterprep, subset = degreecat_cas %in% c("One", "Two or more"))
-  rateinst_anypers_norace_noprep <- lm(rate_inst ~ age_cat_alt + region.bKC, data=sample_p12noprep_noalterprep, subset = degreecat_cas %in% c("One", "Two or more"))
-  rateinst_anypers_noage_noprep <- lm(rate_inst ~ race_eth_m.reg + region.bKC, data=sample_p12noprep_noalterprep, subset = degreecat_cas %in% c("One", "Two or more"))
+  rateinst_anypers_full_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC, data=sample_p12noprep, subset = degreecat_cas %in% c("One", "Two or more"))
+  rateinst_anypers_noregion_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg, data=sample_p12noprep, subset = degreecat_cas %in% c("One", "Two or more"))
+  rateinst_anypers_norace_noprep <- lm(rate_inst ~ age_cat_alt + region.bKC, data=sample_p12noprep, subset = degreecat_cas %in% c("One", "Two or more"))
+  rateinst_anypers_noage_noprep <- lm(rate_inst ~ race_eth_m.reg + region.bKC, data=sample_p12noprep, subset = degreecat_cas %in% c("One", "Two or more"))
 
  #Interactions
-  rateinst_anypers_full_withint_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, data=sample_p12noprep_noalterprep, subset = degreecat_cas %in% c("One", "Two or more"))
-  rateinst_anypers_noraceXreg_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, data=sample_p12noprep_noalterprep, subset = degreecat_cas %in% c("One", "Two or more"))
-  rateinst_anypers_noageXreg_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat_alt, data=sample_p12noprep_noalterprep, subset = degreecat_cas %in% c("One", "Two or more"))
-  rateinst_anypers_noraceXage_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*region.bKC, data=sample_p12noprep_noalterprep, subset = degreecat_cas %in% c("One", "Two or more"))
+  rateinst_anypers_full_withint_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, data=sample_p12noprep, subset = degreecat_cas %in% c("One", "Two or more"))
+  rateinst_anypers_noraceXreg_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*age_cat_alt, data=sample_p12noprep, subset = degreecat_cas %in% c("One", "Two or more"))
+  rateinst_anypers_noageXreg_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat_alt, data=sample_p12noprep, subset = degreecat_cas %in% c("One", "Two or more"))
+  rateinst_anypers_noraceXage_noprep <- lm(rate_inst ~ age_cat_alt + race_eth_m.reg + region.bKC + age_cat_alt*region.bKC + race_eth_m.reg*region.bKC, data=sample_p12noprep, subset = degreecat_cas %in% c("One", "Two or more"))
   
   results_rateinst_anypers_noprep <- compare.models(rateinst_anypers_full_noprep, rateinst_anypers_noregion_noprep, rateinst_anypers_norace_noprep, rateinst_anypers_noage_noprep, rateinst_anypers_full_withint_noprep, rateinst_anypers_noraceXreg_noprep, rateinst_anypers_noageXreg_noprep, rateinst_anypers_noraceXage_noprep)
     results_rateinst_anypers_noprep
@@ -560,9 +697,9 @@ Sex role is categorized as exclusively bottom, exclusively top, or versatile, ba
   sample$position_bottom <- ifelse(sample$position_cat=="Exclusively bottom", 1, ifelse(!is.na(sample$position_cat), 0, NA))
   sample$position_versatile <- ifelse(sample$position_cat=="Versatile", 1, ifelse(!is.na(sample$position_cat), 0, NA))
   
-  sample_p12noprep_noalterprep$position_top <- ifelse(sample_p12noprep_noalterprep$position_cat=="Exclusively top", 1, ifelse(!is.na(sample_p12noprep_noalterprep$position_cat), 0, NA))
-  sample_p12noprep_noalterprep$position_bottom <- ifelse(sample_p12noprep_noalterprep$position_cat=="Exclusively bottom", 1, ifelse(!is.na(sample_p12noprep_noalterprep$position_cat), 0, NA))
-  sample_p12noprep_noalterprep$position_versatile <- ifelse(sample_p12noprep_noalterprep$position_cat=="Versatile", 1, ifelse(!is.na(sample_p12noprep_noalterprep$position_cat), 0, NA))
+  sample_p12noprep$position_top <- ifelse(sample_p12noprep$position_cat=="Exclusively top", 1, ifelse(!is.na(sample_p12noprep$position_cat), 0, NA))
+  sample_p12noprep$position_bottom <- ifelse(sample_p12noprep$position_cat=="Exclusively bottom", 1, ifelse(!is.na(sample_p12noprep$position_cat), 0, NA))
+  sample_p12noprep$position_versatile <- ifelse(sample_p12noprep$position_cat=="Versatile", 1, ifelse(!is.na(sample_p12noprep$position_cat), 0, NA))
   
 ```
 
@@ -577,7 +714,7 @@ To inform parameterization of age in models exploring heterogeneity in the propo
     ageplot_position_top_all <- ggplot(agecoefs_position_top_all, aes(x=age_cat, y=coefs)) + geom_pointrange(aes(ymin=coefs - 1.96*se, ymax=coefs + 1.96*se)) + labs(x="Age groups", y="Adjusted coefficients and CI", title="Adjusted coefficients and 95% CI for age: full sample") + theme_title + plot_background
 
 #Men who haven't used PrEP in the past 12 months
-    position_top_testage_noprep <- glm(position_top ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample_p12noprep_noalterprep)
+    position_top_testage_noprep <- glm(position_top ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample_p12noprep)
     agecoefs_position_top_noprep <- cbind.data.frame(age_cat = c("25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59"), coefs = as.vector(position_top_testage_noprep$coefficients[2:8]), se = as.vector(coef(summary(position_top_testage_noprep))[2:8,2]))
     ageplot_position_top_noprep <- ggplot(agecoefs_position_top_noprep, aes(x=age_cat, y=coefs)) + geom_pointrange(aes(ymin=coefs - 1.96*se, ymax=coefs + 1.96*se)) + labs(x="Age groups", y="Adjusted coefficients and CI", title="Adjusted coefficients and 95% CI for age: No recent PrEP use") + theme_title + plot_background
     
@@ -613,16 +750,16 @@ The results of the regression analyses restricting the sample to men who had not
 
 ##No PrEP in the past 12 months##
  #Main effects
-  top_full_noprep <- glm(position_top ~ age_cat_alt + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample_p12noprep_noalterprep)
-  top_noregion_noprep <- glm(position_top ~ age_cat_alt + race_eth_m.reg, family=binomial(link="logit"), data=sample_p12noprep_noalterprep)
-  top_norace_noprep <- glm(position_top ~ age_cat_alt +  region.bKC, family=binomial(link="logit"), data=sample_p12noprep_noalterprep)
-  top_noage_noprep <-  glm(position_top ~ race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample_p12noprep_noalterprep)
+  top_full_noprep <- glm(position_top ~ age_cat_alt + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample_p12noprep)
+  top_noregion_noprep <- glm(position_top ~ age_cat_alt + race_eth_m.reg, family=binomial(link="logit"), data=sample_p12noprep)
+  top_norace_noprep <- glm(position_top ~ age_cat_alt +  region.bKC, family=binomial(link="logit"), data=sample_p12noprep)
+  top_noage_noprep <-  glm(position_top ~ race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample_p12noprep)
   
  #Interactions
-  top_full_withint_noprep <- glm(position_top ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat_alt + region.bKC*age_cat_alt, family=binomial(link="logit"), data=sample_p12noprep_noalterprep)
-  top_noraceXreg_noprep <- glm(position_top ~ race_eth_m.reg + region.bKC + race_eth_m.reg*age_cat_alt + region.bKC*age_cat_alt, family=binomial(link="logit"), data=sample_p12noprep_noalterprep)
-  top_noraceXage_noprep <- glm(position_top ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + region.bKC*age_cat_alt, family=binomial(link="logit"), data=sample_p12noprep_noalterprep)
-  top_noageXreg_noprep <- glm(position_top ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat_alt, family=binomial(link="logit"), data=sample_p12noprep_noalterprep)
+  top_full_withint_noprep <- glm(position_top ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat_alt + region.bKC*age_cat_alt, family=binomial(link="logit"), data=sample_p12noprep)
+  top_noraceXreg_noprep <- glm(position_top ~ race_eth_m.reg + region.bKC + race_eth_m.reg*age_cat_alt + region.bKC*age_cat_alt, family=binomial(link="logit"), data=sample_p12noprep)
+  top_noraceXage_noprep <- glm(position_top ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + region.bKC*age_cat_alt, family=binomial(link="logit"), data=sample_p12noprep)
+  top_noageXreg_noprep <- glm(position_top ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat_alt, family=binomial(link="logit"), data=sample_p12noprep)
   
   results_topping_noprep <- compare.models(top_full_noprep, top_noregion_noprep, top_norace_noprep, top_noage_noprep, top_full_withint_noprep, top_noraceXreg_noprep, top_noageXreg_noprep, top_noraceXage_noprep)
   results_topping_noprep
@@ -639,7 +776,7 @@ As above, to inform parameterization of age in models exploring heterogeneity in
     ageplot_position_bottom_all <- ggplot(agecoefs_position_bottom_all, aes(x=age_cat, y=coefs)) + geom_pointrange(aes(ymin=coefs - 1.96*se, ymax=coefs + 1.96*se)) + labs(x="Age groups", y="Adjusted coefficients and CI", title="Adjusted coefficients and 95% CI for age: full sample") + theme_title + plot_background
 
 #Men who haven't used PrEP in the past 12 months
-    position_bottom_testage_noprep <- glm(position_bottom ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample_p12noprep_noalterprep)
+    position_bottom_testage_noprep <- glm(position_bottom ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample_p12noprep)
     agecoefs_position_bottom_noprep <- cbind.data.frame(age_cat = c("25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59"), coefs = as.vector(position_bottom_testage_noprep$coefficients[2:8]), se = as.vector(coef(summary(position_bottom_testage_noprep))[2:8,2]))
     ageplot_position_bottom_noprep <- ggplot(agecoefs_position_bottom_noprep, aes(x=age_cat, y=coefs)) + geom_pointrange(aes(ymin=coefs - 1.96*se, ymax=coefs + 1.96*se)) + labs(x="Age groups", y="Adjusted coefficients and CI", title="Adjusted coefficients and 95% CI for age: No recent PrEP use") + theme_title + plot_background
     
@@ -675,16 +812,16 @@ The results of the regression analyses restricting the sample to men who had not
 
 ##No PrEP in the past 12 months##
  #Main effects
-  bottom_full_noprep <- glm(position_bottom ~ age_cat_alt + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample_p12noprep_noalterprep)
-  bottom_noregion_noprep <- glm(position_bottom ~ age_cat_alt + race_eth_m.reg, family=binomial(link="logit"), data=sample_p12noprep_noalterprep)
-  bottom_norace_noprep <- glm(position_bottom ~ age_cat_alt +  region.bKC, family=binomial(link="logit"), data=sample_p12noprep_noalterprep)
-  bottom_noage_noprep <-  glm(position_bottom ~ race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample_p12noprep_noalterprep)
+  bottom_full_noprep <- glm(position_bottom ~ age_cat_alt + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample_p12noprep)
+  bottom_noregion_noprep <- glm(position_bottom ~ age_cat_alt + race_eth_m.reg, family=binomial(link="logit"), data=sample_p12noprep)
+  bottom_norace_noprep <- glm(position_bottom ~ age_cat_alt +  region.bKC, family=binomial(link="logit"), data=sample_p12noprep)
+  bottom_noage_noprep <-  glm(position_bottom ~ race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample_p12noprep)
   
  #Interactions
-  bottom_full_withint_noprep <- glm(position_bottom ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat_alt + region.bKC*age_cat_alt, family=binomial(link="logit"), data=sample_p12noprep_noalterprep)
-  bottom_noraceXreg_noprep <- glm(position_bottom ~ race_eth_m.reg + region.bKC + race_eth_m.reg*age_cat_alt + region.bKC*age_cat_alt, family=binomial(link="logit"), data=sample_p12noprep_noalterprep)
-  bottom_noraceXage_noprep <- glm(position_bottom ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + region.bKC*age_cat_alt, family=binomial(link="logit"), data=sample_p12noprep_noalterprep)
-  bottom_noageXreg_noprep <- glm(position_bottom ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat_alt, family=binomial(link="logit"), data=sample_p12noprep_noalterprep)
+  bottom_full_withint_noprep <- glm(position_bottom ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat_alt + region.bKC*age_cat_alt, family=binomial(link="logit"), data=sample_p12noprep)
+  bottom_noraceXreg_noprep <- glm(position_bottom ~ race_eth_m.reg + region.bKC + race_eth_m.reg*age_cat_alt + region.bKC*age_cat_alt, family=binomial(link="logit"), data=sample_p12noprep)
+  bottom_noraceXage_noprep <- glm(position_bottom ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + region.bKC*age_cat_alt, family=binomial(link="logit"), data=sample_p12noprep)
+  bottom_noageXreg_noprep <- glm(position_bottom ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat_alt, family=binomial(link="logit"), data=sample_p12noprep)
   
   results_bottoming_noprep <- compare.models(bottom_full_noprep, bottom_noregion_noprep, bottom_norace_noprep, bottom_noage_noprep, bottom_full_withint_noprep, bottom_noraceXreg_noprep, bottom_noageXreg_noprep, bottom_noraceXage_noprep)
   results_bottoming_noprep
@@ -702,7 +839,7 @@ To inform parameterization of age in models exploring heterogeneity in the propo
     ageplot_position_versatile_all <- ggplot(agecoefs_position_versatile_all, aes(x=age_cat, y=coefs)) + geom_pointrange(aes(ymin=coefs - 1.96*se, ymax=coefs + 1.96*se)) + labs(x="Age groups", y="Adjusted coefficients and CI", title="Adjusted coefficients and 95% CI for age: full sample") + theme_title + plot_background
 
 #Men who haven't used PrEP in the past 12 months
-    position_versatile_testage_noprep <- glm(position_versatile ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample_p12noprep_noalterprep)
+    position_versatile_testage_noprep <- glm(position_versatile ~ age_cat + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample_p12noprep)
     agecoefs_position_versatile_noprep <- cbind.data.frame(age_cat = c("25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59"), coefs = as.vector(position_versatile_testage_noprep$coefficients[2:8]), se = as.vector(coef(summary(position_versatile_testage_noprep))[2:8,2]))
     ageplot_position_versatile_noprep <- ggplot(agecoefs_position_versatile_noprep, aes(x=age_cat, y=coefs)) + geom_pointrange(aes(ymin=coefs - 1.96*se, ymax=coefs + 1.96*se)) + labs(x="Age groups", y="Adjusted coefficients and CI", title="Adjusted coefficients and 95% CI for age: No recent PrEP use") + theme_title + plot_background
     
@@ -738,16 +875,16 @@ The results of the regression analyses restricting the sample to men who had not
 
 ##No PrEP in the past 12 months##
  #Main effects
-  versatile_full_noprep <- glm(position_versatile ~ age_cat_alt + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample_p12noprep_noalterprep)
-  versatile_noregion_noprep <- glm(position_versatile ~ age_cat_alt + race_eth_m.reg, family=binomial(link="logit"), data=sample_p12noprep_noalterprep)
-  versatile_norace_noprep <- glm(position_versatile ~ age_cat_alt +  region.bKC, family=binomial(link="logit"), data=sample_p12noprep_noalterprep)
-  versatile_noage_noprep <-  glm(position_versatile ~ race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample_p12noprep_noalterprep)
+  versatile_full_noprep <- glm(position_versatile ~ age_cat_alt + race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample_p12noprep)
+  versatile_noregion_noprep <- glm(position_versatile ~ age_cat_alt + race_eth_m.reg, family=binomial(link="logit"), data=sample_p12noprep)
+  versatile_norace_noprep <- glm(position_versatile ~ age_cat_alt +  region.bKC, family=binomial(link="logit"), data=sample_p12noprep)
+  versatile_noage_noprep <-  glm(position_versatile ~ race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample_p12noprep)
   
  #Interactions
-  versatile_full_withint_noprep <- glm(position_versatile ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat_alt + region.bKC*age_cat_alt, family=binomial(link="logit"), data=sample_p12noprep_noalterprep)
-  versatile_noraceXreg_noprep <- glm(position_versatile ~ race_eth_m.reg + region.bKC + race_eth_m.reg*age_cat_alt + region.bKC*age_cat_alt, family=binomial(link="logit"), data=sample_p12noprep_noalterprep)
-  versatile_noraceXage_noprep <- glm(position_versatile ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + region.bKC*age_cat_alt, family=binomial(link="logit"), data=sample_p12noprep_noalterprep)
-  versatile_noageXreg_noprep <- glm(position_versatile ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat_alt, family=binomial(link="logit"), data=sample_p12noprep_noalterprep)
+  versatile_full_withint_noprep <- glm(position_versatile ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat_alt + region.bKC*age_cat_alt, family=binomial(link="logit"), data=sample_p12noprep)
+  versatile_noraceXreg_noprep <- glm(position_versatile ~ race_eth_m.reg + region.bKC + race_eth_m.reg*age_cat_alt + region.bKC*age_cat_alt, family=binomial(link="logit"), data=sample_p12noprep)
+  versatile_noraceXage_noprep <- glm(position_versatile ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + region.bKC*age_cat_alt, family=binomial(link="logit"), data=sample_p12noprep)
+  versatile_noageXreg_noprep <- glm(position_versatile ~ age_cat_alt + race_eth_m.reg + region.bKC + race_eth_m.reg*region.bKC + race_eth_m.reg*age_cat_alt, family=binomial(link="logit"), data=sample_p12noprep)
   
   results_versatile_noprep <- compare.models(versatile_full_noprep, versatile_noregion_noprep, versatile_norace_noprep, versatile_noage_noprep, versatile_full_withint_noprep, versatile_noraceXreg_noprep, versatile_noageXreg_noprep, versatile_noraceXage_noprep)
   results_versatile_noprep
