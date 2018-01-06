@@ -181,7 +181,7 @@
 #Rate of instantaneous (one-time) partners
     sample_allages$rate_inst <- sample_allages$numonetime_r / 365.25
 
-    #Define function to calculate quantiles of instantaneous partnership rates
+    #Define function to calculate quantiles of instantaneous partnership rates and the mean within quantiles. X is the rate of one-time partners and y is the vector of quantiles
     meanbyqnt <- function(x, y) {
         qnts <- c((mean(x[x>=0 & x<=y[1]], na.rm=TRUE)),
                   (ifelse(y[1]<y[2], mean(x[x>y[1] & x<=y[2]], na.rm=TRUE), ifelse(y[1]==y[2], y[2], NA))),
