@@ -6,7 +6,8 @@ This file summarizes the decisions made about parameter estimation and model str
 - Hispanic, black, other [fill me in]
 
 ## Age range
-- 18-59
+- 18-59 [fill me in]
+- Also decided to drop egos who reported a most recent parter under age 18 (n=18) or over age 59 (n=13). 
 
 ## Region
 - King County, other western Washington, eastern Washington [fill me in]
@@ -19,14 +20,15 @@ This file summarizes the decisions made about parameter estimation and model str
 - In analyses comparing the characteristics of most recent partners by momentary degree (i.e. comparing main most recent partners described by men with 0 vs. 1+ ongoing persistent partner and comparing persistent most recent partners described by men with 0 vs. 1 ongoing main partners) (\@ref(mrp_limitations)), no significant differences were observed. This suggests that it is appropriate to use data reported on all ongoing partners of a given type to impute the characteristics (implicitly or explicitly) of other ongoing partners who were not reported on as the most recent partner.
 
 ## Momentary degree (partnership formation)
-- Main partnership status: The probability of having an ongoing main aprtner appears to differ by race/ethnicity and region (\@ref(explore_heterogeneity)), so we will include main effect terms for race/ethnicity and region in model code relating to main partner degree.
+- Main partnership status: The probability of having an ongoing main partner appears to differ by race/ethnicity and region (\@ref(explore_heterogeneity)), so we will include main effect terms for race/ethnicity and region in model code relating to main partner degree.
 - Persistent partnership status: The probabilities of having any persistent partners, concurrent persistent partners, and having a persistent partner concurrent with a main partner were all higher for men aged 40-49. As such, we will code the model to define separate probabilities for men aged 40-49 of forming a persistent partnership, having concurrent persistent partnerships, and having a persistent partnership concurrent with a main partnership. However, because this pattern by age doesn’t align with our understanding of MSM’s sexual behavior, in the base model we will set this probability to be the same as for men of other ages. We will run sensitivity analyses in which we define a higher probability for men aged 40 to 49.  
 
 ## Rate of instantaneous partners
 - We will code the model to represent heterogeneity in the rate of instantantous partnerships by assigning men into one of four categories based on the quartile distribution of the rate of instantaneous partnerships. By age, there appears to be an increased probability of having zero instantaneous partnerships after age 50 (\@ref(plots_explore_rateinst_3)). As such, men assigned to have >0 instantaneous partnerships at entry will be reassigned a quantile at age 50, with some of these men transitioning into the zero instantaneous partnerships category. This assumes that men who were assigned zero instantaneous partnerships at entry stay in that category for the entire duration of the simulation.
-- In addition to age heterogeneity, the rate of instantaneous partnerships appears to differ by momentary degree (\@ref(fig:plotsexplore_rateinst_5)). <span style="color:red">We will define separate rates of instantaneous partnerships by main and persistent partnership status, but not by the joint degree distribution.</span> 
+- In addition to age heterogeneity, the rate of instantaneous partnerships appears to differ by momentary degree (\@ref(fig:plotsexplore_rateinst_5)).We will define separate rates of instantaneous partnerships by the joint distribution of main and persistent (0 vs. 1+) partnership status. 
 
 ## Age mixing
+- We will stratify age mixing by partner type.
 - Age mixing appears to differ by ego age (see \@ref(explore_heterogeneity)), even after parameterizing it as the absolute difference in the square root of ego and later ages. However, this parameterization seems good enough, so we will not represent additional heterogeneity in age mixing by age.
 - <span style="color:red">Age mixing did not appear to differ meaningfully by race/ethnicity (\@ref(fig:plots_explore_agemixing_4)) or region (\@ref(fig:plots_explore_agemixing_5)).<span>
 
@@ -46,14 +48,14 @@ This file summarizes the decisions made about parameter estimation and model str
 - Although there is some indication that anal sex role differs by age and race/ethnicity, these patterns do not appear meaningful (see section \@ref(explore_heterogeneity)). Additionally, representing heterogeneity in anal sex role by these attributes introduces complexity into the model because it will affect balance in mixing. We have flagged this as something to explore in the future (section \@ref(future_explore)), but we will not stratify sex role by race/ethnicity or age in the current model.
 
 ## Condom use
-- Condom use in main partnerships appears to differ by age. <span style="color:red">In the model, we will stratify condom use with main partners by dyad age, defined based on combinations of two age groups: young = 18-34, old = 35-59.</span>
+- Condom use in main partnerships appears to differ by age. In the model, we will stratify condom use with main partners by dyad age, using one degree of freedom to specify the higher rate in young-young (18-34) dyads relative to all other dyads.
+- Condom use in persistent and instantaneous partnerships does not appear to differ meaningfully by age, or by any other attribute.
 
 ## PrEP use
 - PrEP use among men for whom Washington guidelines recommend initiation or indicate discussion of PrEP with a provider differs in the sample by age and region. There is some suggestion of variabiltiy by race/ethnicity, but it is not very clear. However, we will code the model to represent the main effects of all three nodal attributes given the interest in disparities by race/ethnicity. We could explore the impact of graeter disparities in sensitivity analyses.
 
-
-
-
+## Risk compensation with PrEP use
+- There is evidence in the literature that PrEP use is associated with changes in condom use^[Oldenburg CE, Nunn AS, Montgomery M, Almonte A, Mena L, Patel RR, et al. Behavioral Changes Following Uptake of HIV Pre-exposure Prophylaxis Among Men Who Have Sex with Men in a Clinical Setting. AIDS and behavior. 2017; Lal L, Audsley J, Murphy DA, Fairley CK, Stoove M, Roth N, et al. Medication adherence, condom use and sexually transmitted infections in Australian preexposure prophylaxis users. AIDS (London, England). 2017;31(12):1709-14.; Newcomb ME, Moran K, Feinstein BA, Forscher E, Mustanski B. Pre-Exposure Prophylaxis (PrEP) Use and Condomless Anal Sex: Evidence of Risk Compensation in a Cohort of Young Men Who Have Sex with Men. JAIDS Journal of Acquired Immune Deficiency Syndromes. 2017;Publish Ahead of Print.], and some studies have reported changes in seroadaptive strategies such as positioning, the number of partners, and possibly coital frequency.^[Hughes AJ, Chen YH, Scheer S. Condomless Anal Sex Among HIV-Positive Men Who Have Sex with Men: Biomedical Context Matters. AIDS and behavior. 2017;21(10):2886-94; Lal L, Audsley J, Murphy DA, Fairley CK, Stoove M, Roth N, et al. Medication adherence, condom use and sexually transmitted infections in Australian preexposure prophylaxis users. AIDS (London, England). 2017;31(12):1709-14.; Newcomb ME, Moran K, Feinstein BA, Forscher E, Mustanski B. Pre-Exposure Prophylaxis (PrEP) Use and Condomless Anal Sex: Evidence of Risk Compensation in a Cohort of Young Men Who Have Sex with Men. JAIDS Journal of Acquired Immune Deficiency Syndromes. 2017;Publish Ahead of Print.]. We will start by assuming that condom use is the only thing to change with PrEP use, but consider building in other types of risk compensation as well. This would require re-estimating the parameters related to any behavior thought to change with PrEP to impute what the behaviors of PrEP users would be in the absence of PrEP. It might also be interesting to explore the possible impact of community-level risk compensation due to prevention optimism^[Holt M, Murphy DA. Individual Versus Community-Level Risk Compensation Following Preexposure Prophylaxis of HIV. American journal of public health. 2017:e1-e4.], but this could be tricky b/c the data from WHPP may already reflect some of this effect, so getting the counterfactual right would require some adjustments.
 
 # Things to check against simulated data
 - Make sure that the distribution of the age of partnerships by ego age produced by the model corresponds to the observed distributions (see \@ref(fig:plotsexplore_pshipage)).
