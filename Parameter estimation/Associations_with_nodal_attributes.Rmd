@@ -164,7 +164,7 @@ Next we will look at how to parameterize age by plotting the ceofficients for ag
     plot.age.coefs(hasmain_full_testage)
 ```
 
-From this there does not appear to be any significant pattern by age, so we will not represent heterogeneity by age. The models below test the effects of race/ethnicity and region in models that do not adjust for age.
+From this there does not appear to be any meaningful pattern by age, so we will not represent heterogeneity by age. The models below test the effects of race/ethnicity and region in models that do not adjust for age.
 ```{r hasmain, eval=TRUE, error=TRUE}
  #Main effects
   hasmain_full <- glm(hasmain ~ race_eth_m.reg + region.bKC, family=binomial(link="logit"), data=sample)
@@ -334,6 +334,7 @@ It appears that the probability of having persistent partners concurrently with 
 
 ### Rate of instantaneous partners
 This analysis looks at heterogeneity in the rate of one-time partnerships separately for men who have 0 main, those who have 1 main, those who have 0 persistent, and those who have one or more persistent partnerships.
+
 #### No main partners
 We first look at the number of observations that are non-missing for this outcome and for model predictors
 ```{r}
@@ -350,7 +351,7 @@ Next we will look at how to parameterize age by plotting the ceofficients from t
     plot.age.coefs(rateinst_nomain_full_testage)
 ```
 
-This plot suggests that the rate of instantaneous partners is higher for men aged 35-39 and subsequently decreases with age. The point for ages 30-34 does not fit with a trend suggesting that the rate increases with age up through age 39, but it may be an outlier. To further explore the association with age, we will include age as a dummy variable, grouping together men in age groups 40-49 and 50-59. The models and likelihood ratio tests are below.
+This plot suggests that the rate of instantaneous partners is higher for men aged 35-39. The point for ages 30-34 does not fit with a trend suggesting that the rate increases with age up through age 39, but it may be an outlier. To further explore the association with age, we will include age as a dummy variable, grouping together men in age groups 40-49 and 50-59. The models and likelihood ratio tests are below.
 ```{r rateinst_nomain, eval=TRUE, error=TRUE}
  
  #Main effects
@@ -422,7 +423,7 @@ Next we will look at how to parameterize age by plotting the ceofficients from t
     plot.age.coefs(rateinst_nopers_full_testage)
 ```
 
-The pattern here is a bit less clear than above, but it suggests that the rate of instantaneous partners increases through age 39 and subsequently decreases with age. Although only the coefficient for ages 35-39 is significant, we will further explore the association with age, including age as a dummy variable, grouping together men in age groups 40-49 and 50-59.
+As for men with no main partners, this pattern here suggests that the rate of instantaneous partners is higher for men aged 35-39. We will further explore the association with age, including age as a dummy variable, grouping together men in age groups 40-49 and 50-59.
 
 The models and likelihood ratio tests are below.
 ```{r rateinst_nopers, eval=TRUE, error=TRUE}
@@ -459,7 +460,7 @@ Next we will look at how to parameterize age by plotting the ceofficients from t
     plot.age.coefs(rateinst_anypers_full_testage)
 ```
 
-The pattern here is even less clear than stratified by main partner status, but it suggests that the rate of instantaneous partners increases through age 39 and subsequently decreases with age. Although only the coefficient for ages 35-39 is significant, we will further explore the association with age, including age as a dummy variable, grouping together men in age groups 40-49 and 50-59 to be consistent with the approach taken above.
+Again, these data suggest that the rate of instantaneous partners is higher for men aged 35-39. We will further explore the association with age, including age as a dummy variable, grouping together men in age groups 40-49 and 50-59 to be consistent with the approach taken above.
 
 The models and likelihood ratio tests are below.
 ```{r rateinst_anypers, eval=TRUE, error=TRUE}
@@ -1276,9 +1277,9 @@ In these tables, "NA" indicates that age was not included in the regression mode
     
     ```
 
-These analyses were intended as a guide to suggest which nodal attributes appear to shape patterns of partnership formation/persistence and behaviors related to transmission and diagnosis. For network model parameters, it appears that **the probability of having a main partner differs by race/ethnicity, region, and the interaction of race/ethnicity and region**, **the probabilities of having any persistent and concurrent persistent partners differs by age**, and **the rate of instantaneous partners differs by age**. We expect the probability of having a partner of the same race/ethnicity to to differ by race/ethnicity, which the network model will capture, so this does not warrant further exploration. Parameterizing age mixing using the difference between the square root of ego and alter ages does not seem to fully account for **differences in age mixing by ego age**, and we will also explore **differences in age mixing by race among main partnerships and by region among persistent partnerships**. **Partnership age appears to differ by ego age**, but this is complicated due to censoring; younger men's partnerships will be shorter because they started more recently. To better understand the underlying pattern and confirm that it aligns with our expectations, we will explore it using plots.
+These analyses were intended as a guide to suggest which nodal attributes appear to shape patterns of partnership formation/persistence and behaviors related to transmission and diagnosis. For network model parameters, it appears that **the probability of having a main partner differs by <span style="color:red">race/ethnicity,</span> region, <span style="color:red">and the interaction of race/ethnicity and region**,<span> **the probabilities of having any persistent and concurrent persistent partners differs by age**, and **the rate of instantaneous partners differs by age**. We expect the probability of having a partner of the same race/ethnicity to to differ by race/ethnicity, which the network model will capture, so this does not warrant further exploration. Parameterizing age mixing using the difference between the square root of ego and alter ages does not seem to fully account for **differences in age mixing by ego age**, and we will also explore **differences in age mixing by race among main partnerships and by region among persistent partnerships**. **Partnership age appears to differ by ego age**, but this is complicated due to censoring; younger men's partnerships will be shorter because they started more recently. To better understand the underlying pattern and confirm that it aligns with our expectations, we will explore it using plots.
 
-For epidemic model parameters, we will explore **regional differences in the proportion never tested**, **age differences in the intertest interval**, **age and racial/ethnic differences in anal sex role**, **and age differences in condom use among main partners**. For **PrEP use, we will exlpore differences by all three nodal attributes**.
+For epidemic model parameters, we will explore **regional differences in the proportion never tested**, **age differences in the intertest interval**, **age and racial/ethnic differences in anal sex role**, **and age differences in condom use among main partners**. For **PrEP use, although differences by race/ethnicity were not statistically signicant, we will exlpore differences by all three nodal attributes**.
 
 ## Plots and decisions {#plots}
 The plots below further explore the associations highlighted in the above section. 
@@ -1402,11 +1403,13 @@ In the next plots, we will look to see whether the distribution by age differs b
     p_rateinstXage_pers <- ggplot() + geom_point(data=sample[!is.na(sample$rate_inst) & sample$rate_inst <0.25 & sample$anypers %in% 0,], aes(x=age, y=rate_inst, colour="a")) +   geom_point(data=sample[!is.na(sample$rate_inst) & sample$rate_inst <0.25 & sample$anypers %in% 1,], aes(x=age, y=rate_inst, colour="b")) + geom_smooth(data=sample[!is.na(sample$rate_inst) & sample$rate_inst <0.25 & sample$anypers %in% 0,], aes(x=age, y=rate_inst, colour="c"), method="loess") + geom_smooth(data=sample[!is.na(sample$rate_inst) & sample$rate_inst <0.25 & sample$anypers %in% 1,], aes(x=age, y=rate_inst, colour="d"), method="loess") + labs(x="Ego age", y="Rate", title="Rate of instantaneous partnerships by ego age and persistent partnership status") + scale_colour_manual(name = "Key", values=c("a"="#fbb4ae", "b"="#b3cde3", "c"="indianred3", "d"="steelblue3"), labels=c("No persistent", "1+ persistent", "Loess smooth, no persistent", "Loess smooth, 1+ persistent")) + plot_background + theme_title
    
     multiplot(p_rateinstXage_main, p_rateinstXage_pers, cols=1)
+    
 ```
 
 These plots do not suggest any clear differences in the relationship between age and the rate of instantaneous partnerships by momentary degree. To further examine the distribution of instantaneous partnerships by momentary degree, the plots below examine whether the percent of men in each quantile by age varies by main and persistent partnership status. <span style="color:red">Red</span> indicates zero instantaneous partnerships, <span style="color:orange">orange</span> indicates a low rate, <span style="color:blue">blue</span> indicates a medium rate, and <span style="color:green">green</span> indicates a high rate.
 
 ```{r plotsexplore_rateinst_5}
+
     ageXquartile_nomain <- sample %>% filter(!is.na(rate_inst) & degree_main %in% 0) %>% group_by(age_cat) %>% summarise(freq=n(), zero = sum(rate_inst_quart %in% "0")/freq, low = sum(rate_inst_quart %in% "(0, 0.00274]")/freq, med = sum(rate_inst_quart %in% "(0.00274, 0.00821]")/freq, high = sum(rate_inst_quart %in% "(0.00821, 0.931]")/freq)
     p_quartile_nomain <- ggplot(ageXquartile_nomain) + geom_point(aes(x=age_cat, y=zero, colour="a"), size=3) +  geom_point(aes(x=age_cat, y=low, color="b"), size=3) + geom_point(aes(x=age_cat, y=med, color="c"), size=3) + geom_point(aes(x=age_cat, y=high, colour="d"), size=3) + scale_colour_manual(name = "Rate of inst partners", values=c("a"="red", "b"="orange", "c"="dodgerblue1", "d"="darkgreen"), labels=c("Zero", "Low", "Medium", "High")) + labs(x="Age group", y="Percent", title="No main partners") + theme_title + plot_background  + ylim(0, 0.8) + theme(legend.position="none")
     
@@ -1419,11 +1422,31 @@ These plots do not suggest any clear differences in the relationship between age
     ageXquartile_pers <- sample %>% filter(!is.na(rate_inst) & degreecat_cas %in% c("One", "Two or more")) %>% group_by(age_cat) %>% summarise(freq=n(), zero = sum(rate_inst_quart %in% "0")/freq, low = sum(rate_inst_quart %in% "(0, 0.00274]")/freq, med = sum(rate_inst_quart %in% "(0.00274, 0.00821]")/freq, high = sum(rate_inst_quart %in% "(0.00821, 0.931]")/freq)
     p_quartile_pers <- ggplot(ageXquartile_pers) + geom_point(aes(x=age_cat, y=zero, colour="a"), size=3) +  geom_point(aes(x=age_cat, y=low, color="b"), size=3) + geom_point(aes(x=age_cat, y=med, color="c"), size=3) + geom_point(aes(x=age_cat, y=high, colour="d"), size=3) + scale_colour_manual(name = "Rate of inst partners", values=c("a"="red", "b"="orange", "c"="dodgerblue1", "d"="darkgreen"), labels=c("Zero", "Low", "Medium", "High")) + labs(x="Age group", y="Percent", title="One or more persistent partners") + theme_title + plot_background + ylim(0, 0.8) + theme(legend.position="none")
 
-    multiplot(p_quartile_nomain, p_quartile_main, p_quartile_nopers, p_quartile_pers, cols=2)
-    
+    multiplot(p_quartile_nomain, p_quartile_nopers, p_quartile_main, p_quartile_pers, cols=2)
+ 
 ```
 
-__Decision__: There seems to be an age effect on the rate of instantaneous partnerships, and in the quantile disutribution plots, the rate appears to differ by main and persistent degree. This latter effect is important because it implies different levels of concurrency. There is not strong evidence of an interaction between age and momentary degree. As such, we will represent main effects on the rate of instantaneous partnerships for both momentary degree and age. <span style="color:red">For momentary degree, we will stratify the rate of instantaneous partnerships by main and persistent partnership status, but not by the joint degree distribution.</span> For age, although the rate of instantaneous partnerships decreases slightly from ages 18 to 30, the biggest change appears to be an increase in the proportion with zero instantaneous partners at age 50. So we will assign everyone to an instantaneous partnership quantile at entry to the population, and at age 50 we will specify probabilities that men move to the zero partnership quantile. 
+Below, we look at whether the proportion of men in each quartile differs by the joint distribution of main and persistent partnership status.
+```{r }
+#By the joint distribution of main and persistent and age
+    # #Define versions of the main and persistent degree variables with character values instead of 0 and 1 for ease of reading the graph
+    # sample$deg.main <- ifelse(sample$degree_main %in% 0, "0 main", ifelse(sample$degree_main %in% 1, "1 main", NA))
+    # sample$deg.pers <- ifelse(sample$anypers %in% 0, "0 pers", ifelse(sample$anypers %in% 1, "1 + pers", NA))
+    # 
+    # ageXquartileXmdeg <- sample %>% filter(!is.na(rate_inst) & !is.na(deg.main) & !is.na(deg.pers)) %>% group_by(deg.main, deg.pers, age_cat) %>% summarise(freq=n(), zero = sum(rate_inst_quart %in% "0")/freq, low = sum(rate_inst_quart %in% "(0, 0.00274]")/freq, med = sum(rate_inst_quart %in% "(0.00274, 0.00821]")/freq, high = sum(rate_inst_quart %in% "(0.00821, 0.931]")/freq)
+    # ggplot(ageXquartileXmdeg) + geom_point(aes(x=age_cat, y=zero, colour="a"), size=3) +  geom_point(aes(x=age_cat, y=low, color="b"), size=3) + geom_point(aes(x=age_cat, y=med, color="c"), size=3) + geom_point(aes(x=age_cat, y=high, colour="d"), size=3) + facet_grid(deg.pers ~ deg.main) + scale_colour_manual(name = "Rate of inst partners", values=c("a"="red", "b"="orange", "c"="dodgerblue1", "d"="darkgreen"), labels=c("Zero", "Low", "Medium", "High")) + labs(x="Age group", y="Percent", title="No main partners") + theme_title + plot_background  + ylim(0, 0.8)
+    
+#By the joint distribution of main and persistent without stratifying on age
+    mdegXquartile <- sample %>% filter(!is.na(rate_inst) & !is.na(degree_main) & !is.na(anypers)) %>% group_by(degree_main, anypers) %>% summarise(freq=n(), zero = sum(rate_inst_quart %in% "0")/freq, se_zero = sqrt((zero*(1-zero))/freq), lower_zero = max((zero - 1.96*se_zero), 0), upper_zero = min((zero + 1.96*se_zero), 1), low = sum(rate_inst_quart %in% "(0, 0.00274]")/freq, se_low = sqrt((low*(1-low))/freq), lower_low = max((low - 1.96*se_low), 0), upper_low = min((low + 1.96*se_low), 1), med = sum(rate_inst_quart %in% "(0.00274, 0.00821]")/freq, se_med = sqrt((med*(1-med))/freq), lower_med = max((med - 1.96*se_med), 0), upper_med = min((med + 1.96*se_med), 1), high = sum(rate_inst_quart %in% "(0.00821, 0.931]")/freq, se_high = sqrt((high*(1-high))/freq), lower_high = max((high - 1.96*se_high), 0), upper_high = min((high + 1.96*se_high), 1))
+    mdegXquartile$mdeg <- ifelse(mdegXquartile$degree_main %in% 0 & mdegXquartile$anypers %in% 0, "0 main 0 pers", ifelse(mdegXquartile$degree_main %in% 0 & mdegXquartile$anypers %in% 1, "0 main 1+ pers", ifelse(mdegXquartile$degree_main %in% 1 & mdegXquartile$anypers %in% 0, "1 main 0 pers", ifelse(mdegXquartile$degree_main %in% 1 & mdegXquartile$anypers %in% 1, "1 main 1+ pers", NA))))
+    mdegXquartile$mdeg <- factor(mdegXquartile$mdeg, levels = c("0 main 0 pers", "1 main 0 pers", "0 main 1+ pers", "1 main 1+ pers"))
+
+
+    ggplot(mdegXquartile) + geom_pointrange(aes(x=mdeg, y=zero, ymin=lower_zero, ymax=upper_zero, colour="a")) +  geom_pointrange(aes(x=mdeg, y=low, ymin=lower_low, ymax=upper_low, color="b")) + geom_pointrange(aes(x=mdeg, y=med, ymin=lower_med, ymax=upper_med, color="c")) + geom_pointrange(aes(x=mdeg, y=high, ymin=lower_high, ymax=upper_high, colour="d")) + scale_colour_manual(name = "Rate of inst partners", values=c("a"="red", "b"="orange", "c"="dodgerblue1", "d"="darkgreen"), labels=c("Zero", "Low", "Medium", "High")) + labs(x="Momentary degree", y="Percent", title="Quantile distribution of the rate of instantaneous partners by momentary degree") + theme_title + plot_background 
+     
+```
+
+__Decision__: There seems to be an age effect on the rate of instantaneous partnerships, and in the quantile disutribution plots, the rate appears to differ by main and persistent degree. This latter effect is important because it implies different levels of concurrency. There is not strong evidence of an interaction between age and momentary degree. As such, we will represent main effects on the rate of instantaneous partnerships for both momentary degree and age. For momentary degree, we will stratify the rate of instantaneous partnerships by the joint distribution of main and persistent partnership status (0 vs. 1+). For age, although the rate of instantaneous partnerships decreases slightly from ages 18 to 30, the biggest change appears to be an increase in the proportion with zero instantaneous partners at age 50. So we will assign everyone to an instantaneous partnership quantile at entry to the population, and at age 50 we will specify probabilities that men move to the zero partnership quantile. 
 
 ### Age mixing by age, race, and region
 
@@ -1457,7 +1480,7 @@ To inform how to parameterize age differences, plot \@ref(fig:plots_explore_agem
 ```{r plots_explore_agemixing_2}
 
 #Age mixing represented as square root of age differences
-    ggplot(sample[!is.na(sample$sqrt_agediff) & !is.na(sample$ptype_adiff),], aes(x=olderpartner, y=sqrt_agediff)) + geom_point() + geom_smooth(method="loess") + facet_grid(ptype_adiff ~.) + labs(x="Older partner's age", y="Difference in the sqrt of age", title = "Age mixing as the difference between the square root of ego and alter ages") + theme_title
+    ggplot(sample[!is.na(sample$sqrt_agediff) & !is.na(sample$ptype_adiff),], aes(x=olderpartner, y=sqrt_agediff)) + geom_point() + geom_smooth(method="loess") + facet_grid(ptype_adiff ~.) + labs(x="Older partner's age", y="Difference in the sqrt of age", title = "Age mixing as the difference between the square root of ego and alter ages") + theme_title + plot_background
 
 ```
 
@@ -1465,7 +1488,7 @@ To inform how to parameterize age differences, plot \@ref(fig:plots_explore_agem
     
     sample$cbrt_agediff <- abs(sample$age^(1/3) - sample$mrp_ageinyears_approx^(1/3))
 
-    ggplot(sample[!is.na(sample$cbrt_agediff) & !is.na(sample$ptype_adiff),], aes(x=olderpartner, y=cbrt_agediff)) + geom_point() + geom_smooth(method="loess") + facet_grid(ptype_adiff ~.) + labs(x="Older partner's age", y="Difference in the cube root of age", title = "Age mixing as the difference between the cube root of ego and alter ages") + theme_title
+    ggplot(sample[!is.na(sample$cbrt_agediff) & !is.na(sample$ptype_adiff),], aes(x=olderpartner, y=cbrt_agediff)) + geom_point() + geom_smooth(method="loess") + facet_grid(ptype_adiff ~.) + labs(x="Older partner's age", y="Difference in the cube root of age", title = "Age mixing as the difference between the cube root of ego and alter ages") + theme_title + plot_background
    
 ```
 
@@ -1498,9 +1521,9 @@ To explore variation in age mixing by region, the first plot in figure \@ref(fig
 
 __Decision__: To capture the age heterogeneity in age mixing, we need to decide how to parameterize the age difference. From plots \@ref(fig:plots_explore_agemixing_2) and \@ref(fig:plots_explore_agemixing_3), taking the difference between the square root of ego and alter ages reduces the heterogeneity by age, but does not fully account for differences by ego age. Taking the cube root does not lead to a noticeable improvement. Although taking the square root of ego and alter ages leaves some heterogeneity by age, it seems good enough. We will parameterize age mixing using this approach.
 
-In the regression analyses, age mixing differed by race/ethnicity only among main partnerships. In the plot, the patterns for non-Hispanic other and Hispanic respondents appear similar. Black men ages 18-24 report partners who are, on average, further in age from themselves than the other racial/ethnic groups. We see this for persistent partnerships as well However, the numbers are small: `r sum(!is.na(sample$mrp_ageinyears_approx) & sample$race_eth_m %in% "Black" & sample$mrp_type_ongoing %in% "Main" & sample$age_cat %in% "18-24")` black respondents aged 18-24 provided data on the age of main partners and only `r sum(!is.na(sample$mrp_ageinyears_approx) & sample$race_eth_m %in% "Black" & sample$mrp_type_ongoing %in% "Persistent" & sample$age_cat %in% "18-24")` provided data on the age of persistent partners. As such, these patterns should be interpreted with caution. Apart from these differences among men aged 18-24, the pattern otherwise appears similar by age. Additionally, interpretation of these data is made difficult by the fact that there are imbalances in reported age mixing (see \@ref(mixing). In light of these issues, we will not stratify age mixing terms by race/ethnicity. <span style="color:red"> How to interpret the plots by dyad race (not also by age)?<span>
+In the regression analyses, age mixing differed by race/ethnicity only among main partnerships. In the plot, the patterns for non-Hispanic other and Hispanic respondents appear similar. Black men ages 18-24 report partners who are, on average, further in age from themselves than the other racial/ethnic groups. We see this for persistent partnerships as well However, the numbers are small: `r sum(!is.na(sample$mrp_ageinyears_approx) & sample$race_eth_m %in% "Black" & sample$mrp_type_ongoing %in% "Main" & sample$age_cat %in% "18-24")` black respondents aged 18-24 provided data on the age of main partners and only `r sum(!is.na(sample$mrp_ageinyears_approx) & sample$race_eth_m %in% "Black" & sample$mrp_type_ongoing %in% "Persistent" & sample$age_cat %in% "18-24")` provided data on the age of persistent partners. As such, these patterns should be interpreted with caution. Apart from these differences among men aged 18-24, the pattern otherwise appears similar by age. Additionally, interpretation of these data is made difficult by the fact that there are imbalances in reported age mixing (see \@ref(mixing). When we look at the plot stratifying by dyad race/ethnicity, which don't also stratify by age, we don't see clear differneces. In light of these issues, we will not stratify age mixing terms by race/ethnicity.
 
-Age mixing differed by region only among persistent partnerships. Plot \@ref(fig:plots_explore_agemixing_5) indicates that men ages 18-24 in Western Washington had larger absolute differences in age with their persistent partners, but this is based on a sample size of only `r sum(!is.na(sample$mrp_ageinyears_approx) & sample$region %in% "Western WA" & sample$mrp_type_ongoing %in% "Persistent" & sample$age_cat %in% "18-24")` in this region and age group. The data otherwise do not indicate clear patterns by region, so we will not stratify age mixing by region. <span style="color:red"> How to interpret the plots by region alone (not also by age)?<span>
+Age mixing differed by region only among persistent partnerships. Plot \@ref(fig:plots_explore_agemixing_5) indicates that men ages 18-24 in Western Washington had larger absolute differences in age with their persistent partners, but this is based on a sample size of only `r sum(!is.na(sample$mrp_ageinyears_approx) & sample$region %in% "Western WA" & sample$mrp_type_ongoing %in% "Persistent" & sample$age_cat %in% "18-24")` in this region and age group. The data otherwise do not indicate clear patterns by region. When we stratify by region alone, there is some signal that men in King County have partners closer to their own age, but confidence intervals are wide. This could be flagged as an issue for further exploration, but for now we will not stratify age mixing by region.
 
 ### Partnership age by respondent age
 These plots show the mean partnership age in main and persistent partnerships, respectively, by respondent age.
@@ -1584,7 +1607,7 @@ __Decision__: These plots suggest that there is a higher probability of exclusiv
 There is no clear difference in anal sex role by race/ethnicity, so we will not stratify on race/ethnicity.
 
 ### Condom use by age
-The plots below show the probability of condom use by respondent age in main partnerships. In regression analyses, condom use differed by age only among  main partnerships, but in the plots below we will explore patterns among persistent and instantaneous partnerships as well. These plots show condom use by ego age and by dyad age, as condom use in any given partnership is influenced by the preferences of both partners. We exclude data from men who used PrEP in the past 12 months or who report that their partner was using PrEP.
+The plots below show the probability of condom use by respondent age in main partnerships. In regression analyses, condom use differed by age only among  main partnerships, but in the plots below we will explore patterns among persistent and instantaneous partnerships as well. These plots show condom use by ego age and by dyad age, as condom use in any given partnership is influenced by the preferences of both partners. Dyad age is defined as the combination of each partner's age categorized as young (18-34) and old (35-59). We exclude data from men who used PrEP in the past 12 months or who report that their partner was using PrEP.
 ```{r}
 #Define dyad age category variable
     sample_p12noprep_noalterprep$dyad_age <- ifelse(sample_p12noprep_noalterprep$age %in% c(18:34) & sample_p12noprep_noalterprep$mrp_ageinyears_approx %in% c(18:34), "YY", ifelse(sample_p12noprep_noalterprep$age %in% c(18:34) & sample_p12noprep_noalterprep$mrp_ageinyears_approx %in% c(35:59), "YO", ifelse(sample_p12noprep_noalterprep$age %in% c(35:59) & sample_p12noprep_noalterprep$mrp_ageinyears_approx %in% c(18:34), "OY", ifelse(sample_p12noprep_noalterprep$age %in% c(35:59) & sample_p12noprep_noalterprep$mrp_ageinyears_approx %in% c(35:59), "OO", NA))))
@@ -1636,7 +1659,7 @@ Probability of condom use in instantaneous partnerships:
     ggplot(condoms_instXdyadage) + geom_pointrange(aes(x=dyad_age, y=mean, ymin=ci_lower, ymax=ci_upper)) + labs(x="Dyad age", y="Mean probability of condom use", title = "Mean probability of condom use in instantaneous partnerships by dyad age") + theme_title + plot_background
     ```
 
-__Decision__: These plots indicate that there is a reasonably strong age effect for main partnerships, but the patterns for persistent and instantaneous partnerships do not suggest a clear age effect. <span style="color:red">In the model, we will stratify condom use with main partners by dyad age, defined based on combinations of two age groups: young = 18-34, old = 35-59.</span>
+__Decision__: These plots indicate that there is a reasonably strong age effect for main partnerships, but the patterns for persistent and instantaneous partnerships do not suggest a clear age effect. For main partnerships, the effect seems to be higher probability of condom use in young-young dyads, and the others are the same. In the model, we will stratify condom use with main partners by dyad age, using one degree of freedom to specify the higher rate in young-young dyads relative to all other dyads.
 
 ### PrEP use by age, race, and region
 The plots below illustrate the proportion of men for whom Washington State guidelines recommend PrEP and with whom guidelines recommend providers discuss PrEP who report current use by age, race, and region.
