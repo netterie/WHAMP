@@ -7,7 +7,7 @@ This file summarizes the decisions made about parameter estimation and model str
 
 ## Age range
 - 18-59 [fill me in]
-- Also decided to drop egos who reported a most recent parter under age 18 (n=18) or over age 59 (n=13). 
+- Also decided to drop egos who reported a most recent parter under age 18 (n=18) or over age 59 (n=13). This introduces some potential issues becuase these men differed from the rest of the sample on race/ethnicity, coital frequency with these partners, and sex role. The difference in coital frequency may be reflective of the fact that they reported on coital frequency with partners who were younger or older than others in the sample. Because the number of men with partners outside the age range is small, we felt comfortable dropping them for now, but future modeling may want to represent these partnerships with a heat bath or something. 
 
 ## Region
 - King County, other western Washington, eastern Washington [fill me in]
@@ -41,7 +41,7 @@ This file summarizes the decisions made about parameter estimation and model str
 
 ## Intertest interval
 - We will model the intertest interval as an interval process, as this yields summary statistics that more closely match what we've seen in other sources (section \@ref(hivtesting)). With this assumption, the intertest interval is estimated as twice the time since the last test since the survey was not administered in connection with any testing event. The assumption is that the date of survey is randomly distributed throughout men's time between tests, such that on average it will come halfway through their intertest interval. We will use the median as the summary statistic, because for interval data that can be easily skewed by outliers, the median may be more stable. Additionally, using the median we get results that match what we've seen in other studies (see section \@ref(hivtesting)).
-- Estimation of this parameter will use data from men who did not report use of PrEP in the past 12 months, as we expect PrEP to change testing frequency and the model will represnt the change in testing frequency with PrEP.
+- For estimation of this parameter, we use data from men who did not report use of PrEP in the past 12 months, as we expect PrEP to change testing frequency and the model will represent the change in testing frequency with PrEP. <span style="color:red"> We will also impute the intertest intervals for men who are on PrEP based on reported intertest intervals of men of similar demographic and risk profiles who are not on PrEP. A limitation is that it is possible that the factor that explains why men on PrEP have initated PrEP and their similarly-indicated counterparts have not is that men who have initated PrEP were more likely to test... </span>
 - The intertest interval appears to vary by age (section \@ref(explore_heterogeneity)). To capture this heterogeneity, we will represent the intertest interval as a function of centered age and centered age squared.
 
 ## Anal sex role
