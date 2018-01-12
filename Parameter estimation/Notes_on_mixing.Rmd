@@ -30,7 +30,16 @@ options(knitr.table.format = "html")
     # load(file="Parameter estimation/Data/census_racebyregion.Rdata")
     # load(file="Parameter estimation/Data/census_totalbyregion.Rdata")
 
-    
+#-----------------------------------------------------------------------------------
+# Scale re-weighted dataset back to match sample size from the survey
+#-----------------------------------------------------------------------------------
+  # There are 81934 responses in the dataframe weighted to the population total, and 1,005 in the sample object
+  # To get a re-weighted dataframe with the same number of observations as the sample, we will divide the raked
+  # weights to scale it down (i.e. multiply the probabilities by the scaling factor since weights = 1/prob)
+    ratio <- sum(weights(sample_rake))/dim(sample)[1]
+    sample_rake_rescaled <- sample_rake
+    sample_rake_rescaled$prob <- sample_rake_rescaled$prob * ratio
+        
 #-----------------------------------------------------------------------------------
 # Plot settings
 #-----------------------------------------------------------------------------------
@@ -77,37 +86,210 @@ theme_title <- theme(plot.title = element_text(hjust = 0.5, size=12))
     
         
 ```
-This file examines balance in sexual mixing by race and age in data from participants in the internet survey. For this analysis, the data are re-weighted to match population totals (see section \@ref(reweight)). 
+This file examines balance in sexual mixing by race and age in data from participants in the WHPP survey. For this analysis, the data are re-weighted to match the population distributions for race by region and age (see section \@ref(reweight)), but scaled back to the survey sample size.
 
 ## Observed race mixing
 In the internet survey, we observed the following partnership counts for main, persistent, and one-off partnerships by dyad race. 
 ```{r racemixing}
- racemix_main <- svytable(~hbo + mrp_hbo, sample_rake[sample_rake$variables$mrp_type_ongoing %in% "Main"], round=TRUE)
- racemix_pers <- svytable(~hbo + mrp_hbo, sample_rake[sample_rake$variables$mrp_type_ongoing %in% "Persistent"], round=TRUE)
- racemix_inst <- svytable(~hbo + mrp_hbo, sample_rake[sample_rake$variables$mrp_type_r %in% "One time"], round=TRUE)
+ racemix_main <- svytable(~hbo + mrp_hbo, sample_rake_rescaled[sample_rake_rescaled$variables$mrp_type_ongoing %in% "Main"], round=FALSE)
+ racemix_pers <- svytable(~hbo + mrp_hbo, sample_rake_rescaled[sample_rake_rescaled$variables$mrp_type_ongoing %in% "Persistent"], round=FALSE)
+ racemix_inst <- svytable(~hbo + mrp_hbo, sample_rake_rescaled[sample_rake_rescaled$variables$mrp_type_r %in% "One time"], round=FALSE)
 
-    kable(racemix_main, caption="Race mixing in main partnerships") %>% kable_styling(full_width=F, position="center") %>% add_header_above(c("Ego race/ethnicity", "Partner race/ethnicity" = 3))
-    kable(racemix_pers, caption="Race mixing in persistent partnerships") %>% kable_styling(full_width=F, position="center") %>% add_header_above(c("Ego race/ethnicity", "Partner race/ethnicity" = 3))
-    kable(racemix_inst, caption="Race mixing in instantaneous partnerships") %>% kable_styling(full_width=F, position="center") %>% add_header_above(c("Ego race/ethnicity", "Partner race/ethnicity" = 3))
+    kable(racemix_main, caption="Race mixing in main partnerships", digits=c(0, 0, 0)) %>% kable_styling(full_width=F, position="center") %>% add_header_above(c("Ego race/ethnicity", "Partner race/ethnicity" = 3))
+    kable(racemix_pers, caption="Race mixing in persistent partnerships", digits=c(0, 0, 0)) %>% kable_styling(full_width=F, position="center") %>% add_header_above(c("Ego race/ethnicity", "Partner race/ethnicity" = 3))
+    kable(racemix_inst, caption="Race mixing in instantaneous partnerships", digits=c(0, 0, 0)) %>% kable_styling(full_width=F, position="center") %>% add_header_above(c("Ego race/ethnicity", "Partner race/ethnicity" = 3))
 
 ```
-Table \@ref(tab:racemixing) shows that there are some imbalances in the observed mixing patterns.
+Table \@ref(tab:racemixing) shows that there are some imbalances in the observed mixing patterns. We will address these imbalances by taking the mean of the of-diagonal elements, potentially conducting sensitivity analyses in which the off-diagonal elements are set to the low or high reported value.
+
+If we take the averages of the off-diagonal elements, the mixing matrices are as follows. Due to the small cell count for black men, we will compare the averages based on data from ongoing partnerships only (for main and persistent partnerships) to the averages based on data from all partnerships reported as the most recent partner.
+
+```{r}
+# Define observed mixing matrices based on data from all partnerships
+racemix_main_all <- svytable(~hbo + mrp_hbo, sample_rake_rescaled[sample_rake_rescaled$variables$mrp_type_r %in% "Main"], round=FALSE)
+ racemix_pers_all <- svytable(~hbo + mrp_hbo, sample_rake_rescaled[sample_rake_rescaled$variables$mrp_type_r %in% "Casual"], round=FALSE)
+ 
+ # Define tables with averages
+ balance_avg_race <- function(x){
+     balanced <- as.data.frame(matrix(c("HH"=x[1,1], "HB" = mean(c(x[1,2], x[2,1])), "HO" = mean(c(x[1,3], x[3,1])), "BH" = mean(c(x[1,2], x[2,1])), "BB" = x[2,2], "BO" = mean(c(x[2,3], x[3,2])), "OH" = mean(c(x[1,3], x[3,1])), "OB" = mean(c(x[2,3], x[3,2])), "OO" = x[3,3]), nrow=3, ncol=3, byrow=TRUE, dimnames=list(c("Hispanic", "Black", "Other"), c("Hispanic", "Black", "Other"))))
+     return(balanced)
+ }
+ racemix_main_avg <- balance_avg_race(racemix_main)
+ racemix_main_all_avg <- balance_avg_race(racemix_main_all)
+ racemix_pers_avg <- balance_avg_race(racemix_pers)
+ racemix_pers_all_avg <- balance_avg_race(racemix_pers_all)
+ racemix_inst_avg <- balance_avg_race(racemix_inst)
+ 
+ #Combine for kable
+ balanced_racemix_main <- cbind.data.frame(racemix_main_avg, racemix_main_all_avg)
+ balanced_racemix_pers <- cbind.data.frame(racemix_pers_avg, racemix_pers_all_avg)
+ balanced_racemix_inst <- cbind.data.frame(racemix_inst_avg, data.frame(matrix(rep(NA, 9), nrow=3, dimnames=list(c("Hispanic", "Black", "Other"), c("Hispanic", "Black", "Other")))))
+  
+   #B/c it won't let me combine these with non-unique row names, rename rows for pers and inst to have extra spaces
+    rownames(balanced_racemix_pers) <- c("Hispanic ", "Black ", "Other ")
+    rownames(balanced_racemix_inst) <- c("Hispanic  ", "Black  ", "Other  ")
+
+ balanced_racemix <- rbind.data.frame(balanced_racemix_main, balanced_racemix_pers, balanced_racemix_inst)
+ 
+ #Make kable
+ kable(balanced_racemix, caption="Race mixing: average of off-diagonal elements", digits=c(1, 1, 1, 1, 1, 1)) %>% kable_styling(full_width=T, position="center") %>% add_header_above(c("Ego race/ethnicity", "Ongoing partner race/ethnicity" = 3, "All partner race/ethnicity" = 3)) %>% group_rows("Main partnerships", 1, 3) %>% group_rows("Persistent partnerships", 4, 6) %>% group_rows("Instantaneous partnerships", 7, 9) %>% column_spec(5:7, background="#CACFD2") %>% column_spec(1, bold=T)
+
+```
+
+To facilitate comparison of the matrices using data from all vs. ongoing partnerships, below we look at the row percentages in the balanced mixing matrices, rather than the cell counts.
+```{r}
+ racemix_main_avg.p <- prop.table(balance_avg_race(racemix_main))
+ racemix_main_all_avg.p <- prop.table(balance_avg_race(racemix_main_all))
+ racemix_pers_avg.p <- prop.table(balance_avg_race(racemix_pers))
+ racemix_pers_all_avg.p <- prop.table(balance_avg_race(racemix_pers_all))
+ racemix_inst_avg.p <- prop.table(balance_avg_race(racemix_inst))
+ 
+ #Combine for kable
+ balanced_racemix_main.p <- cbind.data.frame(racemix_main_avg.p, racemix_main_all_avg.p)
+ balanced_racemix_pers.p <- cbind.data.frame(racemix_pers_avg.p, racemix_pers_all_avg.p)
+ balanced_racemix_inst.p <- cbind.data.frame(racemix_inst_avg.p, data.frame(matrix(rep(NA, 9), nrow=3, dimnames=list(c("Hispanic", "Black", "Other"), c("Hispanic", "Black", "Other")))))
+  
+   #B/c it won't let me combine these with non-unique row names, rename rows for pers and inst to have extra spaces
+    rownames(balanced_racemix_pers.p) <- c("Hispanic ", "Black ", "Other ")
+    rownames(balanced_racemix_inst.p) <- c("Hispanic  ", "Black  ", "Other  ")
+
+ balanced_racemix.p <- rbind.data.frame(balanced_racemix_main.p, balanced_racemix_pers.p, balanced_racemix_inst.p)
+ 
+ #Make kable
+ kable(balanced_racemix.p, caption="Race mixing: average of off-diagonal elements", digits=c(3, 3, 3, 3, 3, 3)) %>% kable_styling(full_width=T, position="center") %>% add_header_above(c("Ego race/ethnicity", "Ongoing partner race/ethnicity" = 3, "All partner race/ethnicity" = 3)) %>% group_rows("Main partnerships", 1, 3) %>% group_rows("Persistent partnerships", 4, 6) %>% group_rows("Instantaneous partnerships", 7, 9) %>% column_spec(5:7, background="#CACFD2") %>% column_spec(1, bold=T)
+
+```
+
+<span style="color:red">Conclusions?</span>
+
+Below, we calculate the $\alpha_{ij}$ terms (observed (averaged) cell count / expected cell count), where expected is the $N_i*N_j/N$. <span style="color:red>We will use data from ongoing partnerships for this comparison.</span>
+```{r}
+#write function
+alphaij_race <- function(x){
+    alphaij <- as.data.frame(matrix(c("HH"=x[1,1] / ((sum(x[1,])*sum(x[,1]))/sum(x)), "HB" = x[1,2] / ((sum(x[1,])*sum(x[,2]))/sum(x)), "HO" = x[1,3] / ((sum(x[1,])*sum(x[,3]))/sum(x)), "BH" = x[2,1] / ((sum(x[2,])*sum(x[,1]))/sum(x)), "BB" = x[2,2] / ((sum(x[2,])*sum(x[,2]))/sum(x)), "BO" = x[2,3] / ((sum(x[2,])*sum(x[,3]))/sum(x)), "OH" = x[3,1] / ((sum(x[3,])*sum(x[,1]))/sum(x)), "OB" = x[3,2] / ((sum(x[3,])*sum(x[,2]))/sum(x)), "OO" = x[3,3] / ((sum(x[3,])*sum(x[,3]))/sum(x))), nrow=3, ncol=3, byrow=TRUE, dimnames=list(c("Hispanic", "Black", "Other"), c("Hispanic", "Black", "Other"))))
+    return(alphaij)
+}
+
+alphaij_race_main <- alphaij_race(racemix_main_avg)
+alphaij_race_pers <- alphaij_race(racemix_pers_avg)
+alphaij_race_inst <- alphaij_race(racemix_inst_avg)
+
+#Combine to make kable
+ #B/c it won't let me combine these with non-unique row names, rename rows for pers and inst to have extra spaces
+    rownames(alphaij_race_pers) <- c("Hispanic ", "Black ", "Other ")
+    rownames(alphaij_race_inst) <- c("Hispanic  ", "Black  ", "Other  ")
+
+ alphaij_race <- rbind.data.frame(alphaij_race_main, alphaij_race_pers, alphaij_race_inst)
+ 
+#Make kable
+ kable(alphaij_race, caption="Race mixing: $alpha_{ij}$ terms", digits=c(2, 2, 2)) %>% kable_styling(full_width=F, position="center") %>% add_header_above(c("Ego race/ethnicity", "Partner race/ethnicity" = 3)) %>% group_rows("Main partnerships", 1, 3) %>% group_rows("Persistent partnerships", 4, 6) %>% group_rows("Instantaneous partnerships", 7, 9) 
+
+
+```
+
+<span style="color:red"> Because the $\alpha_{ij}$ terms for the off-diagonal elements differ, this suggests that we will need to specify nodemix instead of nodematch for mixing.</span>
 
 ## Observed age mixing
-In the internet survey, we observed the following partnership counts for main, persistent, and one-off partnerships by ego and alter age group.
+In the WHPP survey (re-weighted), we observed the following partnership counts for main, persistent, and one-off partnerships by ego and alter age group.
 
 ```{r agemixing}
-    sample_rake$variables$age_cat_crude <- cut(sample_rake$variables$age, c(17, 24, 34, 44, 59), labels=c("18-24", "25-34", "35-44", "45-59"))
-    sample_rake$variables$mrp_age_cat_crude <- cut(sample_rake$variables$mrp_ageinyears_approx, c(17, 24, 34, 44, 59), labels=c("18-24", "25-34", "35-44", "45-59"))    
+    sample_rake_rescaled$variables$age_cat_crude <- cut(sample_rake_rescaled$variables$age, c(17, 24, 34, 44, 59), labels=c("18-24", "25-34", "35-44", "45-59"))
+    sample_rake_rescaled$variables$mrp_age_cat_crude <- cut(sample_rake_rescaled$variables$mrp_ageinyears_approx, c(17, 24, 34, 44, 59), labels=c("18-24", "25-34", "35-44", "45-59"))    
 
-    agemix_main <- svytable(~age_cat_crude + mrp_age_cat_crude, sample_rake[sample_rake$variables$mrp_type_ongoing %in% "Main"], round=TRUE)
-    agemix_pers <- svytable(~age_cat_crude + mrp_age_cat_crude, sample_rake[sample_rake$variables$mrp_type_ongoing %in% "Persistent"], round=TRUE)
-    agemix_inst <- svytable(~age_cat_crude + mrp_age_cat_crude, sample_rake[sample_rake$variables$mrp_type_r %in% "One time"], round=TRUE)
+    agemix_main <- svytable(~age_cat_crude + mrp_age_cat_crude, sample_rake_rescaled[sample_rake_rescaled$variables$mrp_type_ongoing %in% "Main"], round=FALSE)
+    agemix_pers <- svytable(~age_cat_crude + mrp_age_cat_crude, sample_rake_rescaled[sample_rake_rescaled$variables$mrp_type_ongoing %in% "Persistent"], round=FALSE)
+    agemix_inst <- svytable(~age_cat_crude + mrp_age_cat_crude, sample_rake_rescaled[sample_rake_rescaled$variables$mrp_type_r %in% "One time"], round=FALSE)
 
-    kable(agemix_main, caption="Age mixing in main partnerships") %>% kable_styling(full_width=F, position="center") %>% add_header_above(c("Ego age", "Partner age" = 4))
-    kable(agemix_pers, caption="Age mixing in persistent partnerships") %>% kable_styling(full_width=F, position="center") %>% add_header_above(c("Ego age", "Partner age" = 4))
-    kable(agemix_inst, caption="Age mixing in instantaneous partnerships") %>% kable_styling(full_width=F, position="center") %>% add_header_above(c("Ego age", "Partner age" = 4))
+    kable(agemix_main, caption="Age mixing in main partnerships", digits=c(0, 0, 0, 0)) %>% kable_styling(full_width=F, position="center") %>% add_header_above(c("Ego age", "Partner age" = 4))
+    kable(agemix_pers, caption="Age mixing in persistent partnerships", digits=c(0, 0, 0, 0)) %>% kable_styling(full_width=F, position="center") %>% add_header_above(c("Ego age", "Partner age" = 4))
+    kable(agemix_inst, caption="Age mixing in instantaneous partnerships", digits=c(0, 0, 0, 0)) %>% kable_styling(full_width=F, position="center") %>% add_header_above(c("Ego age", "Partner age" = 4))
+
+```
+As with race, these data show imbalances in the observed mixing patterns. <span style="color:red">Parameterizing age mixing as the absolute difference in the square root of ego and alter ages will make these balance. </span>
+
+Although we won't parameterize age mixing this way, we will further explore the patterns of mixing by taking the averages of the off-diagonal elements. Due to the small cell counts for some ages, the table below compares the averages based on data from ongoing partnerships only (for main and persistent partnerships) to the averages based on data from all partnerships reported as the most recent partner.
+
+```{r}
+# Define observed mixing matrices based on data from all partnerships
+ agemix_main_all <- svytable(~age_cat_crude + mrp_age_cat_crude, sample_rake_rescaled[sample_rake_rescaled$variables$mrp_type_r %in% "Main"], round=FALSE)
+ agemix_pers_all <- svytable(~age_cat_crude + mrp_age_cat_crude, sample_rake_rescaled[sample_rake_rescaled$variables$mrp_type_r %in% "Casual"], round=FALSE)
+ 
+ # Define tables with averages
+  balance_avg_age <- function(x){
+     balanced <- as.data.frame(matrix(c("YY"=x[1,1], "YM1" = mean(c(x[1,2], x[2,1])), "YM2" = mean(c(x[1,3], x[3,1])), "YO" = mean(c(x[1,4], x[4,1])), "M1Y" = mean(c(x[1,2], x[2,1])), "M1M1" = x[2,2], "M1M2" = mean(c(x[2,3], x[3,2])), "M1O" = mean(c(x[2,4], x[4,2])), "M2Y"= mean(c(x[3,1], x[1,3])), "M2M1" = mean(c(x[3,2], x[2,3])), "M2M2" = x[3,3], "M2O" = mean(c(x[3,4], x[4,3])), "OY" = mean(c(x[4,1], x[1,4])), "OM1" = mean(c(x[4,2], x[2,4])), "OM2" = mean(c(x[4,3], x[3,4])), "OO" = x[4,4]), nrow=4, ncol=4, byrow=TRUE, dimnames=list(c("18-24", "25-34", "35-44", "45-59"), c("18-24", "25-34", "35-44", "45-59"))))
+     return(balanced)
+ }
+ 
+ agemix_main_avg <- balance_avg_age(agemix_main)
+ agemix_main_all_avg <- balance_avg_age(agemix_main_all)
+ agemix_pers_avg <- balance_avg_age(agemix_pers)
+ agemix_pers_all_avg <- balance_avg_age(agemix_pers_all)
+ agemix_inst_avg <- balance_avg_age(agemix_inst)
+ 
+ #Combine for kable
+ balanced_agemix_main <- cbind.data.frame(agemix_main_avg, agemix_main_all_avg)
+ balanced_agemix_pers <- cbind.data.frame(agemix_pers_avg, agemix_pers_all_avg)
+ balanced_agemix_inst <- cbind.data.frame(agemix_inst_avg, matrix(rep(NA, 16), nrow=4, dimnames=list(c("18-24", "25-34", "35-44", "45-59"), c("18-24", "25-34", "35-44", "45-59"))))
+  
+   #B/c it won't let me combine these with non-unique row names, rename rows for pers and inst to have extra spaces
+    rownames(balanced_agemix_pers) <- c("18-24 ", "25-34 ", "35-44 ", "45-59 ")
+    rownames(balanced_agemix_inst) <- c("18-24  ", "25-34  ", "35-44  ", "45-59  ")
+
+ balanced_agemix <- rbind.data.frame(balanced_agemix_main, balanced_agemix_pers, balanced_agemix_inst)
+ 
+ #Make kable
+ kable(balanced_agemix, caption="Age mixing: average of off-diagonal elements", digits=c(1, 1, 1, 1, 1, 1, 1, 1)) %>% kable_styling(full_width=T, position="center") %>% add_header_above(c("Ego age", "Ongoing partner age" = 4, "All partner age" = 4)) %>% group_rows("Main partnerships", 1, 4) %>% group_rows("Persistent partnerships", 5, 8) %>% group_rows("Instantaneous partnerships", 9, 12) %>% column_spec(6:9, background="#CACFD2") %>% column_spec(1, bold=T)
 
 ```
 
-<span style="color:red>These data show clear imbalances, which we will need to figure out how to address. In ergm.ego, the default is to take the mean for the off-diagonal elements. For the by-hand ("sausage-making") approach to estimating summary statistics, I could take the mean, take the lower end estimates of mixing, or take the higher end estimates off the diagonal. This coudl be something to explore in sensitivity analyses </span>
+To facilitate comparison of the matrices using data from all vs. ongoing partnerships, below we look at the row percentages in the balanced mixing matrices, rather than the cell counts.
+```{r}
+ agemix_main_avg.p <- prop.table(balance_avg_age(agemix_main))
+ agemix_main_all_avg.p <- prop.table(balance_avg_age(agemix_main_all))
+ agemix_pers_avg.p <- prop.table(balance_avg_age(agemix_pers))
+ agemix_pers_all_avg.p <- prop.table(balance_avg_age(agemix_pers_all))
+ agemix_inst_avg.p <- prop.table(balance_avg_age(agemix_inst))
+ 
+ #Combine for kable
+ balanced_agemix_main.p <- cbind.data.frame(agemix_main_avg.p, agemix_main_all_avg.p)
+ balanced_agemix_pers.p <- cbind.data.frame(agemix_pers_avg.p, agemix_pers_all_avg.p)
+ balanced_agemix_inst.p <- cbind.data.frame(agemix_inst_avg.p, matrix(rep(NA, 16), nrow=4, dimnames=list(c("18-24", "25-34", "35-44", "45-59"), c("18-24", "25-34", "35-44", "45-59"))))
+  
+   #B/c it won't let me combine these with non-unique row names, rename rows for pers and inst to have extra spaces
+    rownames(balanced_agemix_pers.p) <- c("18-24 ", "25-34 ", "35-44 ", "45-59 ")
+    rownames(balanced_agemix_inst.p) <- c("18-24  ", "25-34  ", "35-44  ", "45-59  ")
+
+ balanced_agemix.p <- rbind.data.frame(balanced_agemix_main.p, balanced_agemix_pers.p, balanced_agemix_inst.p)
+ 
+ #Make kable
+ kable(balanced_agemix.p, caption="Age mixing: average of off-diagonal elements", digits=c(3, 3, 3, 3, 3, 3, 3, 3)) %>% kable_styling(full_width=T, position="center") %>% add_header_above(c("Ego age", "Ongoing partner age" = 4, "All partner age" = 4)) %>% group_rows("Main partnerships", 1, 4) %>% group_rows("Persistent partnerships", 5, 8) %>% group_rows("Instantaneous partnerships", 9, 12) %>% column_spec(6:9, background="#CACFD2") %>% column_spec(1, bold=T)
+
+```
+<span style="color:red">Conclusions?</span>
+
+Below, we calculate the $\alpha_{ij}$ terms (observed (averaged) cell count / expected cell count), where expected is the $N_i*N_j/N$. <span style="color:red>We will use data from ongoing partnerships for this comparison.</span>
+```{r}
+#write function
+alphaij_age <- function(x){
+    alphaij <- as.data.frame(matrix(c("YY"=x[1,1] / ((sum(x[1,])*sum(x[,1]))/sum(x)), "YM1" = x[1,2] / ((sum(x[1,])*sum(x[,2]))/sum(x)), "YM2" = x[1,3] / ((sum(x[1,])*sum(x[,3]))/sum(x)), "YO" = x[1,4] / ((sum(x[1,])*sum(x[,4]))/sum(x)), "M1Y" = x[2,1] / ((sum(x[2,])*sum(x[,1]))/sum(x)), "M1M1" = x[2,2] / ((sum(x[2,])*sum(x[,2]))/sum(x)), "M1M2" = x[2,3] / ((sum(x[2,])*sum(x[,3]))/sum(x)), "M1O" = x[2,4] / ((sum(x[2,])*sum(x[,4]))/sum(x)), "M2Y" = x[3,1] / ((sum(x[3,])*sum(x[,1]))/sum(x)), "M2M1" = x[3,2] / ((sum(x[3,])*sum(x[,2]))/sum(x)), "M2M2" = x[3,3] / ((sum(x[3,])*sum(x[,3]))/sum(x)), "M2O" = x[3,4] / ((sum(x[3,])*sum(x[,4]))/sum(x)), "OY" = x[4,1] / ((sum(x[4,])*sum(x[,1]))/sum(x)), "OM1" = x[4,2] / ((sum(x[4,])*sum(x[,2]))/sum(x)), "OM2" = x[4,3] / ((sum(x[4,])*sum(x[,3]))/sum(x)), "OO" = x[4,4] / ((sum(x[4,])*sum(x[,4]))/sum(x))), nrow=4, ncol=4, byrow=TRUE, dimnames=list(c("18-24", "25-34", "35-44", "45-59"), c("18-24", "25-34", "35-44", "45-59"))))
+    return(alphaij)
+}
+
+alphaij_age_main <- alphaij_age(agemix_main_avg)
+alphaij_age_pers <- alphaij_age(agemix_pers_avg)
+alphaij_age_inst <- alphaij_age(agemix_inst_avg)
+
+#Combine to make kable
+ #B/c it won't let me combine these with non-unique row names, rename rows for pers and inst to have extra spaces
+    rownames(alphaij_age_pers) <- c("18-24 ", "25-34 ", "35-44 ", "45-59 ")
+    rownames(alphaij_age_inst) <- c("18-24  ", "25-34  ", "35-44  ", "45-59  ")
+
+ alphaij_age <- rbind.data.frame(alphaij_age_main, alphaij_age_pers, alphaij_age_inst)
+ 
+#Make kable
+ kable(alphaij_age, caption="Age mixing: $alpha_{ij}$ terms", digits=c(2, 2, 2, 2)) %>% kable_styling(full_width=T, position="center") %>% add_header_above(c("Ego age", "Partner age" = 4)) %>% group_rows("Main partnerships", 1, 4) %>% group_rows("Persistent partnerships", 5, 8) %>% group_rows("Instantaneous partnerships", 9, 12) 
+
+
+```
+
+<span style="color:red"> The $\alpha_{ij}$ terms for the off-diagonal elements differ. This pattern will be captured by specifying age mixing using a term for the absolute difference in the square root of ego and alter ages.</span>
