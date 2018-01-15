@@ -1,4 +1,4 @@
-# Notes on excluding data from men whose partners are outside of the age range
+# Notes on excluding data from men whose partners are outside of the age range {#alter_age_boundary}
 ```{r setup, include=F}
 ####################################################################################
 # Setup
@@ -32,7 +32,7 @@ theme_title <- theme(plot.title = element_text(hjust = 0.5, size=11, colour = "g
 setwd("/homes/dpwhite/R/GitHub Repos/WHAMP/Parameter estimation")
 load(file="Data/InternetSurveySample_allages.Rdata")
 
-# Restrict all ages dataset to age range and make other modifications. Don't use the "sample" dataset b/c that excludes men with a partner outside the age range.
+# Restrict all ages dataset to age range and make other modifications. Don't use the "sample" dataset b/c that excludes men with a partner outside the age range for calculation of some parameters
     #Define sample age limit
         sample_incl.mrp.oor <- sample_allages %>%filter(age>17 & age<60)
         
@@ -85,9 +85,16 @@ load(file="Data/InternetSurveySample_allages.Rdata")
         }
 ```
 
-This file looks at the characteristics of men whose most recent partner was outside of the modeled age range (<18 or >59) and whether these men differ in any meaningful way from other respondents. In either case, we will exclude these men from calculation of any parameter related to the network model. If they are differnet in any meaningful way, we will still drop them, but flag this as something to potentially look into more in the future.
+This file looks at the characteristics of men whose most recent partner was outside of the modeled age range (<18 or >59) and whether these men differ in any meaningful way from other respondents. 
 
-The table below shows the number of men who reported a most recent partner outside of the age range, by partner type
+The table below shows the ages of most recent partners outside of the age range by the ages of the egos who reported them.
+```{r dyadage_oor}
+agecombo_oor <- sample_incl.mrp.oor %>% filter(mrp_oor %in% 1) %>% group_by(age, mrp_ageinyears_approx) %>% summarise(Freq = n()) %>% mutate(agediff = abs(age - mrp_ageinyears_approx))
+kable(agecombo_oor, col.names=c("Ego age", "Alter age", "Frequency", "Age difference (abs value)"), caption = "Ego and alter age for alters out of modeled age range") %>% kable_styling(full_width=F, position="center")
+```
+Most men are within 6 years of these alters, but almost a quarter report an alter more than 10 years older than themselves. Partnerships reported with alters >59 tended to have larger age differences than partnerships reported with alters <18. Some of these may be data entry errors, but others could be legitimate. 
+
+The table below shows the partnerships reported with alters out of the age range by partner type and whether the alter was <18 or >59. 
 ```{r}
 # Define indicator of whether mrp is <18 or >59
     sample_incl.mrp.oor$mrp_oor_cat <- ifelse(sample_incl.mrp.oor$mrp_ageinyears_approx<18, "MRP <18", ifelse(sample_incl.mrp.oor$mrp_ageinyears_approx>59, "MRP >59", ifelse(!is.na(sample_incl.mrp.oor$mrp_ageinyears_approx), "MRP 18-59", NA)))
@@ -99,13 +106,7 @@ The table below shows the number of men who reported a most recent partner outsi
     
 ```
 
-Next we'll look to see whether men who reported partners outside of the age range differ in any important way from the rest of the sample_incl.mrp.oor.
-```{r, echo=TRUE}
-# Ego age
-table(sample_incl.mrp.oor$age_cat, sample_incl.mrp.oor$mrp_oor)
-```
-
-Because men whose partners are out of range are more likely to be close to the age cut-offs, we will adjust for ego age in comparisons for other variables.
+Next we'll look to see whether men who reported partners outside of the age range differ in any important way from the rest of the sample. Because men whose partners are out of range are more likely to be close to the age cut-offs (Table \@ref(tab:dyadage_oor)), we will adjust for ego age in comparisons for other variables.
 
 ```{r, echo=TRUE}
 # Race/ethnicity
