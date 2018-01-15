@@ -10,6 +10,7 @@ rmd_files: ["index.Rmd",
 "Notes_on_rate_of_inst_partnerships.Rmd",
 "Notes_on_condom_use_and_coital_frequency.Rmd",
 "Notes_on_most_recent_partner_limitations.Rmd",
+"Notes_on_defining_partner_age_boundaries.Rmd",
 "HIV_testing.Rmd",
 "Notes_on_PrEP.Rmd"
 ]
