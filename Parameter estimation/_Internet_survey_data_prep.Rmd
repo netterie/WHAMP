@@ -55,6 +55,30 @@
                       & (statuscalc=="Complete" | statuscalc=="Partial"))
 
 #-----------------------------------------------------------------------------------
+# Restrict to variables need for this analysis
+#-----------------------------------------------------------------------------------
+    sample_allages <- sample_allages %>% select(region, status, age, malessexwith, sexwithmales_ever, hispanic, whiterace,
+                                                blackafricanamericanrace, americanindianoralaskanativerace, asianrace, 
+                                                nativehawaiianorotherpacificisla, otherpleasespecifyrace, iprefernottoanswerrace,
+                                                othrace_specify, orientation_r, educ, educ_cat, prep_aware_r, prep_use_r, 
+                                                prep_interest_r, wheretoget_r, wheretolearn_r, prep_adherence, insurance_r,
+                                                stitest_r, ends_with("stidx"), anysti, numanal, numpartners, degree_main, position_r,
+                                                position_cat, ai_discordant_r, cai_r, cai_nonmain_bin, cai_discordant_bin,
+                                                cai_unknown_bin, mrp_morethanonce, mrp_ongoing, mrp_main_notongoing, mrp_main_ongoing,
+                                                mrp_type_r, mrp_condoms_once, mrp_condoms_mtonce, mrp_hispanic, whitemrp_race, 
+                                                blackafricanamericanmrp_race, americanindianoralaskanativemrp_, asianmrp_race,
+                                                nativehawaiianpi_mrp_race, otherpleasespecifymrp_race, idontknowmrp_race, 
+                                                iprefernottoanswermrp_race, oth_mrp_race_specify, contains("mrpdisclose"), 
+                                                mrp_statuscat_beforesex, mrp_statuscat_now, mrp_prep_r, mrp_art, mrp_artwhen, mrp_vl,
+                                                ends_with("drugs"), waspaid_exchangesex, income_cat_prefnot, dtstart_td, monthsago_sexmales,
+                                                monthsago_lasttest, daysago_lasttest, month_lasttestdate_lasttest, year_lasttestdate_lasttest,
+                                                month_firstprepdate_firstprep, month_lastprepdate_lastprep, monthsago_firstprep,
+                                                timeonprep_disc, monthsago_lastprep, monthsago_firstprep, pship_age, platform_r, age_cat,
+                                                gay, race_eth_r, evertest_r, prep_use_curr, numonetime_r, nummain_r, numcasual_r, 
+                                                mrp_ageinyears_approx, mrp_race_eth_r, airate, degree_cas, degreecat_cas, ongoing_pos_risk_r,
+                                                ongoing_pos_discuss_r, idu_r, prepelig_r, prepelig_rec, prepelig_disc)
+
+#-----------------------------------------------------------------------------------
 # Generate new variables / modify variables for this analysis
 #-----------------------------------------------------------------------------------
 
@@ -266,109 +290,23 @@
 #Drop 18 observations with missing race/ethnicity -- to reweight the sample, can only use non-missing obs
     sample <- sample %>% filter(!is.na(hbo))
 
-# Drop 31 observations with a most recent partner under age 18 (n=18) or over age 59 (n=13)
-    sample <- sample %>% filter(!(mrp_ageinyears_approx %in% c(0:17)) & !(mrp_ageinyears_approx %in% c(60:100)))
-    
 # Set mrp variables to missing if most recent partner is under age 18 (18 obs) or over age 59 (13 obs)
-    # sample$mrp_age_approx[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_age_cat[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_agediff_cat[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_agediff_num[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_agediff_num_approx[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_ageinyears[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_aifreq[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_aifreq_monthly[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_aitimes[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_aitimeslte10[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_art[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_artwhen[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_condoms_mtonce[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_condoms_once[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_condoms_r[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_datefirstsex[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_datelastsex[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_datesex[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_dtfirstsex[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_dtlastsex[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_dtsex[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_hbo[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_hispanic[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_main_notongoing[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_main_ongoing[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_morethanonce[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_ongoing[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_prep_neg[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_age_cat[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_prep_notongoing[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_prep_ongoing[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_prep_r[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_race[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_race_eth_cat[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_race_eth_m[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_race_eth_r[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_race_r[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_status_beforesex[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_status_firstsex[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_status_now[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_status_once[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_statuscat_now[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_statuscat_beforesex[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_type_ongoing[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_type_r[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_type_r2[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_vl[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$oth_mrp_race_specify[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$oth_mrpdisclose_mtonce[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$oth_mrpdisclose_mtonce_specify[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$oth_mrpdisclose_once[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$oth_mrpdisclose_once_specify[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$oth_mrpdisclose_r[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$asianmrp_race[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$noinfo_mrpdisclose_mtonce[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$noinfo_mrpdisclose_once[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$noinfo_mrpdisclose_r[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$tested_mrpdisclose_mtonce[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$tested_mrpdisclose_once[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$tested_mrpdisclose_r[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$whitemrp_race[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$prefnot_mrpdisclose_mtonce[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$prefnot_mrpdisclose_once[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$prefnot_mrpdisclose_r[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$profile_mrpdisclose_mtonce[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$profile_mrpdisclose_once[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$profile_mrpdisclose_r[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$inperson_mrpdisclose_mtonce[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$inperson_mrpdisclose_once[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$inperson_mrpdisclose_r[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$dontknowmrp_age[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$idontknowmrp_race[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$dontremember_mrpdisclose_mtonce[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$dontremember_mrpdisclose_once[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$dontremember_mrpdisclose_r[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$ageinyearsmrp_age[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$racemultiple_mrp[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$americanindianoralaskanativemrp_[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$nativehawaiianpi_mrp_race[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$blackafricanamericanmrp_race[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$iprefernottoanswermrp_race[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$otherpleasespecifymrp_race[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$dyad_race_r[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$dyad_race_m[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$dyad_race_hbo[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$airate[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$airate_main[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$airate_pers[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$pship_age[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$pship_age_main[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$pship_age_pers[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$pship_duration[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$condoms_prob[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$condoms_main[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$condoms_pers[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$condoms_inst[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$sqrt_agediff[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-    # sample$mrp_ageinyears_approx[sample$mrp_ageinyears_approx<18 | sample$mrp_ageinyears_approx >59] <- NA
-
+    #Define variable for mrp_ageinyears that doesn't include "mrp" so it doesn't also get set to missing in GREP matching
+    sample$alterage <- sample$mrp_ageinyears_approx
+    # set to missing for all variables with "mrp" in the variable name
+    sample[(sample$alterage %in% c(11:17, 60:71)), grep("mrp", names(sample))] <- NA
+    # set to NA for other variables
+    sample[(sample$alterage %in% c(11:17, 60:71)), grep("pship_age", names(sample))] <- NA
+    sample[(sample$alterage %in% c(11:17, 60:71)), grep("airate", names(sample))] <- NA
+    sample[(sample$alterage %in% c(11:17, 60:71)), grep("dyad_race", names(sample))] <- NA
+    sample$condoms_prob[sample$alterage %in% c(11:17, 60:71)] <- NA
+    sample$condoms_inst[sample$alterage %in% c(11:17, 60:71)] <- NA
+    sample$condoms_main[sample$alterage %in% c(11:17, 60:71)] <- NA
+    sample$condoms_pers[sample$alterage %in% c(11:17, 60:71)] <- NA
+    sample$sqrt_agediff[sample$alterage %in% c(11:17, 60:71)] <- NA
+    
+    #Drop alterage variable
+    sample <- sample %>% select(-alterage)
     
 #-----------------------------------------------------------------------------------
 # Define proportion never tested based on the age range set for the sample
