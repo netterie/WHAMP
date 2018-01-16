@@ -7,7 +7,7 @@ This file summarizes the decisions made about parameter estimation and model str
 
 ## Age range
 - 18-59 [fill me in]
-- We also decided to restrict alter ages to 18-39. Data on most recent partners who were under age 18 (n=18) or over age 59 (n=13) were excluded from calculation of partner-specific parameters (e.g. age and race mixing, coital frequency, condom use). Egos who reported partners out of the age range were retained in the network, and the out-of-range partnerships were still counted in calculation of mean degree. We found that men who reported partners outside of the age range differed in several ways from men who reported partners in the age range (section \@ref(alter_age_boundary). Future modeling work may want to explore different ways to represent these out-of-network partnerships, such as with a heat bath.
+- We also decided to restrict alter ages to 18-39. Data on most recent partners who were under age 18 (n=18) or over age 59 (n=13) were excluded from calculation of partner-specific parameters (e.g. age and race mixing, coital frequency, condom use, partnership age). Egos who reported partners out of the age range were retained in the network for estimation of other parameters, and the out-of-range partnerships were still counted in calculation of mean degree. We found that men who reported partners outside of the age range differed in several ways from men who reported partners in the age range (section \@ref(alter_age_boundary). Future modeling work may want to explore different ways to represent these out-of-network partnerships, such as with a heat bath.
 
 ## Region
 - King County, other western Washington, eastern Washington [fill me in]
@@ -30,7 +30,11 @@ This file summarizes the decisions made about parameter estimation and model str
 ## Age mixing
 - We will stratify age mixing by partner type.
 - Age mixing appears to differ by ego age (see \@ref(explore_heterogeneity)), even after parameterizing it as the absolute difference in the square root of ego and later ages. However, this parameterization seems good enough, so we will not represent additional heterogeneity in age mixing by age.
-- <span style="color:red">Age mixing did not appear to differ meaningfully by race/ethnicity (\@ref(fig:plots_explore_agemixing_4)) or region (\@ref(fig:plots_explore_agemixing_5)).<span>
+- Age mixing did not appear to differ meaningfully by race/ethnicity (\@ref(fig:plots_explore_agemixing_4)) or region (\@ref(fig:plots_explore_agemixing_5)).
+
+## Race mixing
+- Exploratory analyses did not indicate differences in race mixing by age or region (see \@ref(explore_heterogeneity)). 
+- Due to the small number of black men reporting ongoing partnerships of any type, we will collapse the off-diagonal elements and represent race mixing using a nodematch term. We will also collapse the persistent and instantaneous networks in calculation of sufficient statistics for race mixing. While neither of these approaches is ideal, they avoid putting too much weight on data from a very small number of respondents (in particular, 0 black men reported ongoing persistent partnerships with other black men). See section \@ref(mixing) for more detail and supporting tables.
 
 ## Partnership age
 - Exploratory analyses (section \@ref(explore_heterogeneity) suggest that the age of main partnerships varies by age, but this is a complex phenomenon. For instance, the data are subject to censoring by age, in that the partnerships of younger men can only have persisted a relatively short time simply due to how long it has been since their presumed debut. We will not model heterogeneity in partnership duration by age at this point. 
