@@ -136,13 +136,13 @@ racemix_main_all <- svytable(~hbo + mrp_hbo, sample_rake_rescaled[sample_rake_re
 
 ```
 
-To facilitate comparison of the matrices using data from all vs. ongoing partnerships, below we look at the row percentages in the balanced mixing matrices, rather than the cell counts.
+To facilitate comparison of the matrices using data from all vs. ongoing partnerships, below we look at the percentages in the balanced mixing matrices, rather than the cell counts.
 ```{r}
- racemix_main_avg.p <- prop.table(balance_avg_race(racemix_main))
- racemix_main_all_avg.p <- prop.table(balance_avg_race(racemix_main_all))
- racemix_pers_avg.p <- prop.table(balance_avg_race(racemix_pers))
- racemix_pers_all_avg.p <- prop.table(balance_avg_race(racemix_pers_all))
- racemix_inst_avg.p <- prop.table(balance_avg_race(racemix_inst))
+ racemix_main_avg.p <- round(100*prop.table(balance_avg_race(racemix_main)),1)
+ racemix_main_all_avg.p <- round(100*prop.table(balance_avg_race(racemix_main_all)),1)
+ racemix_pers_avg.p <- round(100*prop.table(balance_avg_race(racemix_pers)),1)
+ racemix_pers_all_avg.p <- round(100*prop.table(balance_avg_race(racemix_pers_all)),1)
+ racemix_inst_avg.p <- round(100*prop.table(balance_avg_race(racemix_inst)),1)
  
  #Combine for kable
  balanced_racemix_main.p <- cbind.data.frame(racemix_main_avg.p, racemix_main_all_avg.p)
@@ -156,13 +156,13 @@ To facilitate comparison of the matrices using data from all vs. ongoing partner
  balanced_racemix.p <- rbind.data.frame(balanced_racemix_main.p, balanced_racemix_pers.p, balanced_racemix_inst.p)
  
  #Make kable
- kable(balanced_racemix.p, caption="Race mixing: average of off-diagonal elements", digits=c(3, 3, 3, 3, 3, 3)) %>% kable_styling(full_width=T, position="center") %>% add_header_above(c("Ego race/ethnicity", "Ongoing partner race/ethnicity" = 3, "All partner race/ethnicity" = 3)) %>% group_rows("Main partnerships", 1, 3) %>% group_rows("Persistent partnerships", 4, 6) %>% group_rows("Instantaneous partnerships", 7, 9) %>% column_spec(5:7, background="#CACFD2") %>% column_spec(1, bold=T)
+ kable(balanced_racemix.p, caption="Race mixing: cell percentages from taking the average of off-diagonal elements", digits=c(3, 3, 3, 3, 3, 3)) %>% kable_styling(full_width=T, position="center") %>% add_header_above(c("Ego race/ethnicity", "Ongoing partner race/ethnicity" = 3, "All partner race/ethnicity" = 3)) %>% group_rows("Main partnerships", 1, 3) %>% group_rows("Persistent partnerships", 4, 6) %>% group_rows("Instantaneous partnerships", 7, 9) %>% column_spec(5:7, background="#CACFD2") %>% column_spec(1, bold=T)
 
 ```
 
-<span style="color:red">Conclusions?</span>
+We will use data from ongoing partnerships, as including data from all partnerships introduces a substantial amount of volatility, particularly for persistent partnerships. Using data from ongoing partnerships is the more appropriate becuase the formation model, to which these parameters are relevant, aims to recreate the network we observe at the cross-section. We will address the small numbers problem by collapsing some elements, described below.
 
-Below, we calculate the $\alpha_{ij}$ terms (observed (averaged) cell count / expected cell count), where expected is the $N_i*N_j/N$. <span style="color:red>We will use data from ongoing partnerships for this comparison.</span>
+Below, we calculate the $\alpha_{ij}$ terms (observed (averaged) cell count / expected cell count), where expected is the $N_i*N_j/N$. We use data from ongoing partnerships for this comparison.
 ```{r}
 #write function
 alphaij_race <- function(x){
@@ -187,7 +187,7 @@ alphaij_race_inst <- alphaij_race(racemix_inst_avg)
 
 ```
 
-<span style="color:red"> Because the $\alpha_{ij}$ terms for the off-diagonal elements differ, this suggests that we will need to specify nodemix instead of nodematch for mixing.</span>
+Because the $\alpha_{ij}$ terms for the off-diagonal elements differ, this suggests that we would ideally specify nodemix instead of nodematch for mixing. However, these data are limited by the small number of black respondents. As such, we will collapse the off-diagonal elements and use __nodematch__. Because the number of black men with ongoing persistent partnerships is particularly small, we will collapse the mixing matrices for persistent and instantaneous partnerships. There are clear differences in the mixing matrices for main and persistent partnerships, so we want to estimate these separately. Although there are some differences in mixing for persistent and instantaneous partnerships, they are more modest and may be influenced by the small number of respondents. As such, collapsing these partnership types seems acceptable given these data.
 
 ## Observed age mixing
 In the WHPP survey (re-weighted), we observed the following partnership counts for main, persistent, and one-off partnerships by ego and alter age group.
@@ -205,7 +205,7 @@ In the WHPP survey (re-weighted), we observed the following partnership counts f
     kable(agemix_inst, caption="Age mixing in instantaneous partnerships", digits=c(0, 0, 0, 0)) %>% kable_styling(full_width=F, position="center") %>% add_header_above(c("Ego age", "Partner age" = 4))
 
 ```
-As with race, these data show imbalances in the observed mixing patterns. <span style="color:red">Parameterizing age mixing as the absolute difference in the square root of ego and alter ages will make these balance. </span>
+As with race, these data show imbalances in the observed mixing patterns. Parameterizing age mixing as the absolute difference in the square root of ego and alter ages will make these balance.
 
 Although we won't parameterize age mixing this way, we will further explore the patterns of mixing by taking the averages of the off-diagonal elements. Due to the small cell counts for some ages, the table below compares the averages based on data from ongoing partnerships only (for main and persistent partnerships) to the averages based on data from all partnerships reported as the most recent partner.
 
@@ -242,13 +242,13 @@ Although we won't parameterize age mixing this way, we will further explore the 
 
 ```
 
-To facilitate comparison of the matrices using data from all vs. ongoing partnerships, below we look at the row percentages in the balanced mixing matrices, rather than the cell counts.
+To facilitate comparison of the matrices using data from all vs. ongoing partnerships, below we look at the percentages in the balanced mixing matrices, rather than the cell counts.
 ```{r}
- agemix_main_avg.p <- prop.table(balance_avg_age(agemix_main))
- agemix_main_all_avg.p <- prop.table(balance_avg_age(agemix_main_all))
- agemix_pers_avg.p <- prop.table(balance_avg_age(agemix_pers))
- agemix_pers_all_avg.p <- prop.table(balance_avg_age(agemix_pers_all))
- agemix_inst_avg.p <- prop.table(balance_avg_age(agemix_inst))
+ agemix_main_avg.p <- round(100*prop.table(balance_avg_age(agemix_main)),1)
+ agemix_main_all_avg.p <- round(100*prop.table(balance_avg_age(agemix_main_all)),1)
+ agemix_pers_avg.p <- round(100*prop.table(balance_avg_age(agemix_pers)),1)
+ agemix_pers_all_avg.p <- round(100*prop.table(balance_avg_age(agemix_pers_all)),1)
+ agemix_inst_avg.p <- round(100*prop.table(balance_avg_age(agemix_inst)),1)
  
  #Combine for kable
  balanced_agemix_main.p <- cbind.data.frame(agemix_main_avg.p, agemix_main_all_avg.p)
@@ -262,12 +262,13 @@ To facilitate comparison of the matrices using data from all vs. ongoing partner
  balanced_agemix.p <- rbind.data.frame(balanced_agemix_main.p, balanced_agemix_pers.p, balanced_agemix_inst.p)
  
  #Make kable
- kable(balanced_agemix.p, caption="Age mixing: average of off-diagonal elements", digits=c(3, 3, 3, 3, 3, 3, 3, 3)) %>% kable_styling(full_width=T, position="center") %>% add_header_above(c("Ego age", "Ongoing partner age" = 4, "All partner age" = 4)) %>% group_rows("Main partnerships", 1, 4) %>% group_rows("Persistent partnerships", 5, 8) %>% group_rows("Instantaneous partnerships", 9, 12) %>% column_spec(6:9, background="#CACFD2") %>% column_spec(1, bold=T)
+ kable(balanced_agemix.p, caption="Age mixing: cell percentages from taking the average of off-diagonal elements", digits=c(3, 3, 3, 3, 3, 3, 3, 3)) %>% kable_styling(full_width=T, position="center") %>% add_header_above(c("Ego age", "Ongoing partner age" = 4, "All partner age" = 4)) %>% group_rows("Main partnerships", 1, 4) %>% group_rows("Persistent partnerships", 5, 8) %>% group_rows("Instantaneous partnerships", 9, 12) %>% column_spec(6:9, background="#CACFD2") %>% column_spec(1, bold=T)
 
 ```
-<span style="color:red">Conclusions?</span>
 
-Below, we calculate the $\alpha_{ij}$ terms (observed (averaged) cell count / expected cell count), where expected is the $N_i*N_j/N$. <span style="color:red>We will use data from ongoing partnerships for this comparison.</span>
+We will use data from ongoing partnerships, as this approach is more appropriate becuase the formation model, to which these parameters are relevant, aims to recreate the network we observe at the cross-section. The small cell counts are not as much of a concern for age because we will parameterize it using the absolute difference between the square root of ego and alter ages rather than as a categorical variable.
+
+Below, we calculate the $\alpha_{ij}$ terms (observed (averaged) cell count / expected cell count), where expected is the $N_i*N_j/N$. We use data from ongoing partnerships for this comparison.
 ```{r}
 #write function
 alphaij_age <- function(x){
@@ -292,4 +293,4 @@ alphaij_age_inst <- alphaij_age(agemix_inst_avg)
 
 ```
 
-<span style="color:red"> The $\alpha_{ij}$ terms for the off-diagonal elements differ. This pattern will be captured by specifying age mixing using a term for the absolute difference in the square root of ego and alter ages.</span>
+The $\alpha_{ij}$ terms for the off-diagonal elements differ. This pattern will be captured by specifying age mixing using a term for the absolute difference in the square root of ego and alter ages.
