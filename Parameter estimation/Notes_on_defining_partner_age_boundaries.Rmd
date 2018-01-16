@@ -1,0 +1,215 @@
+# Notes on excluding data from men whose partners are outside of the age range
+```{r setup, include=F}
+####################################################################################
+# Setup
+####################################################################################
+#-----------------------------------------------------------------------------------
+# Load packages
+#-----------------------------------------------------------------------------------
+
+    library("tidyverse")
+    library("knitr")
+    library("data.table")
+    library("kableExtra")
+
+#-----------------------------------------------------------------------------------
+# Knitr options
+#-----------------------------------------------------------------------------------
+opts_chunk$set(echo=FALSE, message=FALSE, warning=TRUE, error=TRUE, fig.align = "center")
+options(knitr.table.format = "html") 
+
+#-----------------------------------------------------------------------------------
+# Plot settings
+#-----------------------------------------------------------------------------------
+#save plot settings for white background and light grey lines and darkening the colors a bit
+plot_background <- theme(panel.background = element_rect(fill="white", colour = "black")) + theme(panel.grid.major = element_line(colour = "grey90"))
+darken_color <- scale_colour_hue(l=50)
+theme_title <- theme(plot.title = element_text(hjust = 0.5, size=11, colour = "grey33")) 
+        
+#-----------------------------------------------------------------------------------
+# Load data
+#-----------------------------------------------------------------------------------
+setwd("/homes/dpwhite/R/GitHub Repos/WHAMP/Parameter estimation")
+load(file="Data/InternetSurveySample_allages.Rdata")
+
+# Restrict all ages dataset to age range and make other modifications. Don't use the "sample" dataset b/c that excludes men with a partner outside the age range for calculation of some parameters
+    #Define sample age limit
+        sample_incl.mrp.oor <- sample_allages %>%filter(age>17 & age<60)
+        
+    #Drop 18 observations with missing race/ethnicity -- to reweight the sample, can only use non-missing obs
+        sample_incl.mrp.oor <- sample_incl.mrp.oor %>% filter(!is.na(hbo))
+        
+#-----------------------------------------------------------------------------------
+# Define a variable that identifies men with mrp out of age range
+#-----------------------------------------------------------------------------------
+
+    sample_incl.mrp.oor$mrp_oor <- ifelse(sample_incl.mrp.oor$mrp_ageinyears_approx<18 | sample_incl.mrp.oor$mrp_ageinyears_approx >59, 1, ifelse(!is.na(sample_incl.mrp.oor$mrp_ageinyears_approx), 0, NA))
+
+#----------------------------------------------------------------------------------
+# Define multiplot function
+#_---------------------------------------------------------------------------------
+        multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+            library(grid)
+            
+            # Make a list from the ... arguments and plotlist
+            plots <- c(list(...), plotlist)
+            
+            numPlots = length(plots)
+            
+            # If layout is NULL, then use 'cols' to determine layout
+            if (is.null(layout)) {
+                # Make the panel
+                # ncol: Number of columns of plots
+                # nrow: Number of rows needed, calculated from # of cols
+                layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                                 ncol = cols, nrow = ceiling(numPlots/cols))
+            }
+            
+            if (numPlots==1) {
+                print(plots[[1]])
+                
+            } else {
+                # Set up the page
+                grid.newpage()
+                pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+                
+                # Make each plot, in the correct location
+                for (i in 1:numPlots) {
+                    # Get the i,j matrix positions of the regions that contain this subplot
+                    matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+                    
+                    print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                                    layout.pos.col = matchidx$col))
+                }
+            }
+        }
+```
+
+This file looks at the characteristics of men whose most recent partner was outside of the modeled age range (<18 or >59) and whether these men differ in any meaningful way from other respondents. 
+
+The table below shows the ages of most recent partners outside of the age range by the ages of the egos who reported them.
+```{r dyadage_oor}
+agecombo_oor <- sample_incl.mrp.oor %>% filter(mrp_oor %in% 1) %>% group_by(age, mrp_ageinyears_approx) %>% summarise(Freq = n()) %>% mutate(agediff = abs(age - mrp_ageinyears_approx))
+kable(agecombo_oor, col.names=c("Ego age", "Alter age", "Frequency", "Age difference (abs value)"), caption = "Ego and alter age for alters out of modeled age range") %>% kable_styling(full_width=F, position="center")
+```
+Most men are within 6 years of these alters, but almost a quarter report an alter more than 10 years older than themselves. Partnerships reported with alters >59 tended to have larger age differences than partnerships reported with alters <18. Some of these may be data entry errors, but others could be legitimate. 
+
+The table below shows the partnerships reported with alters out of the age range by partner type and whether the alter was <18 or >59. 
+```{r}
+# Define indicator of whether mrp is <18 or >59
+    sample_incl.mrp.oor$mrp_oor_cat <- ifelse(sample_incl.mrp.oor$mrp_ageinyears_approx<18, "MRP <18", ifelse(sample_incl.mrp.oor$mrp_ageinyears_approx>59, "MRP >59", ifelse(!is.na(sample_incl.mrp.oor$mrp_ageinyears_approx), "MRP 18-59", NA)))
+
+    num_oor <- sample_incl.mrp.oor %>% filter(!is.na(mrp_oor_cat) & mrp_oor %in% 1) %>% group_by(mrp_oor_cat, mrp_type_r, mrp_ongoing) %>% summarise(freq=n())
+    num_oor.kbl <- cbind.data.frame(ptype = c("Main ongoing", "Main not ongoing", "Persistent ongoing", "Persistent not ongoing", "One-time", "Total"), lt18 = c(num_oor$freq[num_oor$mrp_oor_cat %in% "MRP <18" & num_oor$mrp_type_r %in% "Main" & num_oor$mrp_ongoing %in% 1], num_oor$freq[num_oor$mrp_oor_cat %in% "MRP <18" & num_oor$mrp_type_r %in% "Main" & num_oor$mrp_ongoing %in% 0], num_oor$freq[num_oor$mrp_oor_cat %in% "MRP <18" & num_oor$mrp_type_r %in% "Casual" & num_oor$mrp_ongoing %in% 1], 0, 0, sum(num_oor$freq[num_oor$mrp_oor_cat %in% "MRP <18"])), gt59 = c(num_oor$freq[num_oor$mrp_oor_cat %in% "MRP >59" & num_oor$mrp_type_r %in% "Main" & num_oor$mrp_ongoing %in% 1], 0, num_oor$freq[num_oor$mrp_oor_cat %in% "MRP >59" & num_oor$mrp_type_r %in% "Casual" & num_oor$mrp_ongoing %in% 1], 0, num_oor$freq[num_oor$mrp_oor_cat %in% "MRP >59" & num_oor$mrp_type_r %in% "One time"], sum(num_oor$freq[num_oor$mrp_oor_cat %in% "MRP >59"])))
+    
+    kable(num_oor.kbl, col.names = c("Partner type", "Partner <18", "Partner >59")) %>% row_spec(6, bold=T) %>% kable_styling(full_width=F, position="center")
+    
+```
+
+Next we'll look to see whether men who reported partners outside of the age range differ in any important way from the rest of the sample. Because men whose partners are out of range are more likely to be close to the age cut-offs (Table \@ref(tab:dyadage_oor)), we will adjust for ego age in comparisons for other variables.
+
+```{r, echo=TRUE}
+# Race/ethnicity
+table(sample_incl.mrp.oor$hbo, sample_incl.mrp.oor$mrp_oor)
+
+# Define indicators
+sample_incl.mrp.oor$H <- ifelse(sample_incl.mrp.oor$hbo %in% "Hispanic", 1, ifelse(!is.na(sample_incl.mrp.oor$hbo), 0, NA))
+sample_incl.mrp.oor$B <- ifelse(sample_incl.mrp.oor$hbo %in% "Black", 1, ifelse(!is.na(sample_incl.mrp.oor$hbo), 0, NA))
+sample_incl.mrp.oor$O <- ifelse(sample_incl.mrp.oor$hbo %in% "Other", 1, ifelse(!is.na(sample_incl.mrp.oor$hbo), 0, NA))
+
+# Regression models
+summary(glm(H ~ age_cat + mrp_oor, family=binomial(link="logit"), data=sample_incl.mrp.oor))
+summary(glm(B ~ age_cat + mrp_oor, family=binomial(link="logit"), data=sample_incl.mrp.oor))
+summary(glm(O ~ age_cat + mrp_oor, family=binomial(link="logit"), data=sample_incl.mrp.oor))
+
+```
+
+In light of the significant differences by race/ethnicity, we will also adjust for race/ethnicity in comparisons for other variables to look for differences independent of racial/ethnic differences.
+
+```{r, echo=TRUE}
+# Region
+table(sample_incl.mrp.oor$region, sample_incl.mrp.oor$mrp_oor)
+summary(glm(region ~ age_cat + hbo + mrp_oor, family=binomial(link="logit"), data=sample_incl.mrp.oor))
+
+
+# Degree distribution
+  ## Main partner
+    table(sample_incl.mrp.oor$degree_main, sample_incl.mrp.oor$mrp_oor)
+    summary(glm(degree_main ~ age_cat + hbo + mrp_oor, family=binomial(link="logit"), data=sample_incl.mrp.oor))
+
+  ## Any persistent partner
+    table(sample_incl.mrp.oor$anypers, sample_incl.mrp.oor$mrp_oor)
+    summary(glm(anypers ~ age_cat + hbo + mrp_oor, family=binomial(link="logit"), data=sample_incl.mrp.oor))
+    
+  ## Two or more persistent partners
+    table(sample_incl.mrp.oor$concurrent_pers, sample_incl.mrp.oor$mrp_oor)
+    summary(glm(concurrent_pers ~ age_cat + hbo + mrp_oor, family=binomial(link="logit"), data=sample_incl.mrp.oor))
+    
+  ## Persistent partner concurrent with a main partner
+    table(sample_incl.mrp.oor$concurrent_mainpers, sample_incl.mrp.oor$mrp_oor)
+    summary(glm(concurrent_mainpers ~ age_cat + hbo + mrp_oor, family=binomial(link="logit"), data=sample_incl.mrp.oor))
+
+# Rate of instantaneous partnerships
+    sample_incl.mrp.oor %>% filter(!is.na(mrp_oor) & !is.na(rate_inst)) %>% group_by(mrp_oor) %>% summarise(n = n(), median = median(rate_inst, na.rm = TRUE), mean = mean(rate_inst, na.rm=TRUE))
+    summary(lm(rate_inst ~ age_cat + hbo + mrp_oor, data=sample_incl.mrp.oor))
+
+# Proportion never tested (of those >age 40)
+    sample_incl.mrp.oor$nevertest <- 1-sample_incl.mrp.oor$evertest_r
+    sample_incl.mrp.oor %>% filter(!is.na(mrp_oor) & age>40) %>% group_by(mrp_oor) %>% summarise(n = n(), never_tested = mean(nevertest, na.rm=TRUE))
+    summary(glm(nevertest ~ age_cat + hbo + mrp_oor, family=binomial(link="logit"), data=sample_incl.mrp.oor, subset = age %in% c(40:59)))
+    
+# Intertest interval
+    #Define dataframe excluding men who used PrEP in the past 12 months
+    sample_incl.mrp.oor_p12noprep <- sample_incl.mrp.oor %>% filter((prep_use_r %in% c("Took PrEP in the past", "Never taken PrEP")) & !(monthsago_lastprep %in% c(0:12)))
+    
+    sample_incl.mrp.oor_p12noprep %>% filter(!is.na(mrp_oor) & !is.na(iti_int)) %>% group_by(mrp_oor) %>% summarise(median = median(iti_int, na.rm = TRUE), mean = mean(iti_int, na.rm=TRUE))
+    summary(lm(iti_int ~ age_cat + hbo + mrp_oor, data=sample_incl.mrp.oor_p12noprep))
+
+# Coital frequency
+  ## Main partnerships
+    sample_incl.mrp.oor %>% filter(!is.na(mrp_oor) & !is.na(airate_main)) %>% group_by(mrp_oor) %>% summarise(n = n(), median = median(airate_main, na.rm = TRUE), mean = mean(airate_main, na.rm=TRUE))
+    summary(lm(airate_main ~ age_cat + hbo + mrp_oor, data=sample_incl.mrp.oor))
+    
+  ## Persistent partnerships
+    sample_incl.mrp.oor %>% filter(!is.na(mrp_oor) & !is.na(airate_pers)) %>% group_by(mrp_oor) %>% summarise(n = n(), median = median(airate_pers, na.rm = TRUE), mean = mean(airate_pers, na.rm=TRUE))
+    summary(lm(airate_pers ~ age_cat + hbo + mrp_oor, data=sample_incl.mrp.oor))
+    
+# Sex role
+    #Define indicators
+    sample_incl.mrp.oor$position_top <- ifelse(sample_incl.mrp.oor$position_cat=="Exclusively top", 1, ifelse(!is.na(sample_incl.mrp.oor$position_cat), 0, NA))
+    sample_incl.mrp.oor$position_bottom <- ifelse(sample_incl.mrp.oor$position_cat=="Exclusively bottom", 1, ifelse(!is.na(sample_incl.mrp.oor$position_cat), 0, NA))
+    sample_incl.mrp.oor$position_versatile <- ifelse(sample_incl.mrp.oor$position_cat=="Versatile", 1, ifelse(!is.na(sample_incl.mrp.oor$position_cat), 0, NA))
+    
+    table(sample_incl.mrp.oor$position_cat, sample_incl.mrp.oor$mrp_oor)
+    summary(glm(position_top ~ age_cat + hbo + mrp_oor, family=binomial(link="logit"), data=sample_incl.mrp.oor))
+    summary(glm(position_bottom ~ age_cat + hbo + mrp_oor, family=binomial(link="logit"), data=sample_incl.mrp.oor))
+    summary(glm(position_versatile ~ age_cat + hbo + mrp_oor, family=binomial(link="logit"), data=sample_incl.mrp.oor))
+
+# Condoms
+    # Define sample_incl.mrp.oor for condom use analyses - exclude partners on PrEP and men who have taken PrEP in the past 12 months
+    sample_incl.mrp.oor_p12noprep_noalterprep <- sample_incl.mrp.oor_p12noprep %>% filter(!(mrp_prep_r %in% 1))
+
+  ## Main partners
+     sample_incl.mrp.oor_p12noprep_noalterprep %>% filter(!is.na(mrp_oor) & !is.na(condoms_main)) %>% group_by(mrp_oor) %>% summarise(n = n(), mean = mean(condoms_main, na.rm=TRUE))
+    summary(lm(condoms_main ~ age_cat + hbo + mrp_oor, data=sample_incl.mrp.oor_p12noprep_noalterprep))
+
+  ## Persistent partners
+     sample_incl.mrp.oor_p12noprep_noalterprep %>% filter(!is.na(mrp_oor) & !is.na(condoms_pers)) %>% group_by(mrp_oor) %>% summarise(n = n(), mean = mean(condoms_pers, na.rm=TRUE))
+    summary(lm(condoms_pers ~ age_cat + hbo + mrp_oor, data=sample_incl.mrp.oor_p12noprep_noalterprep))
+    
+  ## Instantaneous partners
+     sample_incl.mrp.oor_p12noprep_noalterprep %>% filter(!is.na(mrp_oor) & !is.na(condoms_inst)) %>% group_by(mrp_oor) %>% summarise(n = n(), mean = mean(condoms_inst, na.rm=TRUE))
+    summary(glm(condoms_inst ~ age_cat + hbo + mrp_oor, family=binomial(link="logit"), data=sample_incl.mrp.oor_p12noprep_noalterprep))
+
+# PrEP use
+  ## PrEP recommended
+    table(sample_incl.mrp.oor$prep_use_r[sample_incl.mrp.oor$prepelig_r %in% "Recommend"], sample_incl.mrp.oor$mrp_oor[sample_incl.mrp.oor$prepelig_r %in% "Recommend"])
+    summary(glm(prep_use_curr ~ age_cat + hbo + mrp_oor, family=binomial(link="logit"), data=sample_incl.mrp.oor, subset = prepelig_r %in% "Recommend"))
+
+  ## PrEP to be discussed
+    table(sample_incl.mrp.oor$prep_use_r[sample_incl.mrp.oor$prepelig_r %in% "Discuss"], sample_incl.mrp.oor$mrp_oor[sample_incl.mrp.oor$prepelig_r %in% "Discuss"])
+    summary(glm(prep_use_curr ~ age_cat + hbo + mrp_oor, family=binomial(link="logit"), data=sample_incl.mrp.oor, subset = prepelig_r %in% "Discuss"))
+
+```
+
+These analyses indicate that men whose partners are outside of the modeled age range differ from those who report partners in the age range in terms of race/ethnicity (a greater proportion are Hispanic and fewer are "other"), main partnership status (more likely to have a main partner), coital frequency in main partnerships (lower coital frequency), and sex role (more likely to be bottoms and less likely to be versatile). Some of these things (e.g. coital frequency) may just be reflective of the fact that these are dyads with younger or older partners.
