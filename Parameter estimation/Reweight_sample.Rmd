@@ -110,25 +110,25 @@ options(knitr.table.format = "html")
 
 #Age
     #All MSM
-    wa_acs_agebyregion$age_groups <- ifelse(wa_acs_agebyregion$Age_group %in% c("males.40to44", "males.45to49"), "40-49", ifelse(wa_acs_agebyregion$Age_group %in% c("males.50to54", "males.55to59"), "50-59", ifelse(wa_acs_agebyregion$Age_group %in% "males.18to24", "18-24", ifelse(wa_acs_agebyregion$Age_group %in% "males.25to29", "25-29", ifelse(wa_acs_agebyregion$Age_group %in% "males.30to34", "30-34", ifelse(wa_acs_agebyregion$Age_group %in% "males.35to39", "35-39", NA))))))
+    wa_acs_agebyregion$age_cat_alt <- ifelse(wa_acs_agebyregion$Age_group %in% c("males.40to44", "males.45to49"), "40-49", ifelse(wa_acs_agebyregion$Age_group %in% c("males.50to54", "males.55to59"), "50-59", ifelse(wa_acs_agebyregion$Age_group %in% "males.18to24", "18-24", ifelse(wa_acs_agebyregion$Age_group %in% "males.25to29", "25-29", ifelse(wa_acs_agebyregion$Age_group %in% "males.30to34", "30-34", ifelse(wa_acs_agebyregion$Age_group %in% "males.35to39", "35-39", NA))))))
     
     #Apply proportion MSM in each region to get age distribution among MSM
     wa_acs_agebyregion$numMSM <- ifelse(wa_acs_agebyregion$region %in% "Eastern", wa_acs_agebyregion$Frequency*propMSMbyregion$propmsm[propMSMbyregion$region %in% "Eastern WA"], ifelse(wa_acs_agebyregion$region %in% "King County", wa_acs_agebyregion$Frequency*propMSMbyregion$propmsm[propMSMbyregion$region %in% "King County"], ifelse(wa_acs_agebyregion$region %in% "Other Western", wa_acs_agebyregion$Frequency*propMSMbyregion$propmsm[propMSMbyregion$region %in% "Other Western WA"], NA)))
     
-    pop.age.all <- wa_acs_agebyregion %>% select(-Frequency) %>% group_by(age_groups) %>% summarise(Freq = sum(numMSM))
+    pop.age.all <- wa_acs_agebyregion %>% select(-Frequency) %>% group_by(age_cat_alt) %>% summarise(Freq = sum(numMSM))
     
     #HIV-positive only
     pop.age.pos <- plwha_age
     
     #HIV-negative only
-    pop.age.neg <- cbind.data.frame(age_groups = c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"), Freq = c(round(pop.age.all$Freq - pop.age.pos$Freq)))
+    pop.age.neg <- cbind.data.frame(age_cat_alt = c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"), Freq = c(round(pop.age.all$Freq - pop.age.pos$Freq)))
 
 #-----------------------------------------------------------------------------------
 # Post-stratify and rake the survey sample using population totals for negatives only
 #-----------------------------------------------------------------------------------
     # sample_psraceregion <- postStratify(samplesvy, ~hbo + region, pop.raceregion.neg)
-    # sample_rakeage <- rake(sample_psraceregion, list(~age_groups), list(pop.age.neg))
-    sample_rake_neg <- rake(samplesvy, list(~hbo+region, ~age_groups), list(pop.raceregion.neg, pop.age.neg))
+    # sample_rakeage <- rake(sample_psraceregion, list(~age_cat_alt), list(pop.age.neg))
+    sample_rake_neg <- rake(samplesvy, list(~hbo+region, ~age_cat_alt), list(pop.raceregion.neg, pop.age.neg))
     
      save(sample_rake_neg, file="Data/InternetSurvey_reweighted_neg.Rdata")
      
@@ -136,8 +136,8 @@ options(knitr.table.format = "html")
 # Post-stratify and rake the survey sample using population totals for all MSM
 #-----------------------------------------------------------------------------------
     # sample_psraceregion <- postStratify(samplesvy, ~hbo + region, pop.raceregion.neg)
-    # sample_rakeage <- rake(sample_psraceregion, list(~age_groups), list(pop.age.neg))
-    sample_rake_all <- rake(samplesvy, list(~hbo+region, ~age_groups), list(pop.raceregion.all, pop.age.all))
+    # sample_rakeage <- rake(sample_psraceregion, list(~age_cat_alt), list(pop.age.neg))
+    sample_rake_all <- rake(samplesvy, list(~hbo+region, ~age_cat_alt), list(pop.raceregion.all, pop.age.all))
     
      save(sample_rake_all, file="Data/InternetSurvey_reweighted_all.Rdata")
 
@@ -150,15 +150,15 @@ The weights resulting from raking to the joint distribution of race and region a
     summary(weights_neg)
     
     #look at characteristics of those with highest weight
-    # svytable(~hbo + age_groups + region, sample_rake_neg[sample_rake_neg$prob %in% min(sample_rake_neg$prob)], round = TRUE)
+    # svytable(~hbo + age_cat_alt + region, sample_rake_neg[sample_rake_neg$prob %in% min(sample_rake_neg$prob)], round = TRUE)
     #     #look at number with these characteristics in original sample
-    #     sample %>% filter(hbo %in% "Black" & region %in% "King County" & age_groups %in% "50-59") %>% summarise(Freq = n())
+    #     sample %>% filter(hbo %in% "Black" & region %in% "King County" & age_cat_alt %in% "50-59") %>% summarise(Freq = n())
     # 
     # #look at characteristics of those with the lowest weight
-    # svytable(~hbo + age_groups + region, sample_rake_neg[sample_rake_neg$prob %in% max(sample_rake_neg$prob)], round = TRUE)
+    # svytable(~hbo + age_cat_alt + region, sample_rake_neg[sample_rake_neg$prob %in% max(sample_rake_neg$prob)], round = TRUE)
     #     table(sample_rake_neg$hbo[sample_rake_neg$rake.wt %in% (min(sample_rake_neg$rake.wt))], (sample_rake_neg$region[sample_rake_neg$rake.wt %in% (min(sample_rake_neg$rake.wt))]))
     #     #look at number with these characteristics in original sample
-    #     sample %>% filter(hbo %in% "Black" & region %in% "Eastern WA" & age_groups %in% "18-24") %>% summarise(Freq = n())
+    #     sample %>% filter(hbo %in% "Black" & region %in% "Eastern WA" & age_cat_alt %in% "18-24") %>% summarise(Freq = n())
 
 ```
 
@@ -169,15 +169,15 @@ The weights resulting from raking to the joint distribution of race and region a
     summary(weights_all)
     
     #look at characteristics of those with highest weight
-    # svytable(~hbo + age_groups + region, sample_rake_all[sample_rake_all$prob %in% min(sample_rake_all$prob)], round = TRUE)
+    # svytable(~hbo + age_cat_alt + region, sample_rake_all[sample_rake_all$prob %in% min(sample_rake_all$prob)], round = TRUE)
     #     #look at number with these characteristics in original sample
-    #     sample %>% filter(hbo %in% "Black" & region %in% "King County" & age_groups %in% "50-59") %>% summarise(Freq = n())
+    #     sample %>% filter(hbo %in% "Black" & region %in% "King County" & age_cat_alt %in% "50-59") %>% summarise(Freq = n())
     # 
     # #look at characteristics of those with the lowest weight
-    # svytable(~hbo + age_groups + region, sample_rake_all[sample_rake_all$prob %in% max(sample_rake_all$prob)], round = TRUE)
+    # svytable(~hbo + age_cat_alt + region, sample_rake_all[sample_rake_all$prob %in% max(sample_rake_all$prob)], round = TRUE)
     #     table(sample_rake_all$hbo[sample_rake_all$rake.wt %in% (min(sample_rake_all$rake.wt))], (sample_rake_all$region[sample_rake_all$rake.wt %in% (min(sample_rake_all$rake.wt))]))
     #     #look at number with these characteristics in original sample
-    #     sample %>% filter(hbo %in% "Black" & region %in% "Eastern WA" & age_groups %in% "18-24") %>% summarise(Freq = n())
+    #     sample %>% filter(hbo %in% "Black" & region %in% "Eastern WA" & age_cat_alt %in% "18-24") %>% summarise(Freq = n())
 
 ```
 
@@ -186,8 +186,8 @@ To check that this worked, the tables and graphs below show the distribution of 
   
 #Make tables to compare margins and joint distributions
   #Age
-    age_dist_orig <- as.vector(prop.table(table(sample$age_groups)))
-    age_dist_reweighted <- as.vector(prop.table(svytable(~age_groups, sample_rake_neg, round=TRUE)))
+    age_dist_orig <- as.vector(prop.table(table(sample$age_cat_alt)))
+    age_dist_reweighted <- as.vector(prop.table(svytable(~age_cat_alt, sample_rake_neg, round=TRUE)))
     age_dist_pop <- as.vector(pop.age.neg$Freq / sum(pop.age.neg$Freq))
     
     #Table
