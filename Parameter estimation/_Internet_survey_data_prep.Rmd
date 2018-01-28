@@ -92,9 +92,17 @@
   #More crude age categorization across all ages
   sample$age_chunks <-  cut(sample$age, c(17, 29, 39, 44, 59), labels=c("18-29", "30-39", "40-49", "50-59"))   
 
-
 #Define alter age cat
     sample_allages$mrp_age_cat <- cut(sample_allages$mrp_ageinyears_approx, c(17, 24, 29, 34, 39, 44, 49, 54, 59), labels=c("18-24", "25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59"))
+    
+#Define dyad age category variable for condom use analayses
+    sample_allages$dyad_age <- ifelse(sample_allages$age %in% c(18:34) & sample_allages$mrp_ageinyears_approx %in% c(18:34), "YY", 
+                                      ifelse(sample_allages$age %in% c(18:34) & sample_allages$mrp_ageinyears_approx %in% c(35:59), "YO", 
+                                             ifelse(sample_allages$age %in% c(35:59) & sample_allages$mrp_ageinyears_approx %in% c(18:34), "OY", 
+                                                    ifelse(sample_allages$age %in% c(35:59) & sample_allages$mrp_ageinyears_approx %in% c(35:59), "OO", NA))))
+                                                                            
+    #Specify order of dyad age
+    sample_allages$dyad_age <- factor(sample_allages$dyad_age, levels = c("YY", "YO", "OY", "OO"))
     
 #reorder the levels of race_eth_r and mrp_race_eth_r
     sample_allages$race_eth_r <- factor(sample_allages$race_eth_r, levels(sample_allages$race_eth_r)[c(3,6,2,1,5,4)])
