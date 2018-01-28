@@ -3,14 +3,19 @@
 This file summarizes the decisions made about parameter estimation and model structure.
 
 ##Racial/ethnic groups
-- Hispanic, black, other [fill me in]
+- We decided to Hispanic, black, other [fill me in]
 
 ## Age range
 - 18-59 [fill me in]
-- We also decided to restrict alter ages to 18-39. Data on most recent partners who were under age 18 (n=18) or over age 59 (n=13) were excluded from calculation of partner-specific parameters (e.g. age and race mixing, coital frequency, condom use, partnership age). Egos who reported partners out of the age range were retained in the network for estimation of other parameters, and the out-of-range partnerships were still counted in calculation of mean degree. We found that men who reported partners outside of the age range differed in several ways from men who reported partners in the age range (section \@ref(alter_age_boundary). Future modeling work may want to explore different ways to represent these out-of-network partnerships, such as with a heat bath.
+- We also decided to restrict alter ages to 18-59. Data on most recent partners who were under age 18 (n=18) or over age 59 (n=13) were excluded from calculation of partner-specific parameters (e.g. age and race mixing, coital frequency, condom use, partnership age). Egos who reported partners out of the age range were retained in the network for estimation of other parameters, and the out-of-range partnerships were still counted in calculation of mean degree. We found that men who reported partners outside of the age range differed in several ways from men who reported partners in the age range (section \@ref(alter_age_boundary). Future modeling work may want to explore different ways to represent these out-of-network partnerships, such as with a heat bath.
 
 ## Region
 - King County, other western Washington, eastern Washington [fill me in]
+
+## Reweighting
+- We decided to re-weight the WHPP sample to the joint population distribution of race and region and the marginal distribution of age (see section \@ref(reweight)). 
+- For parameters that will be estimated specifically for HIV-negative men (i.e. we have data from another source to inform parameter values for HIV-positive men), reweight the sample to the population totals for HIV-negative men. But if we will estiamte parameters from the WHPP survey or other sources that will apply to all men (i.e. we don't have data from another source for HIV-positives so we will assume that the estimates do not differ by HIV status), reweight to the population totals for all men.
+- For some variables we have missing data, such that the sample reporting on those variables may not reflect the population distribution after reweighting the overall WHPP sample to the population totals. For now, we will assume that data are missing completely at random, such that this approach is appropriate.
 
 ## Using data from ongoing vs all partnerships
 - We decided to use data only from ongoing partnerships to inform parameters relating to race and age mixing. This is because the formation model, to which these parameters are relevant, aims to recreate the network we observe at the cross-section. An issue is that the NHBS and MMP, datasets I will also be using to inform parameters, do not ask whether partnerships are ongoing. But we will just work with what we have.
