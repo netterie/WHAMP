@@ -3,14 +3,18 @@
 This file summarizes the decisions made about parameter estimation and model structure.
 
 ##Racial/ethnic groups
-- We decided to Hispanic, black, other [fill me in]
+- We decided to represent racial/ethnic heterogeneity by defining three groups: Hispanic, non-Hispanic black (including men who reported black race alone or in combination with another race), and non-Hispanic other (including men who listed any other non-Hispanic race). See section \@ref(composition) for more details on this decision.
 
 ## Age range
-- 18-59 [fill me in]
+- Although the age range for the WHPP sample spanned ages 16-82, other sources from which we might want to estimate parameters (e.g. the Medical Monitoring Project) have a minimum age of 18. As such, we defined the minimum age for the modeled population to be 18. We set the maximum age for the network model to be 59 based on data showing that 1/3 of PrEP users are above the age of 40, such that expanding th emodel into older ages would be important (see section \@ref(composition)).
 - We also decided to restrict alter ages to 18-59. Data on most recent partners who were under age 18 (n=18) or over age 59 (n=13) were excluded from calculation of partner-specific parameters (e.g. age and race mixing, coital frequency, condom use, partnership age). Egos who reported partners out of the age range were retained in the network for estimation of other parameters, and the out-of-range partnerships were still counted in calculation of mean degree. We found that men who reported partners outside of the age range differed in several ways from men who reported partners in the age range (section \@ref(alter_age_boundary). Future modeling work may want to explore different ways to represent these out-of-network partnerships, such as with a heat bath.
 
 ## Region
-- King County, other western Washington, eastern Washington [fill me in]
+- To represent heterogeneity by region, we categorized men into three regions based on their reported zip codes: King County, other western Washington, eastern Washington (see \@ref(composition)). 
+- We do not have data on patterns of sexual mixing by region, so we will specify different patterns in sensitivity analyses (i.e. entirely homophilous and allowing for some crosss-regional mixing).
+
+## Data from HIV-positive men
+- Because the WHPP sample excluded men who had ever tested positive for HIV, we would ideally obtain corresponding data from HIV-positive men. However, existing data sources on HIV-positive MSM in Washington are limited: the Medical Monitoring Project does collect data on some variables, but it will really only inform estimates of mixing patterns by race/ethnicity and age, sex role, and disclosure at the outset of relationships; the NHBS also has some relevant variables, but the sample of HIV-positive men is small, limited to Seattle-area MSM, and it does not not measure anything on HIV-positive men that we cannot get from MMP. As such, we will use data from MMP on HIV-positive men where we can, use data from Atlanta-area studies where appropriate (e.g. for estimates of changes in condom use with diagnosis or disclosure), but we will otherwise assume estimates are the same for HIV-positive as HIV-negative/uknown status men who completed the WHPP survey. <span style="color:red">Eli conducted an analysis that showed that the main thing that differed between HIV-positive and HIV-negative men was condom use, so this approach is supported by his analysis.</span>/
 
 ## Reweighting
 - We decided to re-weight the WHPP sample to the joint population distribution of race and region and the marginal distribution of age (see section \@ref(reweight)). 
@@ -55,6 +59,10 @@ This file summarizes the decisions made about parameter estimation and model str
 
 ## Anal sex role
 - Although there is some indication that anal sex role differs by age and race/ethnicity, these patterns do not appear meaningful (see section \@ref(explore_heterogeneity)). Additionally, representing heterogeneity in anal sex role by these attributes introduces complexity into the model because it will affect balance in mixing. We have flagged this as something to explore in the future (section \@ref(future_explore)), but we will not stratify sex role by race/ethnicity or age in the current model.
+
+## Coital frequency
+- For data on coital frequency, we decided to drop data points from 4 men (3 of whom were in the age range 18-59) who reported having sex >=2 times per day and take the mean values as the summary statistics. 
+- <span style="color:red">Exploratory analyses indicate that coital frequency differs significantly by region in main partnerships (section \@ref(explore_heterogeneity)), as such we will stratify this parameter by region.</span>
 
 ## Condom use
 - Condom use in main partnerships appears to differ by age. In the model, we will stratify condom use with main partners by dyad age, using one degree of freedom to specify the higher rate in young-young (18-34) dyads relative to all other dyads.
