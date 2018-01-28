@@ -55,9 +55,9 @@ If we look at the mean within each quartile, we get the following:
 ```{r rate_inst_means}
     meanbyqrt <- function(x, y) {
         means <- as.vector(c((mean(x[x>=0 & x<=y[1]], na.rm=TRUE)),
-                  (ifelse(y[1]<y[2], mean(x[x>y[1] & x<=y[2]], na.rm=TRUE), ifelse(y[1]==y[2], y[2], NA))),
-                  (ifelse(y[2]<y[3], mean(x[x>y[2] & x<=y[3]], na.rm=TRUE), ifelse(y[2]==y[3], y[3], NA))),
-                  (ifelse(y[3]<y[4], mean(x[x>y[3] & x<=y[4]], na.rm=TRUE), ifelse(y[3]==y[4], y[4], NA)))))
+                  (ifelse(y[1]<y[2], mean(x[x>=y[1] & x<=y[2]], na.rm=TRUE), ifelse(y[1]==y[2], y[2], NA))),
+                  (ifelse(y[2]<y[3], mean(x[x>=y[2] & x<=y[3]], na.rm=TRUE), ifelse(y[2]==y[3], y[3], NA))),
+                  (ifelse(y[3]<y[4], mean(x[x>=y[3] & x<=y[4]], na.rm=TRUE), ifelse(y[3]==y[4], y[4], NA)))))
         return(means)
     }
 
