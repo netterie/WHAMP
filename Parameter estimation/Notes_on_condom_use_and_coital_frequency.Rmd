@@ -177,4 +177,4 @@ Table @ref(tab:condoms_compare) provides a comparison of the estimates of condom
 ```
 
 ## Conclusions
-From these analyses, we decided not to limit to ongoing parterships. There are some differences in estimates betweeen analyses using all or only ongoing partnerships, but only one (coital frequency in persistent partnerships reported by Hispanic men) are signficantly differnt. Restricting to ongoing partnerships also biases us towards partnerships that are more likely to have a longer duration, and reduces the sample size. 
+From these analyses, we decided not to limit to ongoing parterships. There are some differences in estimates betweeen analyses using all or only ongoing partnerships, but only one (coital frequency in persistent partnerships reported by Hispanic men) are signficantly different. Restricting to ongoing partnerships also biases us towards partnerships that are more likely to have a longer duration, and reduces the sample size. 
