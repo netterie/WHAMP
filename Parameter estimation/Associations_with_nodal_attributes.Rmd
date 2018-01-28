@@ -41,12 +41,6 @@ theme_title <- theme(plot.title = element_text(hjust = 0.5, size=11, colour = "g
 load(file="Data/InternetSurveySample.Rdata")
 load(file="Data/InternetSurveySample_allages.Rdata")
 
-#-----------------------------------------------------------------------------------
-# Define alternate age categorization
-#-----------------------------------------------------------------------------------
-   sample$age_chunks <-  cut(sample$age, c(17, 29, 39, 44, 59), labels=c("18-29", "30-39", "40-49", "50-59"))   
-    sample$age_cat_alt <- cut(sample$age, c(17, 24, 29, 34, 39, 49, 59), labels=c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"))
-
 #----------------------------------------------------------------------------------
 # Define multiplot function
 #_---------------------------------------------------------------------------------
