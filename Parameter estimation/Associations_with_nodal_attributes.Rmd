@@ -1273,7 +1273,7 @@ In these tables, "NA" indicates that age was not included in the regression mode
 
 These analyses were intended as a guide to suggest which nodal attributes appear to shape patterns of partnership formation/persistence and behaviors related to transmission and diagnosis. For network model parameters, it appears that **the probability of having a main partner differs by race/ethnicity, region, and the interaction of race/ethnicity and region**, **the probabilities of having any persistent and concurrent persistent partners differs by age**, and **the rate of instantaneous partners differs by age**. We expect the probability of having a partner of the same race/ethnicity to to differ by race/ethnicity, which the network model will capture, so this does not warrant further exploration. Parameterizing age mixing using the difference between the square root of ego and alter ages does not seem to fully account for **differences in age mixing by ego age**, and we will also explore **differences in age mixing by race among main partnerships and by region among persistent partnerships**. **Partnership age appears to differ by ego age**, but this is complicated due to censoring; younger men's partnerships will be shorter because they started more recently. To better understand the underlying pattern and confirm that it aligns with our expectations, we will explore it using plots.
 
-For epidemic model parameters, we will explore **regional differences in the proportion never tested**, **age differences in the intertest interval**, **age and racial/ethnic differences in anal sex role**, **and age differences in condom use among main partners**. For **PrEP use, we will exlpore differences by all three nodal attributes**.
+For epidemic model parameters, we will explore **regional differences in the proportion never tested**, **age differences in the intertest interval**, **regional differences in coital frequency in main partnerships**, **age and racial/ethnic differences in anal sex role**, **and age differences in condom use in main partnerships**. For **PrEP use, we will exlpore differences by all three nodal attributes**.
 
 ## Plots and decisions {#plots}
 The plots below further explore the associations highlighted in the above section. 
@@ -1582,6 +1582,23 @@ iti_pred <- cbind.data.frame(prediction = predict(lm_itiXage, list(age_centered 
  ggplot(itiXage_centered) + geom_point(aes(x=age, y=median, size=freq)) + geom_smooth(aes(x=age, y=median), method="loess") + geom_line(data=iti_pred, aes(x=age, y=prediction), colour="red") + labs(x="Ego age", y="Days since last test", title="Median intertest intervals by age, assuming testing is an interval process") + theme_title + plot_background
 ```
 
+### Coital frequency by region
+The regression analyses indicated that coital frequency varies by region in main partnerships. In the plots below, we show the mean coital frequency in both main and perssitent partnerships by region. The error bars indicate the 95% confidence interval of the point estimate.
+
+```{r plotsexplore_coitalfreq}
+#Coital frequency in main partnerships by region
+  airate_mainXreg <- sample %>% filter(!is.na(airate_main)) %>% group_by(region) %>% summarise(freq=n(), mean = mean(airate_main), se=sd(airate_main)/sqrt(freq), ci_lower = max((mean - 1.96*se), 0), ci_upper = min((mean + 1.96*se), 1))
+
+  ggplot(airate_mainXreg) + geom_pointrange(aes(x=region, y=mean, ymin=ci_lower, ymax=ci_upper)) + labs(x="Region", y="Mean coital frequency", title = "Mean coital frequency in main partnerships by region") + theme_title + plot_background
+  
+    airate_persXreg <- sample %>% filter(!is.na(airate_pers)) %>% group_by(region) %>% summarise(freq=n(), mean = mean(airate_pers), se=sd(airate_pers)/sqrt(freq), ci_lower = max((mean - 1.96*se), 0), ci_upper = min((mean + 1.96*se), 1))
+
+  ggplot(airate_persXreg) + geom_pointrange(aes(x=region, y=mean, ymin=ci_lower, ymax=ci_upper)) + labs(x="Region", y="Mean coital frequency", title = "Mean coital frequency in persistent partnerships by region") + theme_title + plot_background
+    ```
+
+__Decision__: </span style="color:red"> These plots indicate that coital freuqency varies by region in main partnerships. </span>
+
+
 ### Anal sex role by age and race/ethnicity
 In the plots below, the error bars indicate the 95% confidence interval of the point estimate (calculated as 1.96 * sqrt(percent(1-percent)/n)).
 
@@ -1602,13 +1619,6 @@ There is no clear difference in anal sex role by race/ethnicity, so we will not 
 
 ### Condom use by age
 The plots below show the probability of condom use by respondent age in main partnerships. In regression analyses, condom use differed by age only among  main partnerships, but in the plots below we will explore patterns among persistent and instantaneous partnerships as well. These plots show condom use by ego age and by dyad age, as condom use in any given partnership is influenced by the preferences of both partners. Dyad age is defined as the combination of each partner's age categorized as young (18-34) and old (35-59). We exclude data from men who used PrEP in the past 12 months or who report that their partner was using PrEP.
-```{r}
-#Define dyad age category variable
-    sample_p12noprep_noalterprep$dyad_age <- ifelse(sample_p12noprep_noalterprep$age %in% c(18:34) & sample_p12noprep_noalterprep$mrp_ageinyears_approx %in% c(18:34), "YY", ifelse(sample_p12noprep_noalterprep$age %in% c(18:34) & sample_p12noprep_noalterprep$mrp_ageinyears_approx %in% c(35:59), "YO", ifelse(sample_p12noprep_noalterprep$age %in% c(35:59) & sample_p12noprep_noalterprep$mrp_ageinyears_approx %in% c(18:34), "OY", ifelse(sample_p12noprep_noalterprep$age %in% c(35:59) & sample_p12noprep_noalterprep$mrp_ageinyears_approx %in% c(35:59), "OO", NA))))
-                                                                            
-    #Specify order of dyad age
-    sample_p12noprep_noalterprep$dyad_age <- factor(sample_p12noprep_noalterprep$dyad_age, levels = c("YY", "YO", "OY", "OO"))
-```
 
 ```{r plotsexplore_condoms_main}
 #Condom use in main partnerships by ego age
