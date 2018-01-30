@@ -22,3 +22,12 @@ The plots of condom use probabilites (\@ref(fig:plotsexplore_condoms_main), \@re
 
 ## PrEP use by race and region interaction
 With more data, consider exploring whether PrEP uptake differs by the interaction of race/ethnicity and region.
+
+## Behaviors in the absence of PrEP
+A challenge with using data from the WHPP survey to estimate behavioral parameters is that ~20% of the sample is using PrEP, and some behaviors may have changed with the use of PrEP, such as condom use and possibly things like coital freuqency, sex role, and the number of partners. So including these men in estimating parameter values may yield over- or under-estimates, but PrEP users may have been different on these parameters before starting PrEP. 
+
+One option for how to handle this is to fit a model conditional on a set of covariates and not being a recent PrEP user and then use this model to predict the parameter for PrEP users had they not been on PrEP. We would then combine the observed data from PrEP non-users with the predicted data from PrEP users to obtain our estimates. Covariates for these models would need to be carefully selected to try to adjust for confounders that might explain differences between PrEP users and non-users while avoiding variables that also may have changed with PrEP use. 
+
+Another option is to use data from other sources (secondary datasets from before PrEP was scaled up or published longitudinal studies) to estimate either what the behaviors would be in the absence of PrEP or estimate what the change in the behavior is with PrEP use. These external estimates could be used in combination with the approach above to see whether model predictions align with other estimates.
+
+In addition to sexual behaviors that might be shaped by risk compensation, HIV testing patterns change with PrEP use. In estimating interest intervals, we will not want to include data from PrEP users, but it is possible that men who have taken PrEP were more likely to test before initiating. We could use the prediction approach above to impute testing intervals for PrEP users from PrEP non-users who are of similar demographic and risk profiles. A limitation of this approach is that it is possible that the factor that explains why men on PrEP have initated PrEP and their similarly-indicated counterparts have not is that men who have initated PrEP were more likely to test, so it may not be possible to obtain "exchangeable" groups.
