@@ -1,5 +1,6 @@
 rmd_files: ["index.Rmd",
 "Overview.Rmd",
+"Parameters_and_functions.Rmd",
 "Network_composition.Rmd",
 "Decisions.Rmd",
 "For_future_exploration.Rmd",
