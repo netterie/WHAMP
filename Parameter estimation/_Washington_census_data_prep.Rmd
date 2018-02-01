@@ -101,157 +101,161 @@ options(knitr.table.format = "html")
     save(wa_acs_agebyregion, file="Data/census_agebyregion.Rdata")
     save(wa_acs_totalbyregion, file="Data/census_totalbyregion.Rdata")
     
-####################################################################################
-# 2016 Small Area Demographic Esimates for WA State 
-####################################################################################
-#-----------------------------------------------------------------------------------
-# Load data on population composition and define variables
-#-----------------------------------------------------------------------------------
-
-    #Source: Small Area Demographic Estimates (SADE) by Age, Sex, Race and Hispanic Origin
-    # Washington State Office of Financial Management, Forecasting and Research Division
-    # Version: 20161203_R03_VM)
-
-    wa_sade <- read.csv("Data/Washington population.csv", header=TRUE, sep=",")
-    wa_sade2016_15to59 <- filter(wa_sade, Year=="2016" & !is.na(Year) & Age.Group %in% c("15-19", "20-24", "25-29", "30-34", "35-39","40-44", "45-49", "50-54", "55-59") & !is.na(Age.Group))
-    wa_sade2016_males15to59_factor <- select(wa_sade2016_15to59, Area.Name, Male, Age.Group, Year, Hispanic.Male, Non.Hispanic.White.Male, Non.Hispanic.Black.Male, Non.Hispanic.AIAN.Male, Non.Hispanic.Asian.Male, Non.Hispanic.NHOPI.Male, Non.Hispanic.Two.or.More.Races.Male, Non.Hispanic.Male)
-
-#Convert pop counts from factor to numeric
-    wa_sade2016_males15to59 <- wa_sade2016_males15to59_factor
-    rm(wa_sade2016_males15to59_factor)
-
-#Define function to convert from factor to character, remove comma, and convert to numeric
-    factor2numeric <- function(var) {
-        #convert to character
-        var.as.char <- as.character(var)
-        #remove commas
-        var.no.commas <- gsub(",", "", var.as.char)
-        #convert to numeric
-        var.as.num <- as.numeric(var.no.commas)
-        #return
-        return(var.as.num)
-    }
-
-#Apply function
-    wa_sade2016_males15to59 <- mutate_at(wa_sade2016_males15to59, .vars = c("Male", "Hispanic.Male", "Non.Hispanic.White.Male", "Non.Hispanic.Black.Male", "Non.Hispanic.AIAN.Male", "Non.Hispanic.Asian.Male", "Non.Hispanic.NHOPI.Male", "Non.Hispanic.Two.or.More.Races.Male", "Non.Hispanic.Male"), .funs = factor2numeric)
-
-#Define "other' to include Native Hawaiian/Pacific Islander and Native Indian/Alaska Native 
-    wa_sade2016_males15to59$Non.Hispanic.Other.Male <- wa_sade2016_males15to59$Non.Hispanic.NHOPI.Male + wa_sade2016_males15to59$Non.Hispanic.AIAN.Male
-
-#Define a variable for region
-    wa_sade2016_males15to59$region <- ifelse(wa_sade2016_males15to59$Area.Name=="King", "King County", ifelse(wa_sade2016_males15to59$Area.Name %in% c("Clallam", "Clark", "Cowlitz", "Grays Harbor", "Island", "Jefferson", "Kitsap", "Lewis", "Mason", "Pacific", "Pierce", "San Juan", "Skagit", "Skamania", "Snohomish", "Thurston", "Wahkiakum", "Whatcom"), "Other Western", ifelse(wa_sade2016_males15to59$Area.Name=="Washington", "TOTAL", "Eastern")))
-
-#Redefine age groups: assume that the number 18-19 represents 2/5 of the group 15-19
-    wa_sade2016_males15to59$Age.Group2 <- wa_sade2016_males15to59$Age.Group
-    levels(wa_sade2016_males15to59$Age.Group2)[levels(wa_sade2016_males15to59$Age.Group2) %in% "15-19"] <- "18-19" 
-    wa_sade2016_males15to59$Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"] <- wa_sade2016_males15to59$Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"]*(2/5)
-    wa_sade2016_males15to59$Hispanic.Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"] <- wa_sade2016_males15to59$Hispanic.Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"]*(2/5)
-    wa_sade2016_males15to59$Non.Hispanic.White.Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"] <- wa_sade2016_males15to59$Non.Hispanic.White.Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"]*(2/5)
-    wa_sade2016_males15to59$Non.Hispanic.Black.Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"] <- wa_sade2016_males15to59$Non.Hispanic.Black.Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"]*(2/5)
-    wa_sade2016_males15to59$Non.Hispanic.AIAN.Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"] <- wa_sade2016_males15to59$Non.Hispanic.AIAN.Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"]*(2/5)
-    wa_sade2016_males15to59$Non.Hispanic.Asian.Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"] <- wa_sade2016_males15to59$Non.Hispanic.Asian.Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"]*(2/5)
-    wa_sade2016_males15to59$Non.Hispanic.NHOPI.Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"] <- wa_sade2016_males15to59$Non.Hispanic.NHOPI.Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"]*(2/5)
-    wa_sade2016_males15to59$Non.Hispanic.Two.or.More.Races.Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"] <- wa_sade2016_males15to59$Non.Hispanic.Two.or.More.Races.Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"]*(2/5)
-    wa_sade2016_males15to59$Non.Hispanic.Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"] <- wa_sade2016_males15to59$Non.Hispanic.Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"]*(2/5)
-    wa_sade2016_males15to59$Non.Hispanic.Other.Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"] <- wa_sade2016_males15to59$Non.Hispanic.Other.Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"]*(2/5)
     
-    #Combine 18-19 and 20-24
-    wa_sade2016_males15to59$age_cat[wa_sade2016_males15to59$Age.Group2 %in% c("18-19", "20-24")] <- "18-24"
-    wa_sade2016_males15to59$age_cat[wa_sade2016_males15to59$Age.Group2 %in% "25-29"] <- "25-29"
-    wa_sade2016_males15to59$age_cat[wa_sade2016_males15to59$Age.Group2 %in% "30-34"] <- "30-34"
-    wa_sade2016_males15to59$age_cat[wa_sade2016_males15to59$Age.Group2 %in% "35-39"] <- "35-39"
-    wa_sade2016_males15to59$age_cat[wa_sade2016_males15to59$Age.Group2 %in% "40-44"] <- "40-44"
-    wa_sade2016_males15to59$age_cat[wa_sade2016_males15to59$Age.Group2 %in% "45-49"] <- "45-49"
-    wa_sade2016_males15to59$age_cat[wa_sade2016_males15to59$Age.Group2 %in% "50-54"] <- "50-54"
-    wa_sade2016_males15to59$age_cat[wa_sade2016_males15to59$Age.Group2 %in% "55-59"] <- "55-59"
-
-    #Drop vars Age.Group and Age.Group2
-    wa_sade2016_males15to59 <- subset(wa_sade2016_males15to59, select = -c(Age.Group, Age.Group2))
-
-#Total males by region
-    wa_sade_totalbyregion <- wa_sade2016_males15to59 %>% filter(!(region %in% "TOTAL")) %>% select(region, age_cat, Male) %>% group_by(region) %>% summarise(total.male = sum(Male)) %>% mutate(Percent = total.male / sum(total.male)) 
-                                                                
-#Age group by region
-    wa_sade_agebyregion <- wa_sade2016_males15to59 %>% group_by(region, age_cat) %>%
-        summarise(total = sum(Male)) %>%
-        ungroup(age_cat) %>%
-        group_by(region) %>%
-        mutate(percent = total/sum(total))
-    
-#Race by region
-    wa_sade_racebyregion <- wa_sade2016_males15to59 %>% group_by(region) %>%
-        summarise(total.males = sum(Male),
-                  total.hispanic = sum(Hispanic.Male), 
-                  total.white = sum(Non.Hispanic.White.Male),
-                  total.black = sum(Non.Hispanic.Black.Male),
-                  total.asian = sum(Non.Hispanic.Asian.Male),
-                  total.other = sum(Non.Hispanic.Other.Male),
-                  total.multiple = sum(Non.Hispanic.Two.or.More.Races.Male))
-
-    #Redefine race groups as Hispanic, Black (alone or in combination), and other
-    
-        #OLD WAY: Percent of multiple race category that identifies as black, based on 2010 national data
-        #https://www.census.gov/prod/cen2010/briefs/c2010br-13.pdf #s from Table 2, also in Figure 3 it just states 34.3% black in combination :)
-        #BUT note that this includes men who identified as Hispanic!
-        # multi.black <- (1834212 + 269421 + 185595 + 50308 + 314571 + 230848 +61511 + 9245 + 46641 + 9460 + 2142 + 8236 + 7295 + 8122 + 4233 + 19018 + 2673 + 8757 + 4852 + 2520 + 560 + 1011 + 539 + 212 + 574 + 6605 + 1023 + 182 + 268 + 98 + 792) / 9009073
-    
-                 # wa_sade_racebyregion_hbo <- wa_sade_racebyregion %>%
-                 #    group_by(region) %>%
-                 #    mutate(total.anyblack = (total.black + multi.black*total.multiple), 
-                 #           total.hispanic = total.hispanic,
-                 #           total.anyother = (total.white + total.asian + total.other +
-                 #                                        (1-multi.black)*total.multiple))
-    
-    
-    #Percent of males in the two or more race category that identify as black, based on 2011-2015 ACS data (above)
-        black.multi.KC <- black.multi$percent.blackmulti[black.multi$region %in% "King County"]
-        black.multi.OW <- black.multi$percent.blackmulti[black.multi$region %in% "Other Western"]
-        black.multi.E <- black.multi$percent.blackmulti[black.multi$region %in% "Eastern"]
-    
-    #Define HBO race groups
-        wa_sade_hbo_E <- wa_sade_racebyregion %>%
-            filter(region %in% "Eastern") %>%
-             mutate(total.anyblack = (total.black + black.multi.E*total.multiple), 
-                   total.hispanic = total.hispanic,
-                   total.anyother = (total.white + total.asian + total.other +
-                                                (1-black.multi.E)*total.multiple)) %>%
-            select(region, total.anyblack, total.hispanic, total.anyother, total.males)
-    
-         wa_sade_hbo_KC <- wa_sade_racebyregion %>%
-            filter(region %in% "King County") %>%
-             mutate(total.anyblack = (total.black + black.multi.KC*total.multiple), 
-                   total.hispanic = total.hispanic,
-                   total.anyother = (total.white + total.asian + total.other +
-                                                (1-black.multi.KC)*total.multiple)) %>%
-            select(region, total.anyblack, total.hispanic, total.anyother, total.males)
-         
-         wa_sade_hbo_OW <- wa_sade_racebyregion %>%
-            filter(region %in% "Other Western") %>%
-             mutate(total.anyblack = (total.black + black.multi.OW*total.multiple), 
-                   total.hispanic = total.hispanic,
-                   total.anyother = (total.white + total.asian + total.other +
-                                                (1-black.multi.OW)*total.multiple)) %>%
-            select(region, total.anyblack, total.hispanic, total.anyother, total.males)
-         
-    #Calcalate percent in each group
-         wa_sade_racebyregion_hbo <- rbind.data.frame(wa_sade_hbo_KC, wa_sade_hbo_OW, wa_sade_hbo_E)
-         wa_sade_racebyregion <-  wa_sade_racebyregion_hbo %>% mutate(Percent_Hispanic = (total.hispanic / total.males), Percent_black = (total.anyblack / total.males),   Percent_other = (total.anyother / total.males)) %>% select(region, Percent_Hispanic, Percent_black, Percent_other)
-   
-#remove datasets don't need
-    rm(wa_sade2016_15to59)
-    rm(wa_sade)
-    rm(wa_sade2016_males15to59)
-    rm(wa_sade_racebyregion_hbo)
-    
-#-----------------------------------------------------------------------------------
-# Save datasets
-#-----------------------------------------------------------------------------------
-    
-    save(wa_sade_racebyregion, file="Data/sade_racebyregion.Rdata")
-    save(wa_sade_agebyregion, file="Data/sade_agebyregion.Rdata")
-    save(wa_sade_totalbyregion, file="Data/sade_totalbyregion.Rdata")
-    
-    
+##NOT USING THIS BECAUSE IT DOESN'T INCLUDE DATA ON BLACK RACE IN COMBINATION WITH OTHER RACES, 
+##AND IT REQUIRES ASSUMPTIONS ABOUT AGE DISTRIBUTIONS##
+#     
+# ####################################################################################
+# # 2016 Small Area Demographic Esimates for WA State 
+# ####################################################################################
+# #-----------------------------------------------------------------------------------
+# # Load data on population composition and define variables
+# #-----------------------------------------------------------------------------------
+# 
+#     #Source: Small Area Demographic Estimates (SADE) by Age, Sex, Race and Hispanic Origin
+#     # Washington State Office of Financial Management, Forecasting and Research Division
+#     # Version: 20161203_R03_VM)
+# 
+#     wa_sade <- read.csv("Data/Washington population.csv", header=TRUE, sep=",")
+#     wa_sade2016_15to59 <- filter(wa_sade, Year=="2016" & !is.na(Year) & Age.Group %in% c("15-19", "20-24", "25-29", "30-34", "35-39","40-44", "45-49", "50-54", "55-59") & !is.na(Age.Group))
+#     wa_sade2016_males15to59_factor <- select(wa_sade2016_15to59, Area.Name, Male, Age.Group, Year, Hispanic.Male, Non.Hispanic.White.Male, Non.Hispanic.Black.Male, Non.Hispanic.AIAN.Male, Non.Hispanic.Asian.Male, Non.Hispanic.NHOPI.Male, Non.Hispanic.Two.or.More.Races.Male, Non.Hispanic.Male)
+# 
+# #Convert pop counts from factor to numeric
+#     wa_sade2016_males15to59 <- wa_sade2016_males15to59_factor
+#     rm(wa_sade2016_males15to59_factor)
+# 
+# #Define function to convert from factor to character, remove comma, and convert to numeric
+#     factor2numeric <- function(var) {
+#         #convert to character
+#         var.as.char <- as.character(var)
+#         #remove commas
+#         var.no.commas <- gsub(",", "", var.as.char)
+#         #convert to numeric
+#         var.as.num <- as.numeric(var.no.commas)
+#         #return
+#         return(var.as.num)
+#     }
+# 
+# #Apply function
+#     wa_sade2016_males15to59 <- mutate_at(wa_sade2016_males15to59, .vars = c("Male", "Hispanic.Male", "Non.Hispanic.White.Male", "Non.Hispanic.Black.Male", "Non.Hispanic.AIAN.Male", "Non.Hispanic.Asian.Male", "Non.Hispanic.NHOPI.Male", "Non.Hispanic.Two.or.More.Races.Male", "Non.Hispanic.Male"), .funs = factor2numeric)
+# 
+# #Define "other' to include Native Hawaiian/Pacific Islander and Native Indian/Alaska Native 
+#     wa_sade2016_males15to59$Non.Hispanic.Other.Male <- wa_sade2016_males15to59$Non.Hispanic.NHOPI.Male + wa_sade2016_males15to59$Non.Hispanic.AIAN.Male
+# 
+# #Define a variable for region
+#     wa_sade2016_males15to59$region <- ifelse(wa_sade2016_males15to59$Area.Name=="King", "King County", ifelse(wa_sade2016_males15to59$Area.Name %in% c("Clallam", "Clark", "Cowlitz", "Grays Harbor", "Island", "Jefferson", "Kitsap", "Lewis", "Mason", "Pacific", "Pierce", "San Juan", "Skagit", "Skamania", "Snohomish", "Thurston", "Wahkiakum", "Whatcom"), "Other Western", ifelse(wa_sade2016_males15to59$Area.Name=="Washington", "TOTAL", "Eastern")))
+# 
+# #Redefine age groups: assume that the number 18-19 represents 2/5 of the group 15-19
+#     wa_sade2016_males15to59$Age.Group2 <- wa_sade2016_males15to59$Age.Group
+#     levels(wa_sade2016_males15to59$Age.Group2)[levels(wa_sade2016_males15to59$Age.Group2) %in% "15-19"] <- "18-19" 
+#     wa_sade2016_males15to59$Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"] <- wa_sade2016_males15to59$Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"]*(2/5)
+#     wa_sade2016_males15to59$Hispanic.Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"] <- wa_sade2016_males15to59$Hispanic.Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"]*(2/5)
+#     wa_sade2016_males15to59$Non.Hispanic.White.Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"] <- wa_sade2016_males15to59$Non.Hispanic.White.Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"]*(2/5)
+#     wa_sade2016_males15to59$Non.Hispanic.Black.Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"] <- wa_sade2016_males15to59$Non.Hispanic.Black.Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"]*(2/5)
+#     wa_sade2016_males15to59$Non.Hispanic.AIAN.Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"] <- wa_sade2016_males15to59$Non.Hispanic.AIAN.Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"]*(2/5)
+#     wa_sade2016_males15to59$Non.Hispanic.Asian.Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"] <- wa_sade2016_males15to59$Non.Hispanic.Asian.Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"]*(2/5)
+#     wa_sade2016_males15to59$Non.Hispanic.NHOPI.Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"] <- wa_sade2016_males15to59$Non.Hispanic.NHOPI.Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"]*(2/5)
+#     wa_sade2016_males15to59$Non.Hispanic.Two.or.More.Races.Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"] <- wa_sade2016_males15to59$Non.Hispanic.Two.or.More.Races.Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"]*(2/5)
+#     wa_sade2016_males15to59$Non.Hispanic.Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"] <- wa_sade2016_males15to59$Non.Hispanic.Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"]*(2/5)
+#     wa_sade2016_males15to59$Non.Hispanic.Other.Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"] <- wa_sade2016_males15to59$Non.Hispanic.Other.Male[wa_sade2016_males15to59$Age.Group2 %in% "18-19"]*(2/5)
+#     
+#     #Combine 18-19 and 20-24
+#     wa_sade2016_males15to59$age_cat[wa_sade2016_males15to59$Age.Group2 %in% c("18-19", "20-24")] <- "18-24"
+#     wa_sade2016_males15to59$age_cat[wa_sade2016_males15to59$Age.Group2 %in% "25-29"] <- "25-29"
+#     wa_sade2016_males15to59$age_cat[wa_sade2016_males15to59$Age.Group2 %in% "30-34"] <- "30-34"
+#     wa_sade2016_males15to59$age_cat[wa_sade2016_males15to59$Age.Group2 %in% "35-39"] <- "35-39"
+#     wa_sade2016_males15to59$age_cat[wa_sade2016_males15to59$Age.Group2 %in% "40-44"] <- "40-44"
+#     wa_sade2016_males15to59$age_cat[wa_sade2016_males15to59$Age.Group2 %in% "45-49"] <- "45-49"
+#     wa_sade2016_males15to59$age_cat[wa_sade2016_males15to59$Age.Group2 %in% "50-54"] <- "50-54"
+#     wa_sade2016_males15to59$age_cat[wa_sade2016_males15to59$Age.Group2 %in% "55-59"] <- "55-59"
+# 
+#     #Drop vars Age.Group and Age.Group2
+#     wa_sade2016_males15to59 <- subset(wa_sade2016_males15to59, select = -c(Age.Group, Age.Group2))
+# 
+# #Total males by region
+#     wa_sade_totalbyregion <- wa_sade2016_males15to59 %>% filter(!(region %in% "TOTAL")) %>% select(region, age_cat, Male) %>% group_by(region) %>% summarise(total.male = sum(Male)) %>% mutate(Percent = total.male / sum(total.male)) 
+#                                                                 
+# #Age group by region
+#     wa_sade_agebyregion <- wa_sade2016_males15to59 %>% group_by(region, age_cat) %>%
+#         summarise(total = sum(Male)) %>%
+#         ungroup(age_cat) %>%
+#         group_by(region) %>%
+#         mutate(percent = total/sum(total))
+#     
+# #Race by region
+#     wa_sade_racebyregion <- wa_sade2016_males15to59 %>% group_by(region) %>%
+#         summarise(total.males = sum(Male),
+#                   total.hispanic = sum(Hispanic.Male), 
+#                   total.white = sum(Non.Hispanic.White.Male),
+#                   total.black = sum(Non.Hispanic.Black.Male),
+#                   total.asian = sum(Non.Hispanic.Asian.Male),
+#                   total.other = sum(Non.Hispanic.Other.Male),
+#                   total.multiple = sum(Non.Hispanic.Two.or.More.Races.Male))
+# 
+#     #Redefine race groups as Hispanic, Black (alone or in combination), and other
+#     
+#         #OLD WAY: Percent of multiple race category that identifies as black, based on 2010 national data
+#         #https://www.census.gov/prod/cen2010/briefs/c2010br-13.pdf #s from Table 2, also in Figure 3 it just states 34.3% black in combination :)
+#         #BUT note that this includes men who identified as Hispanic!
+#         # multi.black <- (1834212 + 269421 + 185595 + 50308 + 314571 + 230848 +61511 + 9245 + 46641 + 9460 + 2142 + 8236 + 7295 + 8122 + 4233 + 19018 + 2673 + 8757 + 4852 + 2520 + 560 + 1011 + 539 + 212 + 574 + 6605 + 1023 + 182 + 268 + 98 + 792) / 9009073
+#     
+#                  # wa_sade_racebyregion_hbo <- wa_sade_racebyregion %>%
+#                  #    group_by(region) %>%
+#                  #    mutate(total.anyblack = (total.black + multi.black*total.multiple), 
+#                  #           total.hispanic = total.hispanic,
+#                  #           total.anyother = (total.white + total.asian + total.other +
+#                  #                                        (1-multi.black)*total.multiple))
+#     
+#     
+#     #Percent of males in the two or more race category that identify as black, based on 2011-2015 ACS data (above)
+#         black.multi.KC <- black.multi$percent.blackmulti[black.multi$region %in% "King County"]
+#         black.multi.OW <- black.multi$percent.blackmulti[black.multi$region %in% "Other Western"]
+#         black.multi.E <- black.multi$percent.blackmulti[black.multi$region %in% "Eastern"]
+#     
+#     #Define HBO race groups
+#         wa_sade_hbo_E <- wa_sade_racebyregion %>%
+#             filter(region %in% "Eastern") %>%
+#              mutate(total.anyblack = (total.black + black.multi.E*total.multiple), 
+#                    total.hispanic = total.hispanic,
+#                    total.anyother = (total.white + total.asian + total.other +
+#                                                 (1-black.multi.E)*total.multiple)) %>%
+#             select(region, total.anyblack, total.hispanic, total.anyother, total.males)
+#     
+#          wa_sade_hbo_KC <- wa_sade_racebyregion %>%
+#             filter(region %in% "King County") %>%
+#              mutate(total.anyblack = (total.black + black.multi.KC*total.multiple), 
+#                    total.hispanic = total.hispanic,
+#                    total.anyother = (total.white + total.asian + total.other +
+#                                                 (1-black.multi.KC)*total.multiple)) %>%
+#             select(region, total.anyblack, total.hispanic, total.anyother, total.males)
+#          
+#          wa_sade_hbo_OW <- wa_sade_racebyregion %>%
+#             filter(region %in% "Other Western") %>%
+#              mutate(total.anyblack = (total.black + black.multi.OW*total.multiple), 
+#                    total.hispanic = total.hispanic,
+#                    total.anyother = (total.white + total.asian + total.other +
+#                                                 (1-black.multi.OW)*total.multiple)) %>%
+#             select(region, total.anyblack, total.hispanic, total.anyother, total.males)
+#          
+#     #Calcalate percent in each group
+#          wa_sade_racebyregion_hbo <- rbind.data.frame(wa_sade_hbo_KC, wa_sade_hbo_OW, wa_sade_hbo_E)
+#          wa_sade_racebyregion <-  wa_sade_racebyregion_hbo %>% mutate(Percent_Hispanic = (total.hispanic / total.males), Percent_black = (total.anyblack / total.males),   Percent_other = (total.anyother / total.males)) %>% select(region, Percent_Hispanic, Percent_black, Percent_other)
+#    
+# #remove datasets don't need
+#     rm(wa_sade2016_15to59)
+#     rm(wa_sade)
+#     rm(wa_sade2016_males15to59)
+#     rm(wa_sade_racebyregion_hbo)
+#     
+# #-----------------------------------------------------------------------------------
+# # Save datasets
+# #-----------------------------------------------------------------------------------
+#     
+#     save(wa_sade_racebyregion, file="Data/sade_racebyregion.Rdata")
+#     save(wa_sade_agebyregion, file="Data/sade_agebyregion.Rdata")
+#     save(wa_sade_totalbyregion, file="Data/sade_totalbyregion.Rdata")
+#     
+#     
     
 #-----------------------------------------------------------------------------------
 # Old steps to calculate proportions- may want to delete this
