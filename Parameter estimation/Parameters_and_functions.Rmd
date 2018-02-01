@@ -1,0 +1,65 @@
+# Model parameters and functions {#parameters}
+```{r, echo=FALSE, include=FALSE}
+
+####################################################################################
+# Setup
+####################################################################################
+#-----------------------------------------------------------------------------------
+# Load packages
+#-----------------------------------------------------------------------------------
+
+    library("tidyverse")
+    library("psych") #To use "describe" function for continuous vars
+    library("ggplot2")
+    library("survey")
+    library("knitr")
+    library("kableExtra")
+
+#-----------------------------------------------------------------------------------
+# Load data
+#-----------------------------------------------------------------------------------
+    load(file="Data/InternetSurveySample.Rdata")
+    load(file="Data/census_agebyregion.Rdata")
+    load(file="Data/census_racebyregion.Rdata")
+    load(file="Data/census_totalbyregion.Rdata")
+    load(file="Data/wa_msm_est2013.Rdata")
+    load(file="Data/msmbyregion.Rdata")
+    load(file="Data/prop_msmbyregion.Rdata")
+    load(file="Data/InternetSurvey_reweighted.Rdata")
+    load(file="Data/plwha_age.Rdata")
+    load(file="Data/plwha_hboXregion.Rdata")
+
+    
+# Set options
+    opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
+    options(knitr.table.format = "html") 
+    
+```
+
+This section summarises the parameters defined for the model, with reference to their sources and limitations. It also lists key model functions that were modified for this project and describes the changes made.
+
+```{r parameters, warning=FALSE}
+# write a function to define the table structure and add a row to the table with a new parameter or attribute
+param_table <- function(table, param, description, value, alt_value, sources){
+    row <- cbind.data.frame("Parameter" = param, "Description" = description, "Value" = value, "Alternate/sensitivity value(s)" = alt_value, "Source(s)" = sources)
+
+    if(is.na(table)){
+        table <- row
+    } else {
+        table <- rbind.data.frame(table, row)
+    }
+   
+    return(table)
+}
+
+# Add rows for each parameter
+parameters <- param_table(NA, "time.unit", "Unit of time relative to one day", 7, NA, NA)
+parameters <- param(table(parameters, "prop.H", "Proportion of the population Hispanic", ))
+
+# Make a kable
+kable(parameters, caption="Parameter values and sources") %>% kable_styling(full_width=F, position="center")
+```
+
+```{r functions}
+
+```
