@@ -30,7 +30,7 @@
     load(file="Data/wa_msm_est2013.Rdata")
     load(file="Data/msmbyregion.Rdata")
     load(file="Data/prop_msmbyregion.Rdata")
-    load(file="Data/InternetSurvey_reweighted.Rdata")
+    load(file="Data/InternetSurvey_reweighted_neg.Rdata")
     
 # Set options
     opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
@@ -45,29 +45,32 @@ Table \@ref(tab:region_compare), below, compares the regional composition of the
 
 ```{r region_compare}
 
-    #Census - exclude HIV-positives
+#Population distribution of WA males (calculated from ACS data and data on the distribution of PLWHA)
+    #HIV-positive MSM regional distribution
     plwhaXregion <- plwha_hboXregion %>% group_by(region) %>% summarise(freq = sum(Freq))
         #Specify order of factors
         plwhaXregion$region <- factor(plwhaXregion$region, levels = c("King County", "Western WA", "Eastern WA"))
         plwhaXregion <- plwhaXregion %>% arrange(region)
-        
-        wa_acs_totalbyregion$region <- factor(wa_acs_totalbyregion$region, levels = c("King County", "Other Western", "Eastern"))
+    
+    #Regional distribution of all males    
+    wa_acs_totalbyregion$region <- factor(wa_acs_totalbyregion$region, levels = c("King County", "Other Western", "Eastern"))
         wa_acs_totalbyregion <- wa_acs_totalbyregion %>% arrange(region)
-        
+     
+    #Calculated regional distribution for HIV-negative MSM 
     census_region_neg <- cbind.data.frame(region = c("King County", "Western WA", "Eastern WA"), freq = wa_acs_totalbyregion$total - plwhaXregion$freq)
     census_region_neg$percent <- census_region_neg$freq / sum(census_region_neg$freq)
         #Specify order of factors
         census_region_neg$region <- factor(census_region_neg$region, levels = c("King County", "Western WA", "Eastern WA"))
         census_region_neg <- census_region_neg %>% arrange(region)
     
-    #Sample data
+#Sample distribution
     sample_region <- as.vector(prop.table(table(sample$region)))
     sample_region <- cbind.data.frame(region=c("King County", "Western WA", "Eastern WA"), percent=sample_region)
         #Specify order of factors
         sample_region$region <- factor(sample_region$region, levels = c("King County", "Western WA", "Eastern WA"))
         sample_region <- sample_region %>% arrange(region)
 
-    #Grey et al. 
+#Distribution by region from Grey et al. 
     propMSMbyregion$region <- factor(propMSMbyregion$region, levels = c("King County", "Other Western WA", "Eastern WA"))
     propMSMbyregion <- propMSMbyregion %>% arrange(region)
         
@@ -77,10 +80,10 @@ Table \@ref(tab:region_compare), below, compares the regional composition of the
         MSMbyregion_neg$region <- factor(MSMbyregion_neg$region, levels = c("King County", "Western WA", "Eastern WA"))
         MSMbyregion_neg <- MSMbyregion_neg %>% arrange(region)
 
-    #Combine columns
-    region <- cbind.data.frame("Region" = sample_region$region,  "Census" = (census_region_neg$percent), "Sample" = (sample_region$percent), "Grey et al." = c(MSMbyregion$percentMSM))
+#Combine columns
+    region <- cbind.data.frame("Region" = sample_region$region,  "Census" = (census_region_neg$percent), "Sample" = (sample_region$percent), "Grey et al." = c(MSMbyregion_neg$percent))
     
-    #make table
+#make table
     kable(region, col.names=c("Region", "Census (all males)", "WHPP (MSM)", "Grey et al. (MSM)"), digits=c(0, 3, 3, 3), caption="Regional distribution of HIV-negative/unknown status males: Census, WHPP sample, and Grey et al. 2016") %>% kable_styling(full_width=F, position="center")
 ```
 
@@ -89,6 +92,7 @@ A limitation to using data from all males to approximate the true age compositio
 
 ```{r agebyregion_compare}
 #Define age distribution by region and combine columns
+    #Census
     census_ageKC <- wa_acs_agebyregion %>% select(Age_group, Percent, region) %>% filter(region %in% "King County")
     census_ageOW <- wa_acs_agebyregion %>% select(Age_group, Percent, region) %>% filter(region %in% "Other Western")
     census_ageE <- wa_acs_agebyregion %>% select(Age_group, Percent, region) %>% filter(region %in% "Eastern")
@@ -102,7 +106,7 @@ A limitation to using data from all males to approximate the true age compositio
     #Combine columns
     ageXregion <- cbind.data.frame("Age group" = sample_ageKC$age_cat,  "KC Census" = (census_ageKC$Percent), "KC Sample" = (sample_ageKC$percent), "OW Census" = (census_ageOW$Percent), "OW Sample" = (sample_ageOW$percent), "E Census" = (census_ageE$Percent), "E Sample" = (sample_ageE$percent))
     
-    #make table
+#make table
     kable(ageXregion, col.names=c("Age Group", "Census", "WHPP", "Census", "WHPP", "Census", "WHPP"), digits=c(0, 3, 3, 3, 3, 3, 3), caption="Age distribution by region: Census and WHPP sample") %>% kable_styling(full_width=F, position="center") %>% add_header_above(c("", "King County" = 2, "Other Western WA" = 2, "Eastern WA" = 2)) 
 ```
 
@@ -111,6 +115,7 @@ Table \@ref(tab:racebyregion_compare) presents the racial/ethnic distribution of
 
 ```{r racebyregion_compare}
 #Define race/ethnic distribution by region and combine columns
+    #Census
     wa_acs_racebyregion_melt <- melt(wa_acs_racebyregion, id="region")
     wa_acs_racebyregion_melt$hbo <- ifelse(wa_acs_racebyregion_melt$variable %in% "Percent_Hispanic", "Hispanic",
                                            ifelse(wa_acs_racebyregion_melt$variable %in% "Percent_black", "black",
@@ -130,7 +135,7 @@ Table \@ref(tab:racebyregion_compare) presents the racial/ethnic distribution of
     #Combine columns
     raceXregion <- cbind.data.frame("Race/ethnicity" = sample_raceKC$hbo,  "KC Census" = (census_raceKC$percent), "KC Sample" = (sample_raceKC$percent), "OW Census" = (census_raceOW$percent), "OW Sample" = (sample_raceOW$percent), "E Census" = (census_raceE$percent), "E Sample" = (sample_raceE$percent))
     
-    #make table
+#make table
     kable(raceXregion, col.names=c("Race/ethnicity", "Census", "WHPP", "Census", "WHPP", "Census", "WHPP"), digits=c(0, 3, 3, 3, 3, 3, 3), caption="Racial/ethnic distribution by region: Census and WHPP sample") %>% kable_styling(full_width=F, position="center") %>% add_header_above(c("", "King County" = 2, "Other Western WA" = 2, "Eastern WA" = 2))
 
 ```
