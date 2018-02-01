@@ -1,11 +1,11 @@
 # Post-stratification and raking {#reweight}
-The primary source of data on HIV-negative MSM for this project is the 2017 Washington HIV Prevention Project, an online survey administered from January 1 to February 28, 2017. As an online convenience sample, there are undoubtedly sampling biases that affect the representativeness of the survey data. While these biases are difficult to quantify and adjust for, we can compare the composition of the sample to that of Washington males on age, race/ethnicity, and region, the three nodal attributes included in the model. 
+The primary source of data on HIV-negative MSM for this project is the 2017 Washington HIV Prevention Project, an online survey administered from January 1 to February 28, 2017. __As an online convenience sample, there are undoubtedly sampling biases that affect the representativeness of the survey data.__ While these biases are difficult to quantify and adjust for, we can compare the composition of the sample to that of Washington males on age, race/ethnicity, and region, the three nodal attributes included in the model. 
 
-For the expected regional distribution, we use data from a 2016 analysis by @Grey2016 that estimated the sizes of the MSM population by state and county. County-level data were obtained from [Emory's Coalition for Applied Modeling for Prevention (CAMP) website](http://www.emorycamp.org/item.php?i=48) and aggregated to the regional level to estimate the proportion of males who are MSM by region. Population totals of MSM in each region were estimated by multiplying these proportions by the number of males aged 18 to 59 in the 2011-2015 American Community Survey (ACS) 5-year estimates [@WA-census].^[Data were downloaded from the American FactFinder using the Guided Search. I selected the option "I'm looking for information about people", then under topics I selected Age and Sex from the "Age & Sex" menu. For Geographies, I selected County as the geographic type, Washington as the state, clicked "All counties within Washington," and added my selection. For Race/Ethnic Groups, I clicked "Select from detailed groups", and added the following to my selection: Total population (code 001), Hispanic or Latino (of any race)(200-299) (code 400), White alone, not Hispanic or Latino (code 451), Black or African American alone, not Hispanic or Latino (code 453), Black or African American alone or in combination with one or more other races, not Hispanic or Latino (code 454), American Indian and Alaska Native alone, not Hispanic or Latino (code 455), Asian alone, not Hispanic or Latino (code 457), Native Hawaiian and Other Pacific Islander alone, not Hispanic or Latino (code 459), Some other race alone, not Hispanic or Latino (code 461), Two or more races, not Hispanic or Latino (code 463), Black or African American alone, Hispanic or Latino (code 466), and Black or African American alone or in combination with one or more other races, Hispanic or Latino (code 467). I selected the latter two to look at how many men identified as Hispanic and reported black race. From the available tables, I clicked "SEX BY AGE", table ID B01001, and downloaded it with the option to use the data, with both options selected.] For age and race/ethnicity, we assume that the true population distributions of MSM in each region mirror by the distributions for all males, again based on data from the 2011-2015 ACS. Because the WHPP was administered only to men who had never tested positive for HIV, we subtracted persons living with HIV from the population totals.^[2016 data on the number of persons living with diagnosed HIV/AIDS by age, race/ethnicity, and region were obtained from Jason Carr at the Washington State Department of Health in an email on 12/5/2017. These estimates were restricted to males whose infection was attributed to male-male sex (including those who also reported injection drug use). For this analysis, persons with no identified risk, such as male-male sex (approximately 10% of cases) were categorized using multiple imputation (procedure implemented by Jason Carr using a CDC-supplied MI program). Because there is differential missingness on exposure risk by county, using numbers for MSM that include imputed cases is recommended.] However, for some parameters, i.e. degree distribution, we do not have a corresonding data source for HIV-positive MSM, so we will use data from the WHPP survey to represent all MSM. For these parameters, we will reweight the sample to the population distribution including HIV-positives.
+For the __expected regional distribution__, we use data from a 2016 analysis by @Grey2016 that estimated the sizes of the MSM population by state and county. County-level data were obtained from [Emory's Coalition for Applied Modeling for Prevention (CAMP) website](http://www.emorycamp.org/item.php?i=48) and aggregated to the regional level to estimate the proportion of males who are MSM by region. Population totals of MSM in each region were estimated by multiplying these proportions by the number of males aged 18 to 59 in the 2011-2015 American Community Survey (ACS) 5-year estimates [@WA-census].^[Data were downloaded from the American FactFinder using the Guided Search. I selected the option "I'm looking for information about people", then under topics I selected Age and Sex from the "Age & Sex" menu. For Geographies, I selected County as the geographic type, Washington as the state, clicked "All counties within Washington," and added my selection. For Race/Ethnic Groups, I clicked "Select from detailed groups", and added the following to my selection: Total population (code 001), Hispanic or Latino (of any race)(200-299) (code 400), White alone, not Hispanic or Latino (code 451), Black or African American alone, not Hispanic or Latino (code 453), Black or African American alone or in combination with one or more other races, not Hispanic or Latino (code 454), American Indian and Alaska Native alone, not Hispanic or Latino (code 455), Asian alone, not Hispanic or Latino (code 457), Native Hawaiian and Other Pacific Islander alone, not Hispanic or Latino (code 459), Some other race alone, not Hispanic or Latino (code 461), Two or more races, not Hispanic or Latino (code 463), Black or African American alone, Hispanic or Latino (code 466), and Black or African American alone or in combination with one or more other races, Hispanic or Latino (code 467). I selected the latter two to look at how many men identified as Hispanic and reported black race. From the available tables, I clicked "SEX BY AGE", table ID B01001, and downloaded it with the option to use the data, with both options selected.] For __age and race/ethnicity__, we assume that the true population distributions of MSM in each region mirror by the distributions for all males, again based on data from the 2011-2015 ACS. Because the WHPP was administered only to men who had never tested positive for HIV, we subtracted persons living with HIV from the population totals.^[2016 data on the number of persons living with diagnosed HIV/AIDS by age, race/ethnicity, and region were obtained from Jason Carr at the Washington State Department of Health in an email on 12/5/2017. These estimates were restricted to males whose infection was attributed to male-male sex (including those who also reported injection drug use). For this analysis, persons with no identified risk, such as male-male sex (approximately 10% of cases) were categorized using multiple imputation (procedure implemented by Jason Carr using a CDC-supplied MI program). Because there is differential missingness on exposure risk by county, using numbers for MSM that include imputed cases is recommended.] However, for some parameters, i.e. degree distribution, we do not have a corresonding data source for HIV-positive MSM, so we will use data from the WHPP survey to represent all MSM. For these parameters, we will reweight the sample to the population distribution _including HIV-positive men_.
 
 Descriptive analyses in section \@ref(demog_compare) show that, while the WHPP sample closely matches the expected distribution of MSM by region, it does not match the expected distributions of age or race/ethnicity. To adjust the composition of the sample to more closely match the estimated population composition, we would ideally adjust the sample to the full joint distributions of age, race/ethnicity, and region. However, this would stretch the data very thin, resulting in unstable estimates. We felt it was important to capture the joint distribution of race and region, as the racial/ethnic composition of each region differs, as illustrated in section \@ref(#race_compare). There are some differences in the age composition of each region (section \@ref(#age_compare)), but these differences are not quite as stark as for the racial/ethnic composition. Furthermore, trying to match the age distribution by region poses challenges in a dynamic model - to preserve the distribution by region, we would need to account for the patterns of migration that lead to that distribution. 
 
-Instead, we decided to rake with partial joint distributions. That is, we will rake to the joint distribution of race/ethnicity and region and simultaneously to the marginal distribution by age, which we categorized age into the following groups: 18-24, 25-29, 30-34, 35-39, 40-49, 50-59. We grouped ages above 40 into 10-year age groups to increase the stabiltiy of the estimates, as there are fewer respondents in these ages, and because the number of respondents aged 40-44 and 45-49 are roughly equal, as are the number of respondents aged 50-54 and 55-59. 
+Instead, __we decided to rake with partial joint distributions__. That is, we will rake to the joint distribution of race/ethnicity and region and simultaneously to the marginal distribution by age, which we categorized age into the following groups: 18-24, 25-29, 30-34, 35-39, 40-49, 50-59. We grouped ages above 40 into 10-year age groups to increase the stabiltiy of the estimates, as there are fewer respondents in these ages, and because the number of respondents aged 40-44 and 45-49 are roughly equal, as are the number of respondents aged 50-54 and 55-59. 
 
 We used the `survey` package for the raking procedure. This package requires that you first specify a survey design. The package is not intended for working with convenience samples, so the most appropriate option seemed to be to specify the interet sample as a simple random sample, as we did not implement any stratified or cluster sampling. After creating a survey design object, we specify the population totals for each racial/ethnic group by region and for the margins of the age distribution. To correspond to the sampled population (for parameters specific to HIV-negative men), we subtracted the number of people living with HIV from the population totals. For parameters we will estimate from these data and apply to all MSM, we did not subtract people living with HIV from population totals. We then use the `rake` function to obtain adjusted sampling weights. To calculate target statistics, we will use the commands in the `survey` package to incorporate the weights from the raked survey objects (one specific to HIV-negative and one for all MSM).
 
@@ -70,7 +70,7 @@ options(knitr.table.format = "html")
 #-----------------------------------------------------------------------------------
 
 #Region
-    pop.region.all <- MSMbyregion %>% select(region, numMSM) %>% mutate(numMSM = round(numMSM))
+    pop.region.all <- MSMbyregion %>% select(region, numMSM) %>% mutate(total = round(numMSM)) %>% select(-numMSM)
     levels(pop.region.all$region)[levels(pop.region.all$region)=="Other Western WA"] <- "Western WA"
     
     #HIV-positive only
@@ -79,12 +79,12 @@ options(knitr.table.format = "html")
     pop.region.pos <- pop.region.pos %>% arrange(region)
 
     #HIV-negative only
-    pop.region.neg <- cbind.data.frame(region = c("King County", "Western WA", "Eastern WA"), total = c(round(pop.region.all$numMSM[pop.region.all$region %in% "King County"] - pop.region.pos$total[pop.region.pos$region %in% "King County"]), round(pop.region.all$numMSM[pop.region.all$region %in% "Western WA"] - pop.region.pos$total[pop.region.pos$region %in% "Western WA"]), round(pop.region.all$numMSM[pop.region.all$region %in% "Eastern WA"] - pop.region.pos$total[pop.region.pos$region %in% "Eastern WA"])))
+    pop.region.neg <- cbind.data.frame(region = c("King County", "Western WA", "Eastern WA"), total = c(round(pop.region.all$total[pop.region.all$region %in% "King County"] - pop.region.pos$total[pop.region.pos$region %in% "King County"]), round(pop.region.all$total[pop.region.all$region %in% "Western WA"] - pop.region.pos$total[pop.region.pos$region %in% "Western WA"]), round(pop.region.all$total[pop.region.all$region %in% "Eastern WA"] - pop.region.pos$total[pop.region.pos$region %in% "Eastern WA"])))
     pop.region.neg$region <- factor(pop.region.neg$region, levels = c("King County", "Western WA", "Eastern WA"))
     pop.region.neg <- pop.region.neg %>% arrange(region)
     
 #Race and region
-    pop.raceregion.all <- cbind.data.frame(region=c(rep("King County", 3), rep("Western WA", 3), rep("Eastern WA", 3)), hbo=c(rep(c("Hispanic", "Black", "Other"), 3)), Freq=c(round(wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "King County"]*pop.region.all$numMSM[pop.region.all$region %in% "King County"]), round(wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "King County"]*pop.region.all$numMSM[pop.region.all$region %in% "King County"]), round(wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "King County"]*pop.region.all$numMSM[pop.region.all$region %in% "King County"]), round(wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "Other Western"]*pop.region.all$numMSM[pop.region.all$region %in% "Western WA"]), round(wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "Other Western"]*pop.region.all$numMSM[pop.region.all$region %in% "Western WA"]), round(wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "Other Western"]*pop.region.all$numMSM[pop.region.all$region %in% "Western WA"]), round(wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "Eastern"]*pop.region.all$numMSM[pop.region.all$region %in% "Eastern WA"]), round(wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "Eastern"]*pop.region.all$numMSM[pop.region.all$region %in% "Eastern WA"]), round(wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "Eastern"]*pop.region.all$numMSM[pop.region.all$region %in% "Eastern WA"])))
+    pop.raceregion.all <- cbind.data.frame(region=c(rep("King County", 3), rep("Western WA", 3), rep("Eastern WA", 3)), hbo=c(rep(c("Hispanic", "Black", "Other"), 3)), Freq=c(round(wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "King County"]*pop.region.all$total[pop.region.all$region %in% "King County"]), round(wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "King County"]*pop.region.all$total[pop.region.all$region %in% "King County"]), round(wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "King County"]*pop.region.all$total[pop.region.all$region %in% "King County"]), round(wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "Other Western"]*pop.region.all$total[pop.region.all$region %in% "Western WA"]), round(wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "Other Western"]*pop.region.all$total[pop.region.all$region %in% "Western WA"]), round(wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "Other Western"]*pop.region.all$total[pop.region.all$region %in% "Western WA"]), round(wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "Eastern"]*pop.region.all$total[pop.region.all$region %in% "Eastern WA"]), round(wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "Eastern"]*pop.region.all$total[pop.region.all$region %in% "Eastern WA"]), round(wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "Eastern"]*pop.region.all$total[pop.region.all$region %in% "Eastern WA"])))
     #Specify order of factors
     pop.raceregion.all$hbo <- factor(pop.raceregion.all$hbo, levels = c("Hispanic", "Black", "Other"))
     pop.raceregion.all$region <- factor(pop.raceregion.all$region, levels = c("King County", "Western WA", "Eastern WA"))
@@ -143,7 +143,82 @@ options(knitr.table.format = "html")
 
 ```
 
-The weights resulting from raking to the joint distribution of race and region and the margins of age _among HIV-negative men_ are summarized below.
+## Population distributions
+In the tables below, we show the sample disitributions alongside the target population distributions for all and HIV-negative MSM.
+```{r age_dists}
+#Sample
+age_dist_sample <- as.vector(prop.table(table(sample$age_cat_alt)))
+
+#All MSM
+age_dist_pop_all <- as.vector(pop.age.all$Freq / sum(pop.age.all$Freq))
+
+#Negative MSM
+age_dist_pop_neg <- as.vector(pop.age.neg$Freq / sum(pop.age.neg$Freq))
+
+#Combine columns
+age_dist <- cbind.data.frame("Age_group" = c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"), "WHPP" = age_dist_sample, "All_MSM" = age_dist_pop_all, "Neg_MSM" = age_dist_pop_neg)
+
+#Make table
+kable(age_dist, col.names=c("Age group", "WHPP sample", "All MSM", "HIV-negative MSM"), digits=c(0, 3, 3, 3), caption="Age distribution: sample and target population distributions") %>% kable_styling(full_width=F, position="center") %>% column_spec(1:4, width = "10em") 
+```
+
+```{r region_dists}
+#Sample
+region_dist_sample <- as.vector(prop.table(table(sample$region)))
+
+#All MSM
+region_dist_pop_all <- as.vector(pop.region.all$total / sum(pop.region.all$total))
+
+#Negative MSM
+region_dist_pop_neg <- as.vector(pop.region.neg$total / sum(pop.region.neg$total))
+
+#Combine columns
+region_dist <- cbind.data.frame("Region" = c("King County", "Other Western WA", "Eastern WA"), "WHPP" = region_dist_sample, "All_MSM" = region_dist_pop_all, "Neg_MSM" = region_dist_pop_neg)
+
+#Make table
+kable(region_dist, col.names=c("Region", "WHPP sample", "All MSM", "HIV-negative MSM"), digits=c(0, 3, 3, 3), caption="Regional distribution: sample and target population distributions") %>% kable_styling(full_width=F, position="center") %>% column_spec(1:4, width = "10em") 
+
+```
+
+```{r race_dists}
+#Sample
+race_dist_sample <- as.vector(prop.table(table(sample$hbo)))
+    
+#All MSM
+race_dist_pop_all <- as.vector(pop.hbo.all$Freq / sum(pop.hbo.all$Freq))
+
+#Negative MSM
+race_dist_pop_neg <- as.vector(pop.hbo.neg$Freq / sum(pop.hbo.neg$Freq))
+
+#Combine columns
+race_dist <- cbind.data.frame("Race" = c("Hispanic", "Black", "Other"), "WHPP" = race_dist_sample, "All_MSM" = race_dist_pop_all, "Neg_MSM" = race_dist_pop_neg)
+
+#Make table
+kable(race_dist, col.names=c("Race/ethnicity", "WHPP sample", "All MSM", "HIV-negative MSM"), digits=c(0, 3, 3, 3), caption="Racial/ethnic distribution: sample and target population distributions") %>% kable_styling(full_width=F, position="center") %>% column_spec(1:4, width = "10em") 
+
+```
+
+```{r raceXregion_dists}
+
+#Sample
+raceregion_dist_sample <- as.vector(prop.table(table(sample$hbo, sample$region), 2))
+    
+#All MSM
+raceregion_dist_pop_all <- pop.raceregion.all %>% group_by(region) %>% mutate(percent = Freq/sum(Freq))
+
+#Negative MSM
+raceregion_dist_pop_neg <- pop.raceregion.neg %>% group_by(region) %>% mutate(percent = Freq/sum(Freq))
+
+#Combine columns
+raceregion_dist <- cbind.data.frame("Race_ethnicity" = c(rep(c("Hispanic", "Black", "Other"), 3)), "WHPP" = raceregion_dist_sample, "All_MSM" =as.vector(raceregion_dist_pop_all$percent), "Neg_MSM" = as.vector(raceregion_dist_pop_neg$percent))
+
+#Make table
+kable(raceregion_dist, col.names=c("Race/ethnicity", "WHPP sample", "All MSM", "HIV-negative MSM"), digits=c(0, 3, 3, 3), caption="Racial/ethnic distribution by region: sample and target population distributions") %>% kable_styling(full_width=F, position="center") %>% group_rows("King County", 1, 3) %>% group_rows("Other Western WA", 4, 6) %>% group_rows("Eastern WA", 7, 9)  %>% column_spec(1:4, width = "10em") 
+
+```
+
+## Weights
+The weights resulting from raking to the joint distribution of race and region and the margins of age __among HIV-negative men__ are summarized below.
 ```{r ps_weights_neg}
 
     weights_neg <- weights(sample_rake_neg)
@@ -162,7 +237,7 @@ The weights resulting from raking to the joint distribution of race and region a
 
 ```
 
-The weights resulting from raking to the joint distribution of race and region and the margins of age _among all men_ are summarized below.
+The weights resulting from raking to the joint distribution of race and region and the margins of age __among all men__ are summarized below.
 ```{r ps_weights_all}
 
     weights_all <- weights(sample_rake_all)
@@ -181,68 +256,41 @@ The weights resulting from raking to the joint distribution of race and region a
 
 ```
 
-To check that this worked, the tables and graphs below show the distribution of the re-weighted HIV-negative sample by age, race/ethnicity, and region compared to the target population distributions.
+## Check reweighted distribution
+To check that this worked, the tables and graphs below show the distribution of the __re-weighted HIV-negative sample__ by age, race/ethnicity, and region compared to the target population distributions.
 ```{r checkdists, fig.align="center"}
   
 #Make tables to compare margins and joint distributions
   #Age
-    age_dist_orig <- as.vector(prop.table(table(sample$age_cat_alt)))
     age_dist_reweighted <- as.vector(prop.table(svytable(~age_cat_alt, sample_rake_neg, round=TRUE)))
-    age_dist_pop <- as.vector(pop.age.neg$Freq / sum(pop.age.neg$Freq))
-    
-    #Table
-    age_compare <- cbind.data.frame("Age_group" = c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"), "Original_sample" = age_dist_orig, "Reweighted_sample" = age_dist_reweighted, "Population" = age_dist_pop)
-    
-    kable(age_compare, col.names=c("Age group", "Original sample", "Reweighted sample", "Population target"), digits=c(0, 3, 3, 3), caption="Checking the age distribution") %>% kable_styling(full_width=F, position="center")
-    
+
+    age_compare_graph <- cbind.data.frame("Age_group" = rep(c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"), 3), "Source" = (c(rep("Original sample", 6), rep("Reweighted sample", 6), rep("Population", 6))), "Percentage" = c(age_dist_sample, age_dist_reweighted, age_dist_pop_neg))
+
     #Graph
-     age_compare_graph <- cbind.data.frame("Age_group" = rep(c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"), 3), "Source" = (c(rep("Original sample", 6), rep("Reweighted sample", 6), rep("Population", 6))), "Percentage" = c(age_dist_orig, age_dist_reweighted, age_dist_pop))
-    
     ggplot(age_compare_graph) + geom_col(aes(x=Age_group, y=Percentage, fill=Source), position="dodge") + scale_fill_brewer(type="qual", palette=2) + plot_background_nogrid + theme_title + labs(x="Age group", y="Percentage", title="Age distribution")
 
   #Margins of region
-    region_dist_orig <- as.vector(prop.table(table(sample$region)))
     region_dist_reweighted <- as.vector(prop.table(svytable(~region, sample_rake_neg, round=TRUE)))
-    region_dist_pop <- as.vector(pop.region.neg$total / sum(pop.region.neg$total))
-    
-    #Table
-    region_compare <- cbind.data.frame("Region" = c("King County", "Other Western WA", "Eastern WA"), "Original_sample" = region_dist_orig, "Reweighted_sample" = region_dist_reweighted, "Population" = region_dist_pop)
-    
-    kable(region_compare, col.names=c("Region", "Original sample", "Reweighted sample", "Population target"), digits=c(0, 3, 3, 3), caption="Checking the margins of the regional distribution") %>% kable_styling(full_width=F, position="center")
-    
+
+    region_compare_graph <- cbind.data.frame("Region" = rep(c("King County", "Other Western WA", "Eastern WA"), 3), "Source" = (c(rep("Original sample", 3), rep("Reweighted sample", 3), rep("Population", 3))), "Percentage" = c(region_dist_sample, region_dist_reweighted, region_dist_pop_neg))
+
     #Graph
-    region_compare_graph <- cbind.data.frame("Region" = rep(c("King County", "Other Western WA", "Eastern WA"), 3), "Source" = (c(rep("Original sample", 3), rep("Reweighted sample", 3), rep("Population", 3))), "Percentage" = c(region_dist_orig, region_dist_reweighted, region_dist_pop))
-    
     ggplot(region_compare_graph) + geom_col(aes(x=Region, y=Percentage, fill=Source), position="dodge") + scale_fill_brewer(type="qual", palette=2) + plot_background_nogrid + theme_title + labs(x="Region", y="Percentage", title="Regional distribution")
 
   #Margins of race
-    race_dist_orig <- as.vector(prop.table(table(sample$hbo)))
     race_dist_reweighted <- as.vector(prop.table(svytable(~hbo, sample_rake_neg, round=TRUE)))
-    race_dist_pop <- as.vector(pop.hbo.neg$Freq / sum(pop.hbo.neg$Freq))
     
-    #Table
-    race_compare <- cbind.data.frame("Race" = c("Hispanic", "Black", "Other"), "Original_sample" = race_dist_orig, "Reweighted_sample" = race_dist_reweighted, "Population" = race_dist_pop)
-    
-    kable(race_compare, col.names=c("Race/ethnicity", "Original sample", "Reweighted sample", "Population target"), digits=c(0, 3, 3, 3), caption="Checking the margins of the racial/ethnic distribution") %>% kable_styling(full_width=F, position="center")
-    
+    race_compare_graph <- cbind.data.frame("Race" = rep(c("Hispanic", "Black", "Other"), 3), "Source" = (c(rep("Original sample", 3), rep("Reweighted sample", 3), rep("Population", 3))), "Percentage" = c(race_dist_sample, race_dist_reweighted, race_dist_pop_neg))
+
     #Graph
-    race_compare_graph <- cbind.data.frame("Race" = rep(c("Hispanic", "Black", "Other"), 3), "Source" = (c(rep("Original sample", 3), rep("Reweighted sample", 3), rep("Population", 3))), "Percentage" = c(race_dist_orig, race_dist_reweighted, race_dist_pop))
-    
     ggplot(race_compare_graph) + geom_col(aes(x=Race, y=Percentage, fill=Source), position="dodge") + scale_fill_brewer(type="qual", palette=2) + plot_background_nogrid + theme_title + labs(x="Race/ethnicity", y="Percentage", title="Racial/ethnic distribution")
 
   #Race by region
-    raceregion_dist_orig <- as.vector(prop.table(table(sample$hbo, sample$region), 2))
     raceregion_dist_reweighted <- as.vector(prop.table(svytable(~hbo + region, sample_rake_neg, round=TRUE), 2))
-    raceregion_dist_pop <- pop.raceregion.neg %>% group_by(region) %>% mutate(percent = Freq/sum(Freq))
     
-    #Table
-    raceregion_compare <- cbind.data.frame("Race_ethnicity" = c(rep(c("Hispanic", "Black", "Other"), 3)), "Original_sample" = raceregion_dist_orig, "Reweighted_sample" = raceregion_dist_reweighted, "Population" = as.vector(raceregion_dist_pop$percent))
-    
-    kable(raceregion_compare, col.names=c("Race/ethnicity", "Original sample", "Reweighted sample", "Population target"), digits=c(0, 3, 3, 3), caption="Checking the joint distribution by race/ethnicity and region") %>% kable_styling(full_width=F, position="center") %>% group_rows("King County", 1, 3) %>% group_rows("Other Western WA", 4, 6) %>% group_rows("Eastern WA", 7, 9)
+    raceregion_compare_graph <- cbind.data.frame("Race" = rep(c(rep(c("Hispanic", "Black", "Other"), 3)), 3), "Region"=rep(c(rep("King County", 3), rep("Other Western WA", 3), rep("Eastern WA", 3)),3), "Source" = (c(rep("Original sample", 9), rep("Reweighted sample", 9), rep("Population", 9))), "Percentage" = c(raceregion_dist_sample, raceregion_dist_reweighted, as.vector(raceregion_dist_pop_neg$percent)))
     
     #Graph
-    raceregion_compare_graph <- cbind.data.frame("Race" = rep(c(rep(c("Hispanic", "Black", "Other"), 3)), 3), "Region"=rep(c(rep("King County", 3), rep("Other Western WA", 3), rep("Eastern WA", 3)),3), "Source" = (c(rep("Original sample", 9), rep("Reweighted sample", 9), rep("Population", 9))), "Percentage" = c(raceregion_dist_orig, raceregion_dist_reweighted, as.vector(raceregion_dist_pop$percent)))
-    
     ggplot(raceregion_compare_graph) + geom_col(aes(x=Race, y=Percentage, fill=Source), position="dodge") + facet_grid(.~Region) +  scale_fill_brewer(type="qual", palette=2) + plot_background_nogrid + theme_title + labs(x="Race/ethnicity", y="Percentage", title="Racial/ethnic distribution")
 
     ```
