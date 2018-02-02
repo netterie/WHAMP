@@ -30,6 +30,7 @@
     load(file="Data/wa_msm_est2013.Rdata")
     load(file="Data/msmbyregion.Rdata")
     load(file="Data/prop_msmbyregion.Rdata")
+    load(file="Data/plwha_hboXregion.Rdata")
     load(file="Data/InternetSurvey_reweighted_neg.Rdata")
     
 # Set options
