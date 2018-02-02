@@ -2,8 +2,9 @@
 .Rhistory
 .RData
 .Ruserdata
+*.Rproj
 Parameter estimation_old
 *.html
-*templates/*
+*templates/
 data/
 est/
