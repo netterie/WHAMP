@@ -3,3 +3,7 @@
 .RData
 .Ruserdata
 Parameter estimation_old
+*.html
+*templates/*
+data/
+est/
