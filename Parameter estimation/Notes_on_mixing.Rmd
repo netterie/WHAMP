@@ -39,6 +39,8 @@ options(knitr.table.format = "html")
     ratio <- sum(weights(sample_rake))/dim(sample)[1]
     sample_rake_rescaled <- sample_rake
     sample_rake_rescaled$prob <- sample_rake_rescaled$prob * ratio
+  
+    #NOTE: alternative way to do this = use the "Ntotal" option within svy commands to specify the total to scale to
         
 #-----------------------------------------------------------------------------------
 # Plot settings
