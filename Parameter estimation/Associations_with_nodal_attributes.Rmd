@@ -1256,6 +1256,8 @@ As among men recommended to initiate PrEP, this plot suggests that the probabili
 
 ```
 
+### Circumcision
+<span style = "color:red"> Add analysis of circumcision by age and race from NHBS data </span>
 
 ## Summary tables
 In these tables, "NA" indicates that age was not included in the regression model based on examination of the coefficients.
