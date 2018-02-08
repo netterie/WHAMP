@@ -1,0 +1,186 @@
+# Always condom users {#condoms_always}
+```{r, include=FALSE}
+####################################################################################
+# Setup
+####################################################################################
+#-----------------------------------------------------------------------------------
+# Load packages
+#-----------------------------------------------------------------------------------
+
+    library("tidyverse")
+    library("knitr")
+    library("kableExtra")
+    library("ggplot2")
+    library("survey")
+
+#-----------------------------------------------------------------------------------
+# Knitr options
+#-----------------------------------------------------------------------------------
+opts_chunk$set(echo=FALSE, message=FALSE, warning=TRUE, error=TRUE, fig.align = "center")
+options(knitr.table.format = "html") 
+
+#-----------------------------------------------------------------------------------
+# Plot settings
+#-----------------------------------------------------------------------------------
+#save plot settings for white background and light grey lines and darkening the colors a bit
+plot_background <- theme(panel.background = element_rect(fill="white", colour = "black")) + theme(panel.grid.major = element_line(colour = "grey90"))
+darken_color <- scale_colour_hue(l=50)
+theme_title <- theme(plot.title = element_text(hjust = 0.5, size=11, colour = "grey33")) 
+        
+#-----------------------------------------------------------------------------------
+# Load data
+#-----------------------------------------------------------------------------------
+
+load(file="/homes/dpwhite/R/GitHub Repos/WHAMP/Parameter estimation/Data/InternetSurveySample.Rdata")
+load(file="/homes/dpwhite/R/GitHub Repos/WHAMP/Parameter estimation/Data/InternetSurvey_reweighted_neg.Rdata")
+
+#----------------------------------------------------------------------------------
+# Define multiplot function
+#_---------------------------------------------------------------------------------
+        multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+            library(grid)
+            
+            # Make a list from the ... arguments and plotlist
+            plots <- c(list(...), plotlist)
+            
+            numPlots = length(plots)
+            
+            # If layout is NULL, then use 'cols' to determine layout
+            if (is.null(layout)) {
+                # Make the panel
+                # ncol: Number of columns of plots
+                # nrow: Number of rows needed, calculated from # of cols
+                layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                                 ncol = cols, nrow = ceiling(numPlots/cols))
+            }
+            
+            if (numPlots==1) {
+                print(plots[[1]])
+                
+            } else {
+                # Set up the page
+                grid.newpage()
+                pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+                
+                # Make each plot, in the correct location
+                for (i in 1:numPlots) {
+                    # Get the i,j matrix positions of the regions that contain this subplot
+                    matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+                    
+                    print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                                    layout.pos.col = matchidx$col))
+                }
+            }
+        }
+
+```
+This file summarises the data on whether men reported any condomless anal sex in the past 12 months and whether they reported condomless anal sex with non-main/primary partners. In the WHPP survey, participants were asked: "In the last 12 months, did you have anal sex without using a condom with any of your _[pipe in reported # of anal sex partners]_ male anal sex partners?" and, if they indicated 'yes' and reported one or more partners who were not main/primary, "In the last 12 months, did you have anal sex without using a condom with anyone you did _not_ consider to be a main/primary partner?"
+
+The analyses below define the proportion of men who report always using condoms (i.e. no CAI) with all partners and always using condoms with non-main/primary partners, stratified by the reported number of anal sex partners and the type of partners. We use data from the sample reweighted to the joint distribution of race/ethnicity and region and the marginal distribution of age for HIV-negative Washington males.
+
+## Overall
+```{r, echo=TRUE}
+# Always used condoms in the past 12 months, among men who reported 1+ anal sex partner in the past 12 months
+  ## Number
+  svytable(~always_condoms_p12, sample_rake_neg, Ntotal=1036, round=TRUE)
+  ## Percent
+  round(100*prop.table(svytable(~always_condoms_p12, sample_rake_neg, Ntotal=1036, round=TRUE)), 2)
+
+# Always used condoms with non-main partners, among men who reported 1+ persistent or instantaneous partner in the past 12 months
+  ## Number
+  svytable(~always_condoms_nonmain_p12, sample_rake_neg, Ntotal=1036, round=TRUE)
+  ## Percent
+  round(100*prop.table(svytable(~always_condoms_nonmain_p12, sample_rake_neg, Ntotal=1036, round=TRUE)), 2)
+
+```
+
+## By total number of partners
+```{r , echo=FALSE}
+# Always used condoms in the past 12 months by total number of partners, among men who reported 1+ anal sex partner in the past 12 months
+  allXnumanal <- as.data.frame(svytable(~numanal + always_condoms_p12, sample_rake_neg, Ntotal=1036, round=TRUE))
+    ### recode numanal as 0, 1, 2, 3, 4, 5+
+    allXnumanal$numanal_cat <- ifelse(allXnumanal$numanal %in% 0, "0", 
+                                ifelse(allXnumanal$numanal %in% 1, "1",
+                                ifelse(allXnumanal$numanal %in% 2, "2",
+                                ifelse(allXnumanal$numanal %in% 3, "3",
+                                ifelse(allXnumanal$numanal %in% 4, "4",
+                                ifelse(allXnumanal$numanal %in% c(5:350), "5+",
+                                       NA))))))
+                                                             
+    ### Calculate percent
+    allXnumanal_percent <- allXnumanal %>% group_by(numanal_cat, always_condoms_p12) %>% summarise(Freq = sum(Freq)) %>% mutate(percent = 100*Freq/sum(Freq))
+    
+    ## Filter to only rows reporting always using condoms
+    allXnumanal_percent <- allXnumanal_percent %>% filter(always_condoms_p12 %in% 1) %>% select(-always_condoms_p12, -Freq)
+    
+    #Make kable
+    kable(allXnumanal_percent, col.names = c("# anal sex partners", "Percent"), caption="Percent of men reporting always using condoms with all partners in the past 12 months", digits = c(0, 2)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, width = "4cm") %>% column_spec(2, width = "4cm")
+ 
+    
+# Always used condoms with non-main partners in the past 12 months by total number of partners, among men who reported 1+ non-main anal sex partner in the past 12 months
+    #Calculate total number of one-time and casual partners
+    sample_rake_neg$variables$numcasual_r[sample_rake_neg$variables$numcasual_r %in% -1] <- 0 #Fix one respondent with -1 casual partners
+    sample_rake_neg$variables$num_nonmain <- sample_rake_neg$variables$numonetime_r + sample_rake_neg$variables$numcasual_r
+    
+  nonmainXnump <- as.data.frame(svytable(~num_nonmain + always_condoms_nonmain_p12, sample_rake_neg, Ntotal=1036, round=TRUE))
+    ### recode num_nonmain as 0, 1, 2, 3, 4, 5+
+    nonmainXnump$num_nonmain_cat <- ifelse(nonmainXnump$num_nonmain %in% 0, "0", 
+                                    ifelse(nonmainXnump$num_nonmain %in% 1, "1",
+                                    ifelse(nonmainXnump$num_nonmain %in% 2, "2",
+                                    ifelse(nonmainXnump$num_nonmain %in% 3, "3",
+                                    ifelse(nonmainXnump$num_nonmain %in% 4, "4",
+                                    ifelse(nonmainXnump$num_nonmain %in% c(5:350), "5+",
+                                       NA))))))
+                                                             
+    ### Calculate percent
+    nonmainXnump_percent <- nonmainXnump %>% group_by(num_nonmain_cat, always_condoms_nonmain_p12) %>% summarise(Freq = sum(Freq)) %>% mutate(percent = 100*Freq/sum(Freq))
+    
+    ## Filter to only rows reporting always using condoms
+    nonmainXnump_percent <- nonmainXnump_percent %>% filter(always_condoms_nonmain_p12 %in% 1) %>% select(-always_condoms_nonmain_p12, -Freq)
+    
+    #Make kable
+    kable(nonmainXnump_percent, col.names = c("# non-main anal sex partners", "Percent"), caption="Percent of men reporting always using condoms with non-main partners in the past 12 months", digits = c(0, 2)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, width = "4cm") %>% column_spec(2, width = "4cm")
+
+```
+
+## By partner types in the past 12 months
+```{r, echo=FALSE}
+# Define partner type categories
+    sample_rake_neg$variables$ptype_cat <- ifelse(sample_rake_neg$variables$nummain_r >0 & sample_rake_neg$variables$numcasual_r %in% 0 & sample_rake_neg$variables$numonetime_r %in% 0, "Only main",
+                                        ifelse(sample_rake_neg$variables$nummain_r >0 & sample_rake_neg$variables$numcasual_r > 0 & sample_rake_neg$variables$numonetime_r %in% 0, "Main and pers", 
+                                        ifelse(sample_rake_neg$variables$nummain_r >0 & sample_rake_neg$variables$numcasual_r > 0 & sample_rake_neg$variables$numonetime_r > 0, "Main, pers, and inst",
+                                        ifelse(sample_rake_neg$variables$nummain_r %in% 0 & sample_rake_neg$variables$numcasual_r > 0 & sample_rake_neg$variables$numonetime_r > 0, "Pers and inst",
+                                        ifelse(sample_rake_neg$variables$nummain_r %in% 0 & sample_rake_neg$variables$numcasual_r > 0 & sample_rake_neg$variables$numonetime_r %in% 0, "Only pers",
+                                        ifelse(sample_rake_neg$variables$nummain_r %in% 0 & sample_rake_neg$variables$numcasual_r %in% 0 & sample_rake_neg$variables$numonetime_r > 0, "Only inst",
+                                        ifelse(sample_rake_neg$variables$nummain_r >0 & sample_rake_neg$variables$numcasual_r %in% 0 & sample_rake_neg$variables$numonetime_r > 0, "Main and inst", NA)))))))
+    
+    #Order factor
+    sample_rake_neg$variables$ptype_cat <- factor(sample_rake_neg$variables$ptype_cat, levels = c("Main, pers, and inst", "Main and pers", "Main and inst", "Pers and inst", "Only main", "Only pers", "Only inst"))
+
+#All partners
+    # Calculate percent reporting always condom use by categories
+    allXptype <- as.data.frame(svytable(~ptype_cat + always_condoms_p12, sample_rake_neg, Ntotal=1036, round=TRUE))
+  
+    # Calculate percent
+    allXptype_percent <- allXptype %>% group_by(ptype_cat, always_condoms_p12) %>% summarise(Freq = sum(Freq)) %>% mutate(percent = 100*Freq/sum(Freq))
+    
+    ## Filter to only rows reporting always using condoms
+    allXptype_percent <- allXptype_percent %>% filter(always_condoms_p12 %in% 1) %>% select(-always_condoms_p12, -Freq)
+    
+    #Make kable
+    kable(allXptype_percent, col.names = c("Partner types", "Percent"), caption="Percent of men reporting always using condoms with all partners, by partner types in the past 12 months", digits = c(0, 2)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, width = "4cm") %>% column_spec(2, width = "4cm")
+   
+# Non-main partners 
+    # Calculate percent reporting always condom use with by categories
+    nonmainXptype <- as.data.frame(svytable(~ptype_cat + always_condoms_nonmain_p12, sample_rake_neg, Ntotal=1036, round=TRUE))
+      
+    # Calculate percent
+    nonmainXptype_percent <- nonmainXptype %>% group_by(ptype_cat, always_condoms_nonmain_p12) %>% summarise(Freq = sum(Freq)) %>% mutate(percent = 100*Freq/sum(Freq))
+    
+    ## Filter to only rows reporting always using condoms and remove only main partnership row
+    nonmainXptype_percent <- nonmainXptype_percent %>% filter(always_condoms_nonmain_p12 %in% 1 & !ptype_cat %in% "Only main") %>% select(-always_condoms_nonmain_p12, -Freq)
+    
+    #Make kable
+    kable(nonmainXptype_percent, col.names = c("Partner types", "Percent"), caption="Percent of men reporting always using condoms with non-main partners, by partner types in the past 12 months", digits = c(0, 2)) %>% kable_styling(full_width=F, position="center")  %>% column_spec(1, width = "4cm") %>% column_spec(2, width = "4cm")
+  
+```
