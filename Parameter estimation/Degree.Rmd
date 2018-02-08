@@ -1,0 +1,88 @@
+# Momentary degree and instantaneous partnerships {#degree}
+```{r, echo=FALSE, include=FALSE}
+####################################################################################
+# Setup
+####################################################################################
+#-----------------------------------------------------------------------------------
+# Load packages
+#-----------------------------------------------------------------------------------
+
+    library("tidyverse")
+    library("ggplot2")
+    library("survey")
+    library("knitr")
+    library("xtable")
+    library("kableExtra")
+
+#-----------------------------------------------------------------------------------
+# Load data
+#-----------------------------------------------------------------------------------
+    load(file="Data/InternetSurveySample.Rdata")
+    load(file="Data/InternetSurvey_reweighted_all.Rdata")
+    load(file="Data/InternetSurvey_reweighted_neg.Rdata")
+
+# Set options
+    opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
+    options(knitr.table.format = "html") 
+  
+#-----------------------------------------------------------------------------------
+# Change degree_main variable to factor and add labels have character labels
+#-----------------------------------------------------------------------------------
+    sample_rake_all$variables$degree_main <- factor(sample_rake_all$variables$degree_main, levels = c(0, 1), labels = c("No main", "Main"))
+
+```
+
+The tables and plots below show the distribution of active main and persistent partnerships. For instantaneous partnerships, statistics indicate the total number of partnerships in the past 12 months. We use data from the re-weighted WHPP survey to estimate these parameters for both HIV-negative and HIV-positive nodes, as we do not have data specific to HIV-positive men.
+
+## Main and persistent degree
+
+### Degree distribution: overall
+
+```{r degmatrix}
+# Create degree distribution table
+deg.matrix <- round(100*prop.table(svytable(~degree_main + degreecat_cas, sample_rake_all, round=FALSE)),2)
+
+# Add margins
+deg.matrix <- addmargins(deg.matrix, margin=c(1,2), sum, quiet = TRUE)
+row.names(deg.matrix) <- c("No main", "Main", "Total")
+
+kable(deg.matrix, col.names=c("0 pers", "1 pers", "2+ pers", "Total"), caption="Main and persistent degree distribution (Percentages)") %>% kable_styling(full_width=F, position="center") %>% row_spec(3, color="#1C91D7")  %>% column_spec(1, bold=T, color="black", width="2cm") %>% column_spec(2:5, width = "2cm") %>% column_spec(5, color="#1C91D7")
+
+```
+
+### Main partnership status by race/ethnicity and region
+Descriptive analyses (section \@ref(explore_heterogeneity)) indicated that main partnership status varies by race/ethnicity and region, so we will include terms in the main partnership network model to account for this heterogeneity. Tables \@ref(tab:degmain_race) and \ref(tab:degmain_region), below, show the proportion of men who report a main partner by race/ethnicity and region.
+```{r degmain_race}
+deg.mainXrace <- round(100*prop.table(svytable(~degree_main + hbo, sample_rake_all, round=FALSE), 2), 2)
+
+kable(deg.mainXrace, caption="Main degree by race/ethnicity (Percentages)") %>% kable_styling(full_width=F, position="center") %>% column_spec(1, bold=T, color="black", width="2cm") %>% column_spec(2:4, width = "2cm")
+```
+```{r degmain_region}
+deg.mainXregion <- round(100*prop.table(svytable(~degree_main + region, sample_rake_all, round=FALSE), 2), 2)
+
+kable(deg.mainXregion, caption="Main degree by region (Percentages)") %>% kable_styling(full_width=F, position="center") %>% column_spec(1, bold=T, color="black", width="2cm") %>% column_spec(2:4, width = "2cm")
+```
+
+### Persistent partnership status by age
+In descriptive analyses (section \@ref(explore_heterogeneity)), men aged 40-49 appeared to have a higher likelihood of reporting any persistent partners, concurrent persistent partners, and persistent partners concurrent with a main partner. Tables \@ref(tab:degmatrix_age40to49) \@ref(tab:degmatrix_otherages) show the degree matrix for men aged 40 to 49 and for men of all other ages.
+
+```{r degmatrix_age40to49}
+# Degree matrix among men aged 40 to 49
+deg.matrix.40to49 <- round(100*prop.table(svytable(~degree_main + degreecat_cas, sample_rake_all[sample_rake_all$variables$age_cat_alt %in% "40-49"], round=FALSE)),2)
+deg.matrix.40to49 <- addmargins(deg.matrix.40to49, margin=c(1,2), sum, quiet = TRUE)
+row.names(deg.matrix.40to49) <- c("No main", "Main", "Total")
+
+kable(deg.matrix.40to49, col.names=c("0 pers", "1 pers", "2+ pers", "Total"), caption="Main and persistent degree distribution among MSM aged 40-49 (Percentages)") %>% kable_styling(full_width=F, position="center") %>% row_spec(3, color="#1C91D7")  %>% column_spec(1, bold=T, color="black", width="2cm") %>% column_spec(2:5, width = "2cm") %>% column_spec(5, color="#1C91D7")
+
+```
+```{r degmatrix_otherages}
+# Degree matrix among men not aged 40-49
+deg.matrix.otherages <- round(100*prop.table(svytable(~degree_main + degreecat_cas, sample_rake_all[!(sample_rake_all$variables$age_cat_alt %in% "40-49")], round=FALSE)),2)
+deg.matrix.otherages <- addmargins(deg.matrix.otherages, margin=c(1,2), sum, quiet = TRUE)
+row.names(deg.matrix.otherages) <- c("No main", "Main", "Total")
+
+kable(deg.matrix.otherages, col.names=c("0 pers", "1 pers", "2+ pers", "Total"), caption="Main and persistent degree distribution among MSM aged 18-39 and 50-59 (Percentages)") %>% kable_styling(full_width=F, position="center") %>% row_spec(3, color="#1C91D7")  %>% column_spec(1, bold=T, color="black", width="2cm") %>% column_spec(2:5, width = "2cm") %>% column_spec(5, color="#1C91D7")
+
+```
+
+## Instantaneous partnerships
