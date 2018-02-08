@@ -126,8 +126,6 @@ options(knitr.table.format = "html")
 #-----------------------------------------------------------------------------------
 # Post-stratify and rake the survey sample using population totals for negatives only
 #-----------------------------------------------------------------------------------
-    # sample_psraceregion <- postStratify(samplesvy, ~hbo + region, pop.raceregion.neg)
-    # sample_rakeage <- rake(sample_psraceregion, list(~age_cat_alt), list(pop.age.neg))
     sample_rake_neg <- rake(samplesvy, list(~hbo+region, ~age_cat_alt), list(pop.raceregion.neg, pop.age.neg))
     
      save(sample_rake_neg, file="Data/InternetSurvey_reweighted_neg.Rdata")
@@ -135,8 +133,6 @@ options(knitr.table.format = "html")
 #-----------------------------------------------------------------------------------
 # Post-stratify and rake the survey sample using population totals for all MSM
 #-----------------------------------------------------------------------------------
-    # sample_psraceregion <- postStratify(samplesvy, ~hbo + region, pop.raceregion.neg)
-    # sample_rakeage <- rake(sample_psraceregion, list(~age_cat_alt), list(pop.age.neg))
     sample_rake_all <- rake(samplesvy, list(~hbo+region, ~age_cat_alt), list(pop.raceregion.all, pop.age.all))
     
      save(sample_rake_all, file="Data/InternetSurvey_reweighted_all.Rdata")
