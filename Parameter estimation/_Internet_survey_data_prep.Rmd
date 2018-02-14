@@ -90,7 +90,10 @@
   sample_allages$age_cat_alt <- cut(sample_allages$age, c(17, 24, 29, 34, 39, 49, 59), labels=c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"))
 
   #More crude age categorization across all ages
-  sample$age_chunks <-  cut(sample$age, c(17, 29, 39, 44, 59), labels=c("18-29", "30-39", "40-49", "50-59"))   
+  sample_allages$age_chunks <-  cut(sample_allages$age, c(17, 29, 39, 44, 59), labels=c("18-29", "30-39", "40-49", "50-59"))   
+  
+  #Binary indicator of being over/under age 50 for use in specifying the rate of instantaneous partnerships
+  sample_allages$age50plus <- cut(sample_allages$age, c(17, 49, 59), labels=c("18-49", "50-59")) 
 
 #Define alter age cat
     sample_allages$mrp_age_cat <- cut(sample_allages$mrp_ageinyears_approx, c(17, 24, 29, 34, 39, 44, 49, 54, 59), labels=c("18-24", "25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59"))
