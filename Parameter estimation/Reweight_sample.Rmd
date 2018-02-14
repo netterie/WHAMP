@@ -84,7 +84,7 @@ options(knitr.table.format = "html")
     pop.region.neg <- pop.region.neg %>% arrange(region)
     
 #Race and region
-    pop.raceregion.all <- cbind.data.frame(region=c(rep("King County", 3), rep("Western WA", 3), rep("Eastern WA", 3)), hbo=c(rep(c("Hispanic", "Black", "Other"), 3)), Freq=c(round(wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "King County"]*pop.region.all$total[pop.region.all$region %in% "King County"]), round(wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "King County"]*pop.region.all$total[pop.region.all$region %in% "King County"]), round(wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "King County"]*pop.region.all$total[pop.region.all$region %in% "King County"]), round(wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "Other Western"]*pop.region.all$total[pop.region.all$region %in% "Western WA"]), round(wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "Other Western"]*pop.region.all$total[pop.region.all$region %in% "Western WA"]), round(wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "Other Western"]*pop.region.all$total[pop.region.all$region %in% "Western WA"]), round(wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "Eastern"]*pop.region.all$total[pop.region.all$region %in% "Eastern WA"]), round(wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "Eastern"]*pop.region.all$total[pop.region.all$region %in% "Eastern WA"]), round(wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "Eastern"]*pop.region.all$total[pop.region.all$region %in% "Eastern WA"])))
+    pop.raceregion.all <- cbind.data.frame(region=c(rep("King County", 3), rep("Western WA", 3), rep("Eastern WA", 3)), hbo=c(rep(c("Hispanic", "Black", "Other"), 3)), Freq=c(wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "King County"]*pop.region.all$total[pop.region.all$region %in% "King County"], wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "King County"]*pop.region.all$total[pop.region.all$region %in% "King County"], wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "King County"]*pop.region.all$total[pop.region.all$region %in% "King County"], wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "Other Western"]*pop.region.all$total[pop.region.all$region %in% "Western WA"], wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "Other Western"]*pop.region.all$total[pop.region.all$region %in% "Western WA"], wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "Other Western"]*pop.region.all$total[pop.region.all$region %in% "Western WA"], wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "Eastern"]*pop.region.all$total[pop.region.all$region %in% "Eastern WA"], wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "Eastern"]*pop.region.all$total[pop.region.all$region %in% "Eastern WA"], wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "Eastern"]*pop.region.all$total[pop.region.all$region %in% "Eastern WA"]))
     #Specify order of factors
     pop.raceregion.all$hbo <- factor(pop.raceregion.all$hbo, levels = c("Hispanic", "Black", "Other"))
     pop.raceregion.all$region <- factor(pop.raceregion.all$region, levels = c("King County", "Western WA", "Eastern WA"))
@@ -98,7 +98,7 @@ options(knitr.table.format = "html")
         pop.raceregion.pos <- pop.raceregion.pos %>% arrange(region, hbo)
 
     #HIV-negative only
-    pop.raceregion.neg <- cbind.data.frame(region=c(rep("King County", 3), rep("Western WA", 3), rep("Eastern WA", 3)), hbo=c(rep(c("Hispanic", "Black", "Other"), 3)), Freq=c(round(pop.raceregion.all[1:3, 3] - pop.raceregion.pos[1:3, 3]), round(pop.raceregion.all[4:6, 3] - pop.raceregion.pos[4:6, 3]), round(pop.raceregion.all[7:9, 3] - pop.raceregion.pos[7:9, 3])))
+    pop.raceregion.neg <- cbind.data.frame(region=c(rep("King County", 3), rep("Western WA", 3), rep("Eastern WA", 3)), hbo=c(rep(c("Hispanic", "Black", "Other"), 3)), Freq=c(pop.raceregion.all[1:3, 3] - pop.raceregion.pos[1:3, 3], pop.raceregion.all[4:6, 3] - pop.raceregion.pos[4:6, 3], pop.raceregion.all[7:9, 3] - pop.raceregion.pos[7:9, 3]))
     
 #Race
     pop.hbo.all <- pop.raceregion.all %>% group_by(hbo) %>% summarise(Freq=sum(Freq))
@@ -113,7 +113,7 @@ options(knitr.table.format = "html")
     wa_acs_agebyregion$age_cat_alt <- ifelse(wa_acs_agebyregion$Age_group %in% c("males.40to44", "males.45to49"), "40-49", ifelse(wa_acs_agebyregion$Age_group %in% c("males.50to54", "males.55to59"), "50-59", ifelse(wa_acs_agebyregion$Age_group %in% "males.18to24", "18-24", ifelse(wa_acs_agebyregion$Age_group %in% "males.25to29", "25-29", ifelse(wa_acs_agebyregion$Age_group %in% "males.30to34", "30-34", ifelse(wa_acs_agebyregion$Age_group %in% "males.35to39", "35-39", NA))))))
     
     #Apply proportion MSM in each region to get age distribution among MSM
-    wa_acs_agebyregion$numMSM <- ifelse(wa_acs_agebyregion$region %in% "Eastern", wa_acs_agebyregion$Frequency*propMSMbyregion$propmsm[propMSMbyregion$region %in% "Eastern WA"], ifelse(wa_acs_agebyregion$region %in% "King County", wa_acs_agebyregion$Frequency*propMSMbyregion$propmsm[propMSMbyregion$region %in% "King County"], ifelse(wa_acs_agebyregion$region %in% "Other Western", wa_acs_agebyregion$Frequency*propMSMbyregion$propmsm[propMSMbyregion$region %in% "Other Western WA"], NA)))
+    wa_acs_agebyregion$numMSM <- ifelse(wa_acs_agebyregion$region %in% "Eastern", round(wa_acs_agebyregion$Frequency*propMSMbyregion$propmsm[propMSMbyregion$region %in% "Eastern WA"]), ifelse(wa_acs_agebyregion$region %in% "King County", round(wa_acs_agebyregion$Frequency*propMSMbyregion$propmsm[propMSMbyregion$region %in% "King County"]), ifelse(wa_acs_agebyregion$region %in% "Other Western", round(wa_acs_agebyregion$Frequency*propMSMbyregion$propmsm[propMSMbyregion$region %in% "Other Western WA"]), NA)))
     
     pop.age.all <- wa_acs_agebyregion %>% select(-Frequency) %>% group_by(age_cat_alt) %>% summarise(Freq = sum(numMSM))
     
@@ -121,7 +121,7 @@ options(knitr.table.format = "html")
     pop.age.pos <- plwha_age
     
     #HIV-negative only
-    pop.age.neg <- cbind.data.frame(age_cat_alt = c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"), Freq = c(round(pop.age.all$Freq - pop.age.pos$Freq)))
+    pop.age.neg <- cbind.data.frame(age_cat_alt = c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"), Freq = c(pop.age.all$Freq - pop.age.pos$Freq))
 
 #-----------------------------------------------------------------------------------
 # Post-stratify and rake the survey sample using population totals for negatives only
