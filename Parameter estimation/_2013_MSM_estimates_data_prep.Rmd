@@ -37,7 +37,7 @@ wa_msm_est2013 <- us_msm_est2013 %>% select(STATEFP, COUNTYFP, ADULTMEN, MSM12MT
 #Define variable for region (couty codes here: Parameter estimation/Data/Emory CAMP_US MSM Estimates Data Dictionary 2013.doc)
 wa_msm_est2013$region <- ifelse(wa_msm_est2013$COUNTYFP %in% 033, "King County", ifelse(wa_msm_est2013$COUNTYFP %in% c(009, 011, 015, 027, 029, 031, 035, 041, 045, 049, 053, 055, 057, 059, 061, 067, 069, 073), "Other Western WA", ifelse(wa_msm_est2013$COUNTYFP %in% c(001, 003, 005, 007, 013, 017, 019, 021, 023, 025, 037, 039, 043, 047, 051, 063, 065, 071, 075, 077), "Eastern WA", NA)))
 
-#Calculate the proportion of males who are MSM in each region
+#Calculate the proportion of males who are MSM in each region  (based on past 5-year behavior)
 propMSMbyregion <- wa_msm_est2013 %>% group_by(region) %>% summarise(propmsm = sum(MSM5YEAR) / sum(ADULTMEN))
 
 #Look at distribution of the MSM population based on their data on population size (note this is men 18+)
