@@ -4,8 +4,8 @@ This document presents the results of data analyses for estimation of parameters
 
 * Model parameters and functions
 * Network composition (Demographics)
-* Degree and rate of instantaneous partnerships
-* Concurrency
+* Degree and concurrency
+* Rate of instantaneous partnerships
 * Duration
 * Age mixing
 * Race mixing
