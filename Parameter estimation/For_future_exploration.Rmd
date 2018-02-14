@@ -14,6 +14,12 @@ We decided to exclude data on most recent partners outside of the modeled age ra
 ## Race mixing
 We decided to collapse the off-diagonal elements and represent race mixing with a nodematch term due to small numbers by partner type. We also decided to collapse the persistent and instantaneous partnership networks in looking at race mixing due to the small numbers in some cells. With more data, future modeling work should represent these networks separately and use nodemix terms, as analyses indicated that the off-diagonal $\alpha_{ij}$ terms are heterogeneous (see section \@ref(mixing)).
 
+## Regional mixing
+Exploratory analyses indicate that several parameters vary by region, but we lack data on regional mixing. To inform mixing matrices by region, future data collection should include questions about patterns of regional mixing for each partnership type (i.e. ask where alters live).
+
+## Partnership duration
+Current methods require an assumption that the durations of main and persistent partnerships follow an exponential distribution. Further work is needed to identify ways to specify duration without relying on this assumption. Additionally, more work is needed to explore how best to specify partnership duration in a network with a specific age structure and to capture heterogeneity in partnership duration by the age of the partners.
+
 ## Sex role by age
 In section \@ref(explore_heterogeneity), we observed that sex role varies by age. Plot \@ref(fig:plots_explore_sexrole) show some heterogeneity by age, but the effects are fairly modest. We decided not to stratify sex role by age in the model for this reason and because capturing heterogeneity in sex role by age is difficult; sex role influences the network model, such that this would introduce complexity in ensuring balance in age mixing. With more data and time to code and debug the model, this could be further explored.
 
