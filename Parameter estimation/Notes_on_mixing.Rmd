@@ -88,7 +88,7 @@ theme_title <- theme(plot.title = element_text(hjust = 0.5, size=12))
     
         
 ```
-This file examines balance in sexual mixing by race and age in data from participants in the WHPP survey. For this analysis, the data are re-weighted to match the population distributions for race by region and age (see section \@ref(reweight)), but scaled back to the survey sample size.
+This file examines balance in sexual mixing by race and age in data from participants in the WHPP survey. For this analysis, the data are re-weighted to match the population distributions for race by region and age (see section \@ref(reweight)), but scaled back to the survey sample size. __Note that these tables show patterns of mixing with the most recent partner only; some men had more than one parter of a given type, but we do not have information on the characteristics of partners who were not the most recent__.
 
 ## Observed race mixing
 In the internet survey, we observed the following partnership counts for main, persistent, and one-off partnerships by dyad race. 
@@ -104,7 +104,7 @@ In the internet survey, we observed the following partnership counts for main, p
 ```
 Table \@ref(tab:racemixing) shows that there are some imbalances in the observed mixing patterns. We will address these imbalances by taking the mean of the of-diagonal elements, potentially conducting sensitivity analyses in which the off-diagonal elements are set to the low or high reported value.
 
-If we take the averages of the off-diagonal elements, the mixing matrices are as follows. Due to the small cell count for black men, we will compare the averages based on data from ongoing partnerships only (for main and persistent partnerships) to the averages based on data from all partnerships reported as the most recent partner.
+If we take the averages of the off-diagonal elements, the mixing matrices are as follows. Due to the small cell count for black men, we will compare the averages based on data from ongoing partnerships only (for main and persistent partnerships) to the averages based on data from all partnerships reported as the most recent partner to decide whether it would be better to sue data from all partnerships.
 
 ```{r}
 # Define observed mixing matrices based on data from all partnerships
