@@ -221,16 +221,6 @@
 #Rate of instantaneous (one-time) partners
     sample_allages$rate_inst <- sample_allages$numonetime_r / 365.25
 
-    #Define function to calculate quantiles of instantaneous partnership rates and the mean within quantiles. X is the rate of one-time partners and y is the vector of quantiles
-    meanbyqnt <- function(x, y) {
-        qnts <- c((mean(x[x>=0 & x<=y[1]], na.rm=TRUE)),
-                  (ifelse(y[1]<y[2], mean(x[x>y[1] & x<=y[2]], na.rm=TRUE), ifelse(y[1]==y[2], y[2], NA))),
-                  (ifelse(y[2]<y[3], mean(x[x>y[2] & x<=y[3]], na.rm=TRUE), ifelse(y[2]==y[3], y[3], NA))),
-                  (ifelse(y[3]<y[4], mean(x[x>y[3] & x<=y[4]], na.rm=TRUE), ifelse(y[3]==y[4], y[4], NA))),
-                  (ifelse(y[4]<y[5], mean(x[x>y[4] & x<=y[5]], na.rm=TRUE), ifelse(y[4]==y[5], y[5], NA))))
-        return(qnts)
-    }
-
 #Partnership age
     sample_allages$pship_age[sample_allages$pship_age<0] <- NA
     sample_allages$pship_age_main <- ifelse(sample_allages$mrp_type_ongoing=="Main" & !is.na(sample_allages$mrp_type_ongoing), sample_allages$pship_age, NA)
