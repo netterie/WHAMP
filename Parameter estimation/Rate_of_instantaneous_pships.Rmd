@@ -1,0 +1,110 @@
+# Instantaneous partnerships {#rate_inst}
+```{r, echo=FALSE, include=FALSE}
+####################################################################################
+# Setup
+####################################################################################
+#-----------------------------------------------------------------------------------
+# Load packages
+#-----------------------------------------------------------------------------------
+
+    library("tidyverse")
+    library("ggplot2")
+    library("survey")
+    library("knitr")
+    library("xtable")
+    library("kableExtra")
+
+#-----------------------------------------------------------------------------------
+# Load data
+#-----------------------------------------------------------------------------------
+    load(file="Data/InternetSurveySample.Rdata")
+    load(file="Data/InternetSurvey_reweighted_all.Rdata")
+    load(file="Data/InternetSurvey_reweighted_neg.Rdata")
+
+# Set options
+    opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
+    options(knitr.table.format = "html") 
+  
+#-----------------------------------------------------------------------------------
+# Change degree_main variable to factor and add labels have character labels
+#-----------------------------------------------------------------------------------
+    sample_rake_all$variables$degree_main <- factor(sample_rake_all$variables$degree_main, levels = c(0, 1), labels = c("No main", "Main"))
+
+```
+The statistics in this file are based on the total number of reported instantaneous partnerships in the past 12 months. We use data from the re-weighted WHPP survey to estimate these parameters for both HIV-negative and HIV-positive men, as we do not have data specific to HIV-positive men.
+
+Overall, the mean rate of instantaneous partnerships was `r round(svymean(~rate_inst, sample_rake_all, na.rm=TRUE)[[1]], 4)` per day. Among men under 50, the mean was `r round(svymean(~rate_inst, sample_rake_all[sample_rake_all$variables$age50plus %in% "18-49"], na.rm=TRUE)[[1]], 4)` per day, and among men 50 and older, the mean was `r round(svymean(~rate_inst, sample_rake_all[sample_rake_all$variables$age50plus %in% "50-59"], na.rm=TRUE)[[1]], 4)` per day.
+
+## Instantaneous partnerships by momentary degree
+Based on exploratory analyses in section \@ref(explore_heterogeneity), we decided to stratify the rate of instantaneous partnerships by the joint distribution of main and persistent partnership status, with persistent partnership status defined as a binary indicator of having 0 or 1+ persistent partners (that is, to avoid stretching the data too thin, we will not estimate separate parameters for those with 1 and 2+ persistent partners).
+```{r rate_instXdeg}
+means <- svyby(~rate_inst, ~hasmain + anypers, sample_rake_all, svymean, na.rm=TRUE)
+meansXdegmatrix <- as.data.frame(matrix(as.vector(means$rate_inst), nrow=2, byrow=FALSE))
+names(meansXdegmatrix) <- c("0 pers", "1+ pers")
+row.names(meansXdegmatrix) <- c("0 main", "1 main")
+
+kable(meansXdegmatrix, caption="Mean rate of instantaneous partnerships per day by momentary degree", digits=c(6, 6)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, bold=T, color="black", width="2.5cm") %>% column_spec(2:3, width = "3cm")
+```
+
+## Mean rate of instantaneous partnerships by quartile
+To capture heterogeneity in the rate of instantaneous partnerships by age, we decided to calculate the means within quartiles of the distribution for men aged 18 to 49 and for men aged 50 to 59 (section \@ref(decisions). The table below shows the mean rate of instantaneous partnerships within each quartile of the distribution by age group.
+
+```{r rate_instXquart}
+  #Apply the weights from sample_rake_all to the original dataframe to construct a new dataframe with the appropriate composition that can be manipulated and analyzed without using the 'survey' package commands. Need to do this b/c I can't divide the sample into even quartiles and take mean within each group using the survey package commands.) Note that it does not work to replicate each row according to the sample weights (i.e. `sample[rep(row.names(sample), sample$wts), ]`) b/c the weights are not integers, so it rounds down in deciding how many times to replicate.
+
+  #Comment out so does not re-sample each time I run the file
+  #   #Resample from the original survey dataframe 20 times using the raked weights
+  #   sample$wts <- 1/(sample_rake_all$prob)
+  #   qrtmeans_18to49 <- list()
+  #   qrtmeans_50to59 <- list()
+  # 
+  #   for(i in 1:20){
+  #       sample_rwt <- sample %>% sample_n(1000000, replace=TRUE, weight=wts)
+  #       
+  #       #Age 18 to 49
+  #       sample_rwt_18to49 <- sample_rwt %>% filter(age %in% c(18:49))
+  #       sample_rwt_18to49$rate_inst <- sort(sample_rwt_18to49$rate_inst, na.last = TRUE)
+  #       qsize.18to49=floor(sum(!is.na(sample_rwt_18to49$rate_inst))/4)
+  #       qrtmeans_18to49_i <- mean(sample_rwt_18to49$rate_inst[1:qsize.18to49])
+  #       qrtmeans_18to49_i[2] <- mean(sample_rwt_18to49$rate_inst[(1*qsize.18to49+1):(2*qsize.18to49)])
+  #       qrtmeans_18to49_i[3] <- mean(sample_rwt_18to49$rate_inst[(2*qsize.18to49+1):(3*qsize.18to49)])
+  #       qrtmeans_18to49_i[4] <- mean(sample_rwt_18to49$rate_inst[(3*qsize.18to49+1):(sum(!is.na(sample_rwt_18to49$rate_inst)))])
+  # 
+  #       qrtmeans_18to49[[i]] <- qrtmeans_18to49_i
+  #       
+  #       #Age 50-59
+  #       sample_rwt_50to59 <- sample_rwt %>% filter(age %in% c(50:59))
+  #       sample_rwt_50to59$rate_inst <- sort(sample_rwt_50to59$rate_inst, na.last = TRUE)
+  #       qsize.50to59=floor(sum(!is.na(sample_rwt_50to59$rate_inst))/4)
+  #       qrtmeans_50to59_i <- mean(sample_rwt_50to59$rate_inst[1:qsize.50to59])
+  #       qrtmeans_50to59_i[2] <- mean(sample_rwt_50to59$rate_inst[(1*qsize.50to59+1):(2*qsize.50to59)])
+  #       qrtmeans_50to59_i[3] <- mean(sample_rwt_50to59$rate_inst[(2*qsize.50to59+1):(3*qsize.50to59)])
+  #       qrtmeans_50to59_i[4] <- mean(sample_rwt_50to59$rate_inst[(3*qsize.50to59+1):(sum(!is.na(sample_rwt_50to59$rate_inst)))])
+  # 
+  #       qrtmeans_50to59[[i]] <- qrtmeans_50to59_i
+  #   }
+  #   
+  #   #Take average of the 20 samples
+  #   avg.qrtmeans.18to49 <- mean(sapply(qrtmeans_18to49, `[[`, 1))
+  #   avg.qrtmeans.18to49[2] <- mean(sapply(qrtmeans_18to49, `[[`, 2))
+  #   avg.qrtmeans.18to49[3] <- mean(sapply(qrtmeans_18to49, `[[`, 3))
+  #   avg.qrtmeans.18to49[4] <- mean(sapply(qrtmeans_18to49, `[[`, 4))
+  #   
+  #   avg.qrtmeans.50to59 <- mean(sapply(qrtmeans_50to59, `[[`, 1))
+  #   avg.qrtmeans.50to59[2] <- mean(sapply(qrtmeans_50to59, `[[`, 2))
+  #   avg.qrtmeans.50to59[3] <- mean(sapply(qrtmeans_50to59, `[[`, 3))
+  #   avg.qrtmeans.50to59[4] <- mean(sapply(qrtmeans_50to59, `[[`, 4))
+  # 
+  # #Save means
+  #   save(avg.qrtmeans.18to49, file="Data/rate_inst_qrtmeans_18to49.Rdata")
+  #   save(avg.qrtmeans.50to59, file="Data/rate_inst_qrtmeans_50to59.Rdata")
+
+  #Load means within quartiles
+    load(file="Data/rate_inst_qrtmeans_18to49.Rdata")
+    load(file="Data/rate_inst_qrtmeans_50to59.Rdata")
+
+  #Combine into a kable
+    meansXqrt <- cbind.data.frame("Age group" = c("18-49", "50-59"), "Q1"=c(avg.qrtmeans.18to49[1], avg.qrtmeans.50to59[1]), "Q2"=c(avg.qrtmeans.18to49[2], avg.qrtmeans.50to59[2]), "Q3"=c(avg.qrtmeans.18to49[3], avg.qrtmeans.50to59[3]), "Q4"=c(avg.qrtmeans.18to49[4], avg.qrtmeans.50to59[4]))
+
+  kable(meansXqrt, col.names = c("Age group", "Q1", "Q2", "Q3", "Q4"), caption="Mean rate of instantaneous partnerships per day by quartile within age groups", digits=c(0, 5, 5, 5, 5)) %>% kable_styling(full_width=F, position="center") %>% column_spec(2:5, width = "2cm") %>% add_header_above(c(" ", "Mean rates"=4))
+```
