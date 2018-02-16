@@ -102,7 +102,7 @@ In the internet survey, we observed the following partnership counts for main, p
     kable(racemix_inst, caption="Race mixing in instantaneous partnerships", digits=c(0, 0, 0)) %>% kable_styling(full_width=F, position="center") %>% add_header_above(c("Ego race/ethnicity", "Partner race/ethnicity" = 3))
 
 ```
-Table \@ref(tab:racemixing) shows that there are some imbalances in the observed mixing patterns. We will address these imbalances by taking the mean of the of-diagonal elements, potentially conducting sensitivity analyses in which the off-diagonal elements are set to the low or high reported value.
+Table \@ref(tab:racemixing) shows that there are some imbalances in the observed mixing patterns. We will address these imbalances by taking the mean of the off-diagonal elements, potentially conducting sensitivity analyses in which the off-diagonal elements are set to the low or high reported value.
 
 If we take the averages of the off-diagonal elements, the mixing matrices are as follows. Due to the small cell count for black men, we will compare the averages based on data from ongoing partnerships only (for main and persistent partnerships) to the averages based on data from all partnerships reported as the most recent partner to decide whether it would be better to sue data from all partnerships.
 
