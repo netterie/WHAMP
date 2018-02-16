@@ -83,9 +83,13 @@ param_table <- function(table, param, description, value, alt_value, sources){
   parameters <- param_table(parameters, "rates.inst.18to49", "Mean rate of instantaneous partnerships by quartile among men aged 18 to 49", paste(round(avg.qrtmeans.18to49, 6), collapse=", "), NA, "WHPP survey, assumed to apply to HIV-negative and HIV-positive MSM")
   parameters <- param_table(parameters, "rates.inst.50to59", "Mean rate of instantaneous partnerships by quartile among men aged 50 to 59",  paste(round(avg.qrtmeans.50to59, 6), collapse=", "), NA, "WHPP survey, assumed to apply to HIV-negative and HIV-positive MSM")
   
+  #Partnership duration
+  parameters <- param_table(parameters, "durs.main", "Mean duration of main partnerships in days", as.numeric(round(svyquantile(~pship_age_main, sample_rake_all, quantile=.5, na.rm=TRUE)/log(2), 0)), NA, "WHPP survey, assumed to apply to HIV-negative and HIV-positive MSM")
+  parameters <- param_table(parameters, "durs.pers", "Mean duration of persistent partnerships in days", as.numeric(round(svyquantile(~pship_age_pers, sample_rake_all, quantile=.5, na.rm=TRUE)/log(2), 0)), NA, "WHPP survey, assumed to apply to HIV-negative and HIV-positive MSM")
+  
 # Make a kable
 rownames(parameters) <- NULL
-kable(parameters, caption="Parameter values and sources", digits=c(0, 0, 4, 4, 0)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, width = "5cm") %>% column_spec(2, width = "10cm") %>% column_spec(3, width = "5cm") %>% column_spec(4, width = "8cm") %>% column_spec(5, width = "20cm") %>% group_rows("Model specifications", 1,1) %>% group_rows("Network composition",2,16) %>% group_rows("Degree distribution by nodal attribute", 17,20) %>% group_rows("Rate of instantaneous partnerships", 21,23)
+kable(parameters, caption="Parameter values and sources", digits=c(0, 0, 4, 4, 0)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, width = "5cm") %>% column_spec(2, width = "10cm") %>% column_spec(3, width = "5cm") %>% column_spec(4, width = "8cm") %>% column_spec(5, width = "20cm") %>% group_rows("Model specifications", 1,1) %>% group_rows("Network composition",2,16) %>% group_rows("Degree distribution by nodal attribute", 17,20) %>% group_rows("Rate of instantaneous partnerships", 21,23) %>% group_rows("Partnership duration", 24, 25)
 ```
 
 ```{r functions}
