@@ -1,0 +1,55 @@
+# Mortality {#mortality}
+
+```{r, echo=FALSE, include=FALSE}
+####################################################################################
+# Setup
+####################################################################################
+#-----------------------------------------------------------------------------------
+# Load packages
+#-----------------------------------------------------------------------------------
+
+    library("tidyverse")
+    library("psych") #To use "describe" function for continuous vars
+    library("ggplot2")
+    library("survey")
+    library("knitr")
+    library("kableExtra")
+
+# Set options
+    opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
+    options(knitr.table.format = "html") 
+    
+```
+
+This section calculates the sex-, age- and race-specific mortality rates to inform background mortality rates. Rates are obtained from 2015 national vital statistics data^[Source: Murphy SL, Xu J, Kochanek KD, Curtin SC, Arias E. Deaths: Final Data for 2015. _National Vital Statistics Reports_. 2017;66(6). Retrieved from https://www.cdc.gov/nchs/data/nvsr/nvsr66/nvsr66_06.pdf, p.24). They implemented a bridging procedure (described on page 5 of [this document](ftp://ftp.cdc.gov/pub/Health_Statistics/NCHS/Datasets/NVSS/bridgepop/2015/documentation_bridge_postcenv2015.pdf)) to assign people who reported multiple races to single-race categories. It is based on regression models that generate a probability of selecting each single-race category. Overall, 0.4% of non-Hispanic deaths were recorded as multiple race, so this shouldn't have a big effect on estimates by race. Because the model combines non-Hispanic, non-black persons into an "other" group, I will calculate the rates using the reported number of deaths (page 23) divided by the 2015 population totals (p.68) for non-Hispanic white, American Indian or Alaska Native, and Asian or Pacific Islanders.]. 
+
+```{r}
+#Hispanic rates
+hispanic.asmr <- c("15-19"=55.6, "20-24"=108.0, "25-29"=108.7, "30-34"= 115.1, "35-39"=132.2, "40-44"=175.4, "45-49"=262.9, "50-54"=430.3, "55-59"=651.1)
+
+#Black rates
+black.asmr <- c("15-19"=110.1, "20-24"=203.3, "25-29"=230.1, "30-34"= 258.2, "35-39"=310.1, "40-44"=380.5, "45-49"=539.0, "50-54"=861.7, "55-59"=1347.6)
+
+#Other rates: calculate combined rate for white and other non-Hispanic racial groups by taking number of deaths from table 2, p.23 and the the total population by age from table III page 68.
+white.num <- c("15-19"=3692, "20-24"=8061, "25-29"=10097, "30-34"= 11499, "35-39"=12398, "40-44"=16039, "45-49"=25542, "50-54"=46369, "55-59"=69459)
+aian.num <- c("15-19"=112, "20-24"=250, "25-29"=317, "30-34"= 345, "35-39"=370, "40-44"=439, "45-49"=609, "50-54"=812, "55-59"=995)
+asianpi.num <- c("15-19"=225, "20-24"=405, "25-29"=435, "30-34"= 452, "35-39"=503, "40-44"=709, "45-49"=1032, "50-54"=1429, "55-59"=2067)
+
+white.denom <- c("15-19"=6054837, "20-24"=6523322, "25-29"=6525637, "30-34"= 6323231, "35-39"=5920224, "40-44"=6022801, "45-49"=6609912, "50-54"=7489701, "55-59"=7603227)
+aian.denom <- c("15-19"=107135, "20-24"=116393, "25-29"=104367, "30-34"= 90706, "35-39"=82072, "40-44"=78351, "45-49"=79484, "50-54"=86317, "55-59"=80087)
+asianpi.denom <- c("15-19"=592163, "20-24"=714197, "25-29"=795478, "30-34"= 775530, "35-39"=712983, "40-44"=709691, "45-49"=628159, "50-54"=572473, "55-59"=511691)
+
+other.num <- white.num + aian.num + asianpi.num
+other.denom <- white.denom + aian.denom + asianpi.denom
+
+other.asmr <- (other.num/other.denom)*100000
+
+
+#Combine and save
+asmr <- cbind.data.frame(hispanic.asmr, black.asmr, other.asmr)
+save(asmr, file="Data/asmr.Rdata")
+
+#Make kable
+kable(asmr, caption="National 2015 age- and race/ethnicity-specific mortality rates for males (per 100,000)", align = c("c", "c", "c"), digits=c(1, 1, 1), col.names = c("Hispanic", "Black", "Other")) %>% kable_styling(full_width=F, position="center") %>% column_spec(1:4, width = "2cm")
+
+```
