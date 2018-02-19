@@ -79,15 +79,7 @@ The tables below show the weighted and balanced mixing matrix by race/ethnicity 
   
   racemix_main_bal <- balance_avg_race(racemix_main_rwt)
   
-  #Set upper triangle to mising and multiply lower off-diagonals by 2
-  racemix_main_bal[1,2] <- NA
-  racemix_main_bal[1,3] <- NA
-  racemix_main_bal[2,3] <- NA
-  racemix_main_bal[2,1] <- racemix_main_bal[2,1]*2
-  racemix_main_bal[3,1] <- racemix_main_bal[3,1]*2
-  racemix_main_bal[3,2] <- racemix_main_bal[3,2]*2
-  
-  #Count nodes in main partnerships by race
+  #Count nodes in main partnerships by race (e.g. total main partnership degree by race)
   inmainXrace <- data.frame(t(c("Hispanic" = sum(racemix_main_bal[1,], na.rm=TRUE) + sum(racemix_main_bal[,1], na.rm=TRUE), "Black" = sum(racemix_main_bal[2,], na.rm=TRUE) + sum(racemix_main_bal[,2], na.rm=TRUE), "Other" = sum(racemix_main_bal[3,], na.rm=TRUE) + sum(racemix_main_bal[,3], na.rm=TRUE))))
  
   #Calculate the proportion of nodes in main partnerships of each race
