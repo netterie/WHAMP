@@ -36,15 +36,15 @@ The statistics in this file are based on the total number of reported instantane
 Overall, the mean rate of instantaneous partnerships was `r round(svymean(~rate_inst, sample_rake_all, na.rm=TRUE)[[1]], 4)` per day. Among men under 50, the mean was `r round(svymean(~rate_inst, sample_rake_all[sample_rake_all$variables$age50plus %in% "18-49"], na.rm=TRUE)[[1]], 4)` per day, and among men 50 and older, the mean was `r round(svymean(~rate_inst, sample_rake_all[sample_rake_all$variables$age50plus %in% "50-59"], na.rm=TRUE)[[1]], 4)` per day.
 
 ## Instantaneous partnerships by momentary degree
-Based on exploratory analyses in section \@ref(explore_heterogeneity), we decided to stratify the rate of instantaneous partnerships by the joint distribution of main and persistent partnership status, with persistent partnership status defined as a binary indicator of having 0 or 1+ persistent partners (that is, to avoid stretching the data too thin, we will not estimate separate parameters for those with 1 and 2+ persistent partners).
+Based on exploratory analyses in section \@ref(explore_heterogeneity), we decided to stratify the rate of instantaneous partnerships by the joint distribution of main and persistent partnership status.
 ```{r rate_instXdeg}
-means <- svyby(~rate_inst, ~hasmain + anypers, sample_rake_all, svymean, na.rm=TRUE)
+means <- svyby(~rate_inst, ~degree_main + degreecat_cas, sample_rake_all, svymean, na.rm=TRUE)
 means$rate_inst <- round(means$rate_inst, 6)
-meansXdegmatrix <- as.data.frame(matrix(as.vector(means$rate_inst), nrow=2, byrow=FALSE))
-names(meansXdegmatrix) <- c("0 pers", "1+ pers")
+meansXdegmatrix <- as.data.frame(matrix(as.vector(means$rate_inst), nrow=2, ncol=3, byrow=FALSE))
+names(meansXdegmatrix) <- c("0 pers", "1 pers", "2+ pers")
 row.names(meansXdegmatrix) <- c("0 main", "1 main")
 
-kable(meansXdegmatrix, caption="Mean rate of instantaneous partnerships per day by momentary degree", digits=c(6, 6)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, bold=T, color="black", width="2.5cm") %>% column_spec(2:3, width = "3cm")
+kable(meansXdegmatrix, caption="Mean rate of instantaneous partnerships per day by momentary degree", digits=c(6, 6, 6)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, bold=T, color="black", width="2.5cm") %>% column_spec(2:4, width = "3cm")
 
 #save means
 save(meansXdegmatrix, file="Data/rate_inst_mdeg.Rdata")
