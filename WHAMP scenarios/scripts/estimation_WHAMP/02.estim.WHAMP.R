@@ -13,7 +13,7 @@ load("WHAMP scenarios/est/nwstats.whamp.rda")
 nw.main <- base_nw_msm_whamp(st)
 
 # Assign degree
-# nw.main <- assign_degree_whamp(nw.main, deg.type = "pers", nwstats = st)
+nw.main <- assign_degree_whamp(nw.main, deg.type = "pers", nwstats = st)
 
 # Formulas
 formation.m <- ~edges
@@ -35,7 +35,7 @@ fit.m <- netest(nw.main,
 nw.pers <- nw.main
 
 # Assign degree
-# nw.pers <- assign_degree(nw.pers, deg.type = "main", nwstats = st)
+nw.pers <- assign_degree_whamp(nw.pers, deg.type = "main", nwstats = st)
 
 # Formulas
 formation.p <- ~edges 
@@ -58,9 +58,9 @@ fit.p <- netest(nw.pers,
 nw.inst <- nw.main
 
 # Assign degree
-# nw.inst <- set.vertex.attribute(nw.inst, "deg.main", nw.pers %v% "deg.main")
-# nw.inst <- set.vertex.attribute(nw.inst, "deg.pers", nw.main %v% "deg.pers")
-# table(nw.inst %v% "deg.main", nw.inst %v% "deg.pers")
+nw.inst <- set.vertex.attribute(nw.inst, "deg.main", nw.pers %v% "deg.main")
+nw.inst <- set.vertex.attribute(nw.inst, "deg.pers", nw.main %v% "deg.pers")
+table(nw.inst %v% "deg.main", nw.inst %v% "deg.pers")
 
 # Formulas
 formation.i <- ~edges 
@@ -80,9 +80,4 @@ save(est, file = "WHAMP scenarios/est/fit.whamp.rda")
 
 # Diagnostics -------------------------------------------------------------
 
-load("WHAMP scenarios/est/fit.whamp.rda")
-dx <- netdx(est[[3]], nsims = 10, dynamic = FALSE)
-dx
-
-dx <- simulate(est[[3]]$fit, statsonly = TRUE, nsim = 1000)
-cbind(colMeans(dx)[1:11], est[[3]]$target.stats)
+## See file "WHAMP scenarios/fit tests/test_model_fit.Rmd
