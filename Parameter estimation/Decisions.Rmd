@@ -16,8 +16,9 @@ This file summarizes the decisions made about parameter estimation and model str
 
 ## Reweighting
 - We decided to re-weight the WHPP sample to the joint population distribution of race and region and the marginal distribution of age (see section \@ref(reweight)). 
-- For parameters that will be estimated specifically for HIV-negative and unknown-status men (i.e. we have data from another source to inform parameter values for HIV-positive men), reweight the sample to the population totals for HIV-negative/undiagnosed men. But for parameters estimated from the WHPP survey or other sources that will apply to all men (i.e. we don't have data from another source for HIV-positives so we will assume that the estimates do not differ by HIV status), reweight to the population totals for all men. Note that parameters estimated from data specific to HIV-positive men should only be applied to those who have been diagnosed.
-- For some variables we have missing data, such that the sample reporting on those variables may not reflect the population distribution after reweighting the overall WHPP sample to the population totals. For now, we will assume that data are missing completely at random, such that this approach is appropriate.
+- For parameters that will be estimated specifically for HIV-negative and unknown-status men (i.e. we have data from another source to inform parameter values for HIV-positive men), reweight the sample to the population totals for HIV-negative/undiagnosed men. But for parameters estimated from the WHPP survey or other sources that will apply to all men (i.e. we don't have data from another source for HIV-positives so we will assume that the estimates do not differ by HIV status), reweight to the population totals for all men. 
+- For parameters that will be esimated specifically for HIV-positive men from MMP, we will first apply MMP weights and then rake this re-weighted sample to the population totals for HIV-positive men drawn from surveillance data. This will make the total population size consistent for parameters estimated from the WHPP sample to represent all men and for parameters estimated from a combination of data from MMP and the WHPP sample reweighted to the population of HIV-negative/unknown-status men. __Note that parameters estimated from data specific to HIV-positive men should only be applied to those who have been diagnosed.__
+- For some variables we have missing data, such that the sample reporting on those variables may not reflect the population distribution after reweighting the overall sample to the population totals. For now, we will assume that data are missing completely at random, such that this approach is appropriate.
 
 ## Using data from ongoing vs all partnerships
 - We decided to use data only from ongoing partnerships to inform parameters relating to race and age mixing. This is because the formation model, to which these parameters are relevant, aims to recreate the network we observe at the cross-section. An issue is that the NHBS and MMP, datasets I will also be using to inform parameters, do not ask whether partnerships are ongoing. But we will just work with what we have.
@@ -57,8 +58,11 @@ This file summarizes the decisions made about parameter estimation and model str
 - Age mixing did not appear to differ meaningfully by race/ethnicity (\@ref(fig:plots_explore_agemixing_4)) or region (\@ref(fig:plots_explore_agemixing_5)).
 
 ## Race mixing
-- Exploratory analyses did not indicate differences in race mixing by age or region (see \@ref(explore_heterogeneity)). 
+- Exploratory analyses did not indicate differences in race mixing by age or region (see \@ref(explore_heterogeneity)).
 - Due to the small number of black men reporting ongoing partnerships of any type, we will collapse the off-diagonal elements and represent race mixing using a nodematch term. We will also collapse the persistent and instantaneous networks in calculation of sufficient statistics for race mixing. While neither of these approaches is ideal, they avoid putting too much weight on data from a very small number of respondents (in particular, 0 black men reported ongoing persistent partnerships with other black men). See section \@ref(mixing) for more detail and supporting tables.
+
+## Regional mixing
+- We do not have data on the region of residence of alters, but the pattern of mixing by region will be important, particularly if PrEP uptake varies by region; not specifying regional mixing assumes that mixing is random, which is definitely not true. For main partnerships, we will assume that all partnerships are within-region (e.g. proportion homophilous = 1). For persistent and instantaneous partnerships, we will run sensitivity analyses with the proportion of partnerships within-region set to 0.7, 0.8, and 0.9 (see [issue #32](https://github.com/statnet/WHAMP/issues/32)). An alternative would be to first vary regional mixing in these partnesrhips from random to perfectly assortative to see how much of a differnece it makes. This would be a good tuning parameter for calibration.
 
 ## Partnership age
 - Exploratory analyses (section \@ref(explore_heterogeneity) suggest that the age of main partnerships varies by age, but this is a complex phenomenon. For instance, the data are subject to censoring by age, in that the partnerships of younger men can only have persisted a relatively short time simply due to how long it has been since their presumed debut. We will not model heterogeneity in partnership duration by age at this point. 
@@ -104,3 +108,8 @@ kable(formation.models, col.names=c("Model", "Main effects", "Mixing effects", "
 # Things to check against simulated data
 - Make sure that the distribution of the age of partnerships by ego age produced by the model corresponds to the observed distributions (see \@ref(fig:plotsexplore_pshipage)).
 - Check that the age structure in the absence of disease preserves the target age distribution for Washington males. If not, consider specifying entries to the model as both "births" at age 18 and as migration at later ages (see [issue #29](https://github.com/statnet/WHAMP/issues/29)).
+
+# Potential tuning parameters for calibration
+Parameters for which local empirical data are lacking would make good tuning parameters for calibration. Below we list the parameters for which we did not have adequate local data:
+- Sexual mixing by region
+- Change in condom use with diagnosis or disclosure
