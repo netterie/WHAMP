@@ -29,11 +29,11 @@ options(knitr.table.format = "html")
 ## Compare main most recent partners reported by those with 0 vs 1+ persistent partners
 This analysis looks to see whether main partners reported on as the most recent partner by men who report 0 ongoing persistent partners differ from main partners reported on by men who report 1 or more persistent partners. This will inform whether or not we can assume that the main partners reported on are representative of all main partners, and whether we can sample from this full sample of main partners when imputing the characteristics of ongoing main partners who were not described as the most recent partner. This is most directly relevant for parameter estimation using ergm.ego, but any approach to parameter estimation will have to make an implicit assumption about exchangeability.
 
+The table below shows the means, medians, and frequencies (labeled "_sum") of partnership age, coital frequency, the difference in the square root of ego and alter ages, and condom use probability by persistent partnership status.
+
 ```{r main_by_persistent_degree}
 
 #Define new variables
-    sample$degbin_cas <- ifelse(sample$degreecat_cas %in% c("One", "Two or more"), 1, 
-                                ifelse(sample$degreecat_cas %in% "None", 0, NA))
     sample$same_race <- ifelse(sample$mrp_race_eth_m %in% "Dont know", NA,
                                ifelse(sample$race_eth_m==sample$mrp_race_eth_m, 1, 
                                       ifelse(!is.na(sample$race_eth_m) & !is.na(sample$mrp_race_eth_m), 0,
@@ -45,18 +45,23 @@ This analysis looks to see whether main partners reported on as the most recent 
 #Main partners among those with/without a persistent ongoing partner
     #Analysis of continuous parameters
         describe <- sample %>%
-            filter(mrp_type_ongoing %in% "Main") %>%
-            group_by(degbin_cas) %>%
+            filter(mrp_type_ongoing %in% "Main" & !is.na(anypers)) %>%
+            group_by(anypers) %>%
             summarise_at(vars(pship_age_main, airate_main, sqrt_agediff, condoms_main), funs(mean(., na.rm=TRUE), median(., na.rm=TRUE), sum(!is.na(.))))
-        t(describe)
-        kruskal.test(pship_age_main ~ degbin_cas, sample[sample$mrp_type_ongoing %in% "Main",])
-        kruskal.test(airate_main ~ degbin_cas, sample[sample$mrp_type_ongoing %in% "Main",])
-        kruskal.test(sqrt_agediff ~ degbin_cas, sample[sample$mrp_type_ongoing %in% "Main",])
-        kruskal.test(condoms_main ~ degbin_cas, sample[sample$mrp_type_ongoing %in% "Main",])
+        describe <- as.data.frame(t(describe))
+        names(describe) <- c("0 pers", "1+ pers")
+        (describe <- describe[2:13,])
+        kruskal.test(pship_age_main ~ anypers, sample[sample$mrp_type_ongoing %in% "Main",])
+        kruskal.test(airate_main ~ anypers, sample[sample$mrp_type_ongoing %in% "Main",])
+        kruskal.test(sqrt_agediff ~ anypers, sample[sample$mrp_type_ongoing %in% "Main",])
+        kruskal.test(condoms_main ~ anypers, sample[sample$mrp_type_ongoing %in% "Main",])
+```
 
+Below we compare the proportion of main partnerships that are homophilous on race and the HIV status of alters by momentary persistent degree. 
+```{r, echo=TRUE}
     #Define function to streamline analysis of differences in categorical parameters
         catvars_main <- function(x) {
-            tbl <- table(sample$degbin_cas[sample$mrp_type_ongoing %in% "Main"], x)
+            tbl <- table(sample$anypers[sample$mrp_type_ongoing %in% "Main"], x)
             X2 <- chisq.test(tbl)
             fisher <- fisher.test(tbl)
             return(list(tbl, X2, fisher))
@@ -69,21 +74,28 @@ This analysis looks to see whether main partners reported on as the most recent 
 ## Compare persistent most recent partners reported by those with 0 vs 1 main partners
 This analysis looks to see whether persistent partners reported on as the most recent partner by men who report 0 ongoing main partners differ from persistent partners reported on by men who report 1 current main partner.
 
+The table below shows the means, medians, and frequencies (labeled "_sum") of partnership age, coital frequency, the difference in the square root of ego and alter ages, and condom use probability by persistent partnership status.
+
 ```{r persistent_by_main_degree }
 
 #Persistent partners among those with/without a main ongoing partner
     #Analysis of continuous parameters
         describe <- sample %>%
-            filter(mrp_type_ongoing %in% "Persistent") %>%
+            filter(mrp_type_ongoing %in% "Persistent" & !is.na(degree_main)) %>%
             group_by(degree_main) %>%
             summarise_at(vars(pship_age_pers, airate_pers, sqrt_agediff, condoms_pers), funs(mean(., na.rm=TRUE), median(., na.rm=TRUE), sum(!is.na(.))))
-        t(describe)
+        describe <- as.data.frame(t(describe))
+        names(describe) <- c("0 main", "1 main")
+        (describe <- describe[2:13,])
         
         kruskal.test(pship_age_pers ~ degree_main, sample[sample$mrp_type_ongoing %in% "Persistent",])
         kruskal.test(airate_pers ~ degree_main, sample[sample$mrp_type_ongoing %in% "Persistent",])
         kruskal.test(sqrt_agediff ~ degree_main, sample[sample$mrp_type_ongoing %in% "Persistent",])
         kruskal.test(condoms_pers ~ degree_main, sample[sample$mrp_type_ongoing %in% "Persistent",])
-    
+```
+
+Below we compare the proportion of persistent partnerships that are homophilous on race and the HIV status of alters by momentary main degree.
+```{r}
     #Define function to streamline analysis of differences in categorical parameters
         catvars_pers <- function(x) {
             tbl <- table(sample$degree_main[sample$mrp_type_ongoing %in% "Persistent"], x)
