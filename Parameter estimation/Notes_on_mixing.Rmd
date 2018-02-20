@@ -24,23 +24,19 @@ options(knitr.table.format = "html")
 # Load data
 #-----------------------------------------------------------------------------------
     load(file="Data/InternetSurveySample.Rdata")
-    load(file="Data/InternetSurveySample_allages.Rdata")
-    load(file="Data/InternetSurvey_reweighted.Rdata")
-   # load(file="Parameter estimation/Data/census_agebyregion.Rdata")
-    # load(file="Parameter estimation/Data/census_racebyregion.Rdata")
-    # load(file="Parameter estimation/Data/census_totalbyregion.Rdata")
+    load(file="Data/InternetSurvey_reweighted_neg.Rdata")
 
 #-----------------------------------------------------------------------------------
 # Scale re-weighted dataset back to match sample size from the survey
 #-----------------------------------------------------------------------------------
-  # There are 81934 responses in the dataframe weighted to the population total, and 1,005 in the sample object
+  # There are 81934 responses in the dataframe weighted to the population total, and 1,036 in the sample object
   # To get a re-weighted dataframe with the same number of observations as the sample, we will divide the raked
   # weights to scale it down (i.e. multiply the probabilities by the scaling factor since weights = 1/prob)
-    ratio <- sum(weights(sample_rake))/dim(sample)[1]
-    sample_rake_rescaled <- sample_rake
+    ratio <- sum(weights(sample_rake_neg))/dim(sample)[1]
+    sample_rake_rescaled <- sample_rake_neg
     sample_rake_rescaled$prob <- sample_rake_rescaled$prob * ratio
   
-    #NOTE: alternative way to do this = use the "Ntotal" option within svy commands to specify the total to scale to
+    #NOTE: alternative way to do this = use the "Ntotal" option within svy commands to specify the total to scale to, but for tables that should be restricted to men witt main partners, would need to specify total with main partners in the original sample (i.e. don't just set Ntotal to 1036 for all b/c may not apply to the subset of interest)
         
 #-----------------------------------------------------------------------------------
 # Plot settings
@@ -88,7 +84,7 @@ theme_title <- theme(plot.title = element_text(hjust = 0.5, size=12))
     
         
 ```
-This file examines balance in sexual mixing by race and age in data from participants in the WHPP survey. For this analysis, the data are re-weighted to match the population distributions for race by region and age (see section \@ref(reweight)), but scaled back to the survey sample size. __Note that these tables show patterns of mixing with the most recent partner only; some men had more than one parter of a given type, but we do not have information on the characteristics of partners who were not the most recent__.
+This file examines balance in sexual mixing by race and age in data from participants in the WHPP survey. For this analysis, the data are re-weighted to match the population distributions for race by region and age among negative/unknown-status men (see section \@ref(reweight)), but scaled back to the survey sample size. Note that these tables show patterns of mixing with the most recent partner only; some men had more than one parter of a given type, but we do not have information on the characteristics of partners who were not the most recent. For calculation of target statistics in the model, we will weight these matrices by mean degree, making the assumption that mixing with the unobserved ties follows the same pattern as mixing with the observed ties (see \@ref(racemixing).
 
 ## Observed race mixing
 In the internet survey, we observed the following partnership counts for main, persistent, and one-off partnerships by dyad race. 
@@ -104,7 +100,7 @@ In the internet survey, we observed the following partnership counts for main, p
 ```
 Table \@ref(tab:racemixing) shows that there are some imbalances in the observed mixing patterns. We will address these imbalances by taking the mean of the off-diagonal elements, potentially conducting sensitivity analyses in which the off-diagonal elements are set to the low or high reported value.
 
-If we take the averages of the off-diagonal elements, the mixing matrices are as follows. Due to the small cell count for black men, we will compare the averages based on data from ongoing partnerships only (for main and persistent partnerships) to the averages based on data from all partnerships reported as the most recent partner to decide whether it would be better to sue data from all partnerships.
+If we take the averages of the off-diagonal elements, the mixing matrices are as follows. Due to the small cell count for black men, we will compare the averages based on data from ongoing partnerships only (for main and persistent partnerships) to the averages based on data from all partnerships reported as the most recent partner to decide whether it would be better to use data from all partnerships.
 
 ```{r}
 # Define observed mixing matrices based on data from all partnerships
@@ -195,6 +191,7 @@ Because the $\alpha_{ij}$ terms for the off-diagonal elements differ, this sugge
 In the WHPP survey (re-weighted), we observed the following partnership counts for main, persistent, and one-off partnerships by ego and alter age group.
 
 ```{r agemixing}
+  #Define new age variables
     sample_rake_rescaled$variables$age_cat_crude <- cut(sample_rake_rescaled$variables$age, c(17, 24, 34, 44, 59), labels=c("18-24", "25-34", "35-44", "45-59"))
     sample_rake_rescaled$variables$mrp_age_cat_crude <- cut(sample_rake_rescaled$variables$mrp_ageinyears_approx, c(17, 24, 34, 44, 59), labels=c("18-24", "25-34", "35-44", "45-59"))    
 
