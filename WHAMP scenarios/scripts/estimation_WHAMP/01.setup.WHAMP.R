@@ -80,16 +80,39 @@ durs.main <- 1/rates.main
 durs.pers <- 1/rates.pers
 
 # Age-sex-specific mortality rates
-ages <- 18:39
-asmr.B <- c(rep(0, 17),
-            1-(1-c(rep(0.00159, 7),
-                   rep(0.00225, 10),
-                   rep(0.00348, 5)))^(1/(365/time.unit)), 1)
+ages <- 18:59
+asmr.H <- c(rep(0, 17),
+            1-(1-c(rep(0.00056, 2),
+                   rep(0.00108, 5),
+                   rep(0.00109, 5),
+                   rep(0.00115, 5),
+                   rep(0.00132, 5),
+                   rep(0.00175, 5),
+                   rep(0.00263, 5),
+                   rep(0.00430, 5),
+                   rep(0.00651, 5)))^(1/(365/time.unit)), 1)
 
-asmr.W <- c(rep(0, 17),
-            1-(1-c(rep(0.00103, 7),
-                   rep(0.00133, 10),
-                   rep(0.00214, 5)))^(1/(365/time.unit)), 1)
+asmr.B <- c(rep(0, 17),
+            1-(1-c(rep(0.00110, 2),
+                   rep(0.00203, 5),
+                   rep(0.00230, 5),
+                   rep(0.00258, 5),
+                   rep(0.00310, 5),
+                   rep(0.00380, 5),
+                   rep(0.00539, 5),
+                   rep(0.00862, 5),
+                   rep(0.01348, 5)))^(1/(365/time.unit)), 1)
+
+asmr.O <- c(rep(0, 17),
+            1-(1-c(rep(6e-04, 2),
+                   rep(0.00119, 5),
+                   rep(0.00146, 5),
+                   rep(0.00171, 5),
+                   rep(0.00198, 5),
+                   rep(0.00252, 5),
+                   rep(0.00371, 5),
+                   rep(0.00597, 5),
+                   rep(0.00885, 5)))^(1/(365/time.unit)), 1)
 
 # I, R, V role frequencies
 role.B.prob <- role.W.prob <- (c(0.242, 0.321, 0.437) +
