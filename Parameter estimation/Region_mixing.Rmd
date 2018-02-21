@@ -1,0 +1,27 @@
+# Regional mixing (#regionmixing)
+
+```{r, include=FALSE}
+####################################################################################
+# Setup
+####################################################################################
+#-----------------------------------------------------------------------------------
+# Load packages
+#-----------------------------------------------------------------------------------
+
+    library("tidyverse")
+    library("knitr")
+    library("kableExtra")
+    library("data.table")
+    library("survey")
+
+#-----------------------------------------------------------------------------------
+# Knitr options
+#-----------------------------------------------------------------------------------
+opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
+options(knitr.table.format = "html") 
+
+```
+
+Because region emerged as an important attribute in exploratory analyses, it will be important to account for patterns of regional mixing. Since region is associated with differences in main partnership formation, HIV testing, and PrEP uptake, the degree to which men mix with partners within the same region will influence transmission dynamics. Unfortunately, we lack good data on regional mixing^[Susie Cassels' Mobile Study asks about partner's region, and we may be able to get some information on this out of partner services. But the former only included egos in King County, and the latter only includes men who tested positive for HIV and STDs. Still, they may be worth exploring further in the future].
+
+For the time being, we will assume that all main partnerships are within-region. For persistent and instantaneous partnerships, we will run sensitivity analyses. First, we will run two scenarios: one assuming random mixing, and one assuming perfect assortativity by region. While neither of these is likely to be an accurate reflection of mixing patterns, it will provide a sense of how sensitive the model is to this parameter. A more likely range over which to vary these parameters is from 0.7 to 0.9. This parameter will be a good candidate for calibration.
