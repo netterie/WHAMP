@@ -34,6 +34,10 @@ num <- 10000
   num.OW <- num.H.OW + num.B.OW + num.O.OW
   num.EW <- num.H.EW + num.B.EW + num.O.EW
     
+  
+# Age structure (proportion in each age group 18-24, 25-29... 50-59)
+agestr <- c(0.1594, 0.1319, 0.1292, 0.1173, 0.1183, 0.1148, 0.1071, 0.122)
+    
 # mean/pers degree distributions matrices.
 deg.mp.B <- deg.mp.W <-
   (matrix(c(0.506, 0.151, 0.053,
@@ -104,6 +108,7 @@ st <- calc_nwstats_msm_whamp(
   num.KC <- num.KC,
   num.OW <- num.OW,
   num.EW <- num.EW,
+  agestr <- agestr,
   deg.mp.B = deg.mp.B,
   deg.mp.W = deg.mp.W,
   mdeg.inst.B = mdeg.inst.B,
