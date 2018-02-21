@@ -26,16 +26,29 @@
     options(knitr.table.format = "html") 
   
 #-----------------------------------------------------------------------------------
-# Change degree_main variable to factor and add labels have character labels
+# Data manipulation
 #-----------------------------------------------------------------------------------
-    sample_rake_all$variables$degree_main <- factor(sample_rake_all$variables$degree_main, levels = c(0, 1), labels = c("No main", "Main"))
+
+# Change degree_main variable to factor and add labels have character labels
+sample_rake_all$variables$degree_main <- factor(sample_rake_all$variables$degree_main, levels = c(0, 1), labels = c("No main", "Main"))
+    
+#Define indicator of age 40-49 and MRP age 40-49
+sample_rake_all$variables$age40to49 <- ifelse(sample_rake_all$variables$age %in% c(40:49), 1,
+                                              ifelse(!is.na(sample_rake_all$variables$age), 0,
+                                                     NA))
+
+sample_rake_all$variables$mrp_age40to49 <- ifelse(sample_rake_all$variables$mrp_ageinyears_approx %in% c(40:49), 1,
+                                              ifelse(!is.na(sample_rake_all$variables$mrp_ageinyears_approx), 0,
+                                                     NA))
 
 ```
 
 The tables below show the distribution of active main and persistent partnerships. 
 
-## Degree distribution: overall
-To calculate the degree distribution, we use data from the re-weighted WHPP survey, as we do not have data specific to HIV-positive men.
+## Momentary degree distribution
+To calculate the momentary degree distribution, we use data from the re-weighted WHPP survey, as we do not have data specific to HIV-positive men.
+
+### Overall
 ```{r degmatrix}
 # Create degree distribution table
 deg.matrix <- round(prop.table(svytable(~degree_main + degreecat_cas, sample_rake_all, round=FALSE)),4)
@@ -48,17 +61,119 @@ kable(deg.matrix, col.names=c("0 pers", "1 pers", "2+ pers", "Total"), caption="
 
 ```
 
-## Main partnership status by race/ethnicity and region
+### By race/ethnicity
+To assign main and persistent degree as a nodal attribute according to race/ethnicity, region, and age, we will also need the degree distributions by these characteristics. Tables \@ref(tab:degmatrix_hisp)-\@ref(tab:degmatrix_other), below, present the momentary degree distributions by racial/ethnic group.
+```{r degmatrix_hisp}
+# Create degree distribution table
+deg.matrix.hisp <- round(prop.table(svytable(~degree_main + degreecat_cas, sample_rake_all[sample_rake_all$variables$hbo %in% "Hispanic"], round=FALSE)),4)
+
+# Add margins
+deg.matrix.hisp <- addmargins(deg.matrix.hisp, margin=c(1,2), sum, quiet = TRUE)
+row.names(deg.matrix.hisp) <- c("No main", "Main", "Total")
+
+kable(deg.matrix.hisp, col.names=c("0 pers", "1 pers", "2+ pers", "Total"), caption="Main and persistent degree distribution: Hispanic men") %>% kable_styling(full_width=F, position="center") %>% row_spec(3, color="#1C91D7")  %>% column_spec(1, bold=T, color="black", width="2cm") %>% column_spec(2:5, width = "2cm") %>% column_spec(5, color="#1C91D7")
+
+```
+```{r degmatrix_black}
+# Create degree distribution table
+deg.matrix.black <- round(prop.table(svytable(~degree_main + degreecat_cas, sample_rake_all[sample_rake_all$variables$hbo %in% "Black"], round=FALSE)),4)
+
+# Add margins
+deg.matrix.black <- addmargins(deg.matrix.black, margin=c(1,2), sum, quiet = TRUE)
+row.names(deg.matrix.black) <- c("No main", "Main", "Total")
+
+kable(deg.matrix.black, col.names=c("0 pers", "1 pers", "2+ pers", "Total"), caption="Main and persistent degree distribution: Black men") %>% kable_styling(full_width=F, position="center") %>% row_spec(3, color="#1C91D7")  %>% column_spec(1, bold=T, color="black", width="2cm") %>% column_spec(2:5, width = "2cm") %>% column_spec(5, color="#1C91D7")
+
+```
+```{r degmatrix_other}
+# Create degree distribution table
+deg.matrix.other <- round(prop.table(svytable(~degree_main + degreecat_cas, sample_rake_all[sample_rake_all$variables$hbo %in% "Other"], round=FALSE)),4)
+
+# Add margins
+deg.matrix.other <- addmargins(deg.matrix.other, margin=c(1,2), sum, quiet = TRUE)
+row.names(deg.matrix.other) <- c("No main", "Main", "Total")
+
+kable(deg.matrix.other, col.names=c("0 pers", "1 pers", "2+ pers", "Total"), caption="Main and persistent degree distribution: Other race/ethnicity men") %>% kable_styling(full_width=F, position="center") %>% row_spec(3, color="#1C91D7")  %>% column_spec(1, bold=T, color="black", width="2cm") %>% column_spec(2:5, width = "2cm") %>% column_spec(5, color="#1C91D7")
+
+```
+
+### By region
+```{r degmatrix_KC}
+# Create degree distribution table
+deg.matrix.KC <- round(prop.table(svytable(~degree_main + degreecat_cas, sample_rake_all[sample_rake_all$variables$region %in% "King County"], round=FALSE)),4)
+
+# Add margins
+deg.matrix.KC <- addmargins(deg.matrix.KC, margin=c(1,2), sum, quiet = TRUE)
+row.names(deg.matrix.KC) <- c("No main", "Main", "Total")
+
+kable(deg.matrix.KC, col.names=c("0 pers", "1 pers", "2+ pers", "Total"), caption="Main and persistent degree distribution: King County") %>% kable_styling(full_width=F, position="center") %>% row_spec(3, color="#1C91D7")  %>% column_spec(1, bold=T, color="black", width="2cm") %>% column_spec(2:5, width = "2cm") %>% column_spec(5, color="#1C91D7")
+
+```
+```{r degmatrix_OW}
+# Create degree distribution table
+deg.matrix.OW <- round(prop.table(svytable(~degree_main + degreecat_cas, sample_rake_all[sample_rake_all$variables$region %in% "Western WA"], round=FALSE)),4)
+
+# Add margins
+deg.matrix.OW <- addmargins(deg.matrix.OW, margin=c(1,2), sum, quiet = TRUE)
+row.names(deg.matrix.OW) <- c("No main", "Main", "Total")
+
+kable(deg.matrix.OW, col.names=c("0 pers", "1 pers", "2+ pers", "Total"), caption="Main and persistent degree distribution: Other western WA") %>% kable_styling(full_width=F, position="center") %>% row_spec(3, color="#1C91D7")  %>% column_spec(1, bold=T, color="black", width="2cm") %>% column_spec(2:5, width = "2cm") %>% column_spec(5, color="#1C91D7")
+
+```
+```{r degmatrix_EW}
+# Create degree distribution table
+deg.matrix.EW <- round(prop.table(svytable(~degree_main + degreecat_cas, sample_rake_all[sample_rake_all$variables$region %in% "Eastern WA"], round=FALSE)),4)
+
+# Add margins
+deg.matrix.EW <- addmargins(deg.matrix.EW, margin=c(1,2), sum, quiet = TRUE)
+row.names(deg.matrix.EW) <- c("No main", "Main", "Total")
+
+kable(deg.matrix.EW, col.names=c("0 pers", "1 pers", "2+ pers", "Total"), caption="Main and persistent degree distribution: Eastern WA") %>% kable_styling(full_width=F, position="center") %>% row_spec(3, color="#1C91D7")  %>% column_spec(1, bold=T, color="black", width="2cm") %>% column_spec(2:5, width = "2cm") %>% column_spec(5, color="#1C91D7")
+
+```
+
+### By age
+```{r degmatrix_otherages}
+# Create degree distribution table
+deg.matrix.otherages <- round(prop.table(svytable(~degree_main + degreecat_cas, sample_rake_all[sample_rake_all$variables$age40to49 %in% 0], round=FALSE)),4)
+
+# Add margins
+deg.matrix.otherages <- addmargins(deg.matrix.otherages, margin=c(1,2), sum, quiet = TRUE)
+row.names(deg.matrix.otherages) <- c("No main", "Main", "Total")
+
+kable(deg.matrix.otherages, col.names=c("0 pers", "1 pers", "2+ pers", "Total"), caption="Main and persistent degree distribution: ages 18-39 and 50-59") %>% kable_styling(full_width=F, position="center") %>% row_spec(3, color="#1C91D7")  %>% column_spec(1, bold=T, color="black", width="2cm") %>% column_spec(2:5, width = "2cm") %>% column_spec(5, color="#1C91D7")
+
+```
+```{r degmatrix_40to49}
+# Create degree distribution table
+deg.matrix.40to49 <- round(prop.table(svytable(~degree_main + degreecat_cas, sample_rake_all[sample_rake_all$variables$age40to49 %in% 1], round=FALSE)),4)
+
+# Add margins
+deg.matrix.40to49 <- addmargins(deg.matrix.40to49, margin=c(1,2), sum, quiet = TRUE)
+row.names(deg.matrix.40to49) <- c("No main", "Main", "Total")
+
+kable(deg.matrix.40to49, col.names=c("0 pers", "1 pers", "2+ pers", "Total"), caption="Main and persistent degree distribution: ages 40-49") %>% kable_styling(full_width=F, position="center") %>% row_spec(3, color="#1C91D7")  %>% column_spec(1, bold=T, color="black", width="2cm") %>% column_spec(2:5, width = "2cm") %>% column_spec(5, color="#1C91D7")
+
+```
+
+## Nodes in main partnerships by race/ethnicity and region
 Descriptive analyses (section \@ref(explore_heterogeneity)) indicated that main partnership status varies by race/ethnicity and region, so we will include terms in the main partnership network model to account for this heterogeneity. To calculate target statistics for these terms, we need to count the number of edges in which nodes with the specified attribute appear. Thus, we need to count edges by both ego and alter attributes. However, the WHPP only measured the race/ethnicity of alters if they were the most recent partner, and did not measure the region of residence of any partners.
 
-To obtain edge counts by race/ethnicity, we will take the following approach (see [issue #32](https://github.com/statnet/WHAMP/issues/32)): 1) obtain the row percentages for mixing from the ego's perspective, 2) multiply these row percentages by the mean degree for egos of a given race/ethnicity, 3) multiply this product by the target population size in each group. This will produce a weighted mixing matrix. 4) Balance the matrix by taking the mean of the off-diagonal elements. 5) Calculate the target statistic by adding across rows and across columns (e.g. add 1 for every time an ego with the given attribute appears in an edge and 1 for every time an alter with the given attribute appears in an edge.) This approach assumes that mixing with the unobserved ties follows the same pattern as mixing with the observed ties, and that men who did not report on their main partner have the same mixing propensities as those of the same attribute who did report on their main partner. Since we did not observe race mixing to vary by age or region, there is not an indication that we need to account for heterogeneity on these characteristics, such that this approach seems reasonable. Additionally, in section \@ref(mrp_limitations), we did not observe any differences in main partnerships reported by those with 0 compared to those with 1+ persistent partnerships, suggesting that we can use data on the most recent partnership to represent all partnerships of that type.
+To obtain edge counts by race/ethnicity, we will take the following approach (see [issue #32](https://github.com/statnet/WHAMP/issues/32)):  
+  1. obtain the row percentages for mixing from the ego's perspective,  
+  2. multiply these row percentages by the mean degree for egos of a given race/ethnicity,  
+  3. multiply this product by the target population size in each group. This will produce a weighted mixing matrix.  
+  4. Balance the matrix by taking the mean of the off-diagonal elements.  
+  5. Calculate the target statistic by adding across rows and across columns (e.g. add 1 for every time an ego with the given attribute appears in an edge and 1 for every time an alter with the given attribute appears in an edge.)  
+
+This approach assumes that mixing with the unobserved ties follows the same pattern as mixing with the observed ties, and that men who did not report on their main partner have the same mixing propensities as those of the same attribute who did report on their main partner. Since we did not observe race mixing to vary by age or region, there is not an indication that we need to account for heterogeneity on these characteristics, such that this approach seems reasonable. Additionally, in section \@ref(mrp_limitations), we did not observe any differences in main partnerships reported by those with 0 compared to those with 1+ persistent partnerships, suggesting that we can use data on the most recent partnership to represent all partnerships of that type.
 
 The tables below show the weighted and balanced mixing matrix by race/ethnicity and the implied number and proportion of times men of each racial/ethnic group appear in an edge with a main partner. For the target statistics in the model, we will multiply the proportions in the third table by twice the number of edges to scale this to the size of the network.
 
-<span style="color:red">*Note: When we get data from MMP, the conditional row probabilities for race mixing will be based on a combination of data from the WHPP sample reweighted to the population totals for negative/unknown status men and data from the MMP*</span>
+<span style="color:red">*Note: When we get data from MMP, the conditional row probabilities for race mixing will be based on a combination of data from the WHPP sample reweighted to the population totals for negative/unknown status men and data from the MMP. But may take a different approach with MMP since I will have data from more than one partnership*</span>
 ```{r degmain_race}
   #Conditional row probabilities
-  racemix_main <- prop.table(svytable(~hbo + mrp_hbo, sample_rake_all[sample_rake_all$variables$mrp_type_ongoing %in% "Main"], Ntotal=dim(sample)[1], round=FALSE),1)
+  racemix_main <- prop.table(svytable(~hbo + mrp_hbo, sample_rake_all[sample_rake_all$variables$mrp_type_ongoing %in% "Main"], Ntotal=dim(sample[sample$mrp_type_ongoing %in% "Main",])[1], round=FALSE),1)
 
   #Mean degree by race - calculate on subset for which casual degree is not missing to be consistent with how the overall degree matrix is defined so total edges are consistent
   meandegXrace_main <- svyby(~degree_main, ~hbo, sample_rake_all[!is.na(sample_rake_all$variables$degreecat_cas)], svymean, na.rm=TRUE)[3]
@@ -72,13 +187,8 @@ The tables below show the weighted and balanced mixing matrix by race/ethnicity 
   names(racemix_main_rwt) <- c("Hispanic", "Black", "Other")
   
   #Take average of off-diagonals to balance
-  balance_avg_race <- function(x){
-     balanced <- as.data.frame(matrix(c("HH"=x[1,1], "HB" = mean(c(x[1,2], x[2,1])), "HO" = mean(c(x[1,3], x[3,1])), "BH" = mean(c(x[1,2], x[2,1])), "BB" = x[2,2], "BO" = mean(c(x[2,3], x[3,2])), "OH" = mean(c(x[1,3], x[3,1])), "OB" = mean(c(x[2,3], x[3,2])), "OO" = x[3,3]), nrow=3, ncol=3, byrow=TRUE, dimnames=list(c("Hispanic", "Black", "Other"), c("Hispanic", "Black", "Other"))))
-     return(balanced)
-  }
-  
-  racemix_main_bal <- balance_avg_race(racemix_main_rwt)
-  
+  racemix_main_bal <- as.data.frame(matrix(c("HH"=racemix_main_rwt[1,1], "HB" = mean(c(racemix_main_rwt[1,2], racemix_main_rwt[2,1])), "HO" = mean(c(racemix_main_rwt[1,3], racemix_main_rwt[3,1])), "BH" = mean(c(racemix_main_rwt[1,2], racemix_main_rwt[2,1])), "BB" = racemix_main_rwt[2,2], "BO" = mean(c(racemix_main_rwt[2,3], racemix_main_rwt[3,2])), "OH" = mean(c(racemix_main_rwt[1,3], racemix_main_rwt[3,1])), "OB" = mean(c(racemix_main_rwt[2,3], racemix_main_rwt[3,2])), "OO" = racemix_main_rwt[3,3]), nrow=3, ncol=3, byrow=TRUE, dimnames=list(c("Hispanic", "Black", "Other"), c("Hispanic", "Black", "Other"))))
+
   #Count nodes in main partnerships by race (e.g. total main partnership degree by race)
   inmainXrace <- data.frame(t(c("Hispanic" = sum(racemix_main_bal[1,], na.rm=TRUE) + sum(racemix_main_bal[,1], na.rm=TRUE), "Black" = sum(racemix_main_bal[2,], na.rm=TRUE) + sum(racemix_main_bal[,2], na.rm=TRUE), "Other" = sum(racemix_main_bal[3,], na.rm=TRUE) + sum(racemix_main_bal[,3], na.rm=TRUE))))
  
@@ -97,7 +207,7 @@ kable(prop.inmainXrace, caption="Proportion of nodes in main partnerships in eac
 
 ```
 
-As we do not have data on the region of residence of alters, we will make assumptions about regional mixing by partner type (see [issue #32](https://github.com/statnet/WHAMP/issues/32)). We will assume that main partnerships occur only with men in the same region. For persistent and instantaneous partnerships, we will run sensitivity analyses with the proportion of partnerships within-region set to 0.7, 0.8, and 0.9. As exploratory analyses indicated regional heterogeneity only in main partnership formation (section \@ref(explore_heterogeneity)), we will only address main partnerships in this section.
+As we do not have data on the region of residence of alters, we will make assumptions about regional mixing by partner type (see [issue #32](https://github.com/statnet/WHAMP/issues/32)). We will assume that main partnerships occur only with men in the same region. For persistent and instantaneous partnerships, we will run sensitivity analyses with the proportion of partnerships within-region set to 0.7, 0.8, and 0.9 (may also just start with two scenarios - random mixing by region for these parterships, and perfect assortativity to see how sensitive the model is to these parameters). As exploratory analyses indicated regional heterogeneity only in main partnership formation (section \@ref(explore_heterogeneity)), we will only address main partnerships in this section.
 
 ```{r degmain_region}
   #Conditional row probabilities - set a priori to assume perfect homophily
@@ -116,21 +226,8 @@ As we do not have data on the region of residence of alters, we will make assump
   names(regionmix_main_rwt) <- c("King", "Western", "Eastern")
   
   #Take average of off-diagonals to balance
-  balance_avg_region <- function(x){
-     balanced <- as.data.frame(matrix(c("KC.KC"=x[1,1], "KC.OW" = mean(c(x[1,2], x[2,1])), "KC.EW" = mean(c(x[1,3], x[3,1])), "OW.KC" = mean(c(x[1,2], x[2,1])), "OW.OW" = x[2,2], "OW.EW" = mean(c(x[2,3], x[3,2])), "EW.KC" = mean(c(x[1,3], x[3,1])), "EW.OW" = mean(c(x[2,3], x[3,2])), "EW.EW" = x[3,3]), nrow=3, ncol=3, byrow=TRUE, dimnames=list(c("King County", "Other western WA", "Eastern WA"), c("King County", "Other western WA", "Eastern WA"))))
-     return(balanced)
-  }
-  
-  regionmix_main_bal <- balance_avg_region(regionmix_main_rwt)
-  
-  #Set upper triangle to mising and multiply lower off-diagonals by 2
-  regionmix_main_bal[1,2] <- NA
-  regionmix_main_bal[1,3] <- NA
-  regionmix_main_bal[2,3] <- NA
-  regionmix_main_bal[2,1] <- regionmix_main_bal[2,1]*2
-  regionmix_main_bal[3,1] <- regionmix_main_bal[3,1]*2
-  regionmix_main_bal[3,2] <- regionmix_main_bal[3,2]*2
-  
+  regionmix_main_bal <- as.data.frame(matrix(c("KC.KC"=regionmix_main_rwt[1,1], "KC.OW" = mean(c(regionmix_main_rwt[1,2], regionmix_main_rwt[2,1])), "KC.EW" = mean(c(regionmix_main_rwt[1,3], regionmix_main_rwt[3,1])), "OW.KC" = mean(c(regionmix_main_rwt[1,2], regionmix_main_rwt[2,1])), "OW.OW" = regionmix_main_rwt[2,2], "OW.EW" = mean(c(regionmix_main_rwt[2,3], regionmix_main_rwt[3,2])), "EW.KC" = mean(c(regionmix_main_rwt[1,3], regionmix_main_rwt[3,1])), "EW.OW" = mean(c(regionmix_main_rwt[2,3], regionmix_main_rwt[3,2])), "EW.EW" = regionmix_main_rwt[3,3]), nrow=3, ncol=3, byrow=TRUE, dimnames=list(c("King County", "Other western WA", "Eastern WA"), c("King County", "Other western WA", "Eastern WA"))))
+
   #Count nodes in main partnerships by region
   inmainXregion <- data.frame(t(c("King_County" = sum(regionmix_main_bal[1,], na.rm=TRUE) + sum(regionmix_main_bal[,1], na.rm=TRUE), "Other_western" = sum(regionmix_main_bal[2,], na.rm=TRUE) + sum(regionmix_main_bal[,2], na.rm=TRUE), "Eastern" = sum(regionmix_main_bal[3,], na.rm=TRUE) + sum(regionmix_main_bal[,3], na.rm=TRUE))))
  
@@ -149,28 +246,19 @@ kable(prop.inmainXregion, caption="Proportion of nodes in main partnerships in e
 
 ```
 
-## Persistent partnership status by age
+## Nodes in persistent partnerships by age
 In descriptive analyses (section \@ref(explore_heterogeneity)), men aged 40-49 appeared to have a higher likelihood of reporting persistent partners, concurrent persistent partners, and persistent partners concurrent with a main partner. In the model (in sensitivity analyses), we will repersent this by including a `nodefactor` term for age 40-49 in the persistent formation model to allow men aged 40-49 to have a higher probability of forming persistent ties, which will in turn result in more concurrent persistent partnerships.
 
-To obtain edge counts by age, we will take the approach described above. The tables below show the lower triangle of a weighted and balanced mixing matrix by age and the implied number and proportion of times men of each age group appear in an edge with a persistent partner. For the target statistics in the model, we will scale this to the size of the network.
+To obtain edge counts by age, we will take the approach described above. For calculation of mean persistent degree, we will assume that all men with 2+ persistent partners have only 2 partners, as the network model caps persistent partnerships at this level.  The tables below show the weighted, balanced mixing matrix by age and the implied number and proportion of times men of each age group appear in an edge with a persistent partner. For the target statistics in the model, we will scale this to the size of the network.
 
 <span style="color:red">*Note: When we get data from MMP, the conditional row probabilities for age mixing will be based on a combination of data from the WHPP sample reweighted to the population totals for negative/unknown status men and data from the MMP*</span>
 
 ```{r degpers_age40to49}
-#Define indicator of age 40-49 and MRP age 40-49
-sample_rake_all$variables$age40to49 <- ifelse(sample_rake_all$variables$age %in% c(40:49), 1,
-                                              ifelse(!is.na(sample_rake_all$variables$age), 0,
-                                                     NA))
-
-sample_rake_all$variables$mrp_age40to49 <- ifelse(sample_rake_all$variables$mrp_ageinyears_approx %in% c(40:49), 1,
-                                              ifelse(!is.na(sample_rake_all$variables$mrp_ageinyears_approx), 0,
-                                                     NA))
-
 #Conditional row probabilities
-  agemix_pers <- prop.table(svytable(~age40to49 + mrp_age40to49, sample_rake_all[sample_rake_all$variables$mrp_type_ongoing %in% "Persistent"], Ntotal=dim(sample)[1], round=FALSE),1)
+  agemix_pers <- prop.table(svytable(~age40to49 + mrp_age40to49, sample_rake_all[sample_rake_all$variables$mrp_type_ongoing %in% "Persistent"], Ntotal=dim(sample[sample$mrp_type_ongoing %in% "Persistent",])[1], round=FALSE),1)
 
   #Mean degree by age - calculate on subset for which main degree is not missing to be consistent with how the overall degree matrix is defined so total edges are consistent
-    #Make persistent degree indicator numeric
+    #First Make persistent degree indicator numeric and cap it at 2 for those with 2+ since the network model caps men at 2 ongoing pers partners
     sample_rake_all$variables$degpers <- ifelse(sample_rake_all$variables$degreecat_cas %in% "None", 0,
                                               ifelse(sample_rake_all$variables$degreecat_cas %in% "One", 1,
                                               ifelse(sample_rake_all$variables$degreecat_cas %in% "Two or more", 2,
@@ -187,16 +275,7 @@ sample_rake_all$variables$mrp_age40to49 <- ifelse(sample_rake_all$variables$mrp_
   names(agemix_pers_rwt) <- c("Other ages", "40-49")
   
   #Take average of off-diagonals to balance
-  balance_avg_age <- function(x){
-     balanced <- as.data.frame(matrix(c("OO"=x[1,1], "O4" = mean(c(x[1,2], x[2,1])), "4O" = mean(c(x[1,2], x[2,1])), "44" = x[2,2]), nrow=2, ncol=2, byrow=TRUE, dimnames=list(c("Other ages", "40-49"), c("Other ages", "40-49"))))
-     return(balanced)
-  }
-  
-  agemix_pers_bal <- balance_avg_age(agemix_pers_rwt)
-  
-  #Set upper triangle to mising and multiply lower off-diagonal by 2
-  agemix_pers_bal[1,2] <- NA
-  agemix_pers_bal[2,1] <- agemix_pers_bal[2,1]*2
+     agemix_pers_bal <- as.data.frame(matrix(c("OO"=agemix_pers_rwt[1,1], "O4" = mean(c(agemix_pers_rwt[1,2], agemix_pers_rwt[2,1])), "4O" = mean(c(agemix_pers_rwt[1,2], agemix_pers_rwt[2,1])), "44" = agemix_pers_rwt[2,2]), nrow=2, ncol=2, byrow=TRUE, dimnames=list(c("Other ages", "40-49"), c("Other ages", "40-49"))))
   
   #Count nodes in main partnerships by age
   inpersXage <- data.frame(t(c("Other.ages" = sum(agemix_pers_bal[1,], na.rm=TRUE) + sum(agemix_pers_bal[,1], na.rm=TRUE), "40to49" = sum(agemix_pers_bal[2,], na.rm=TRUE) + sum(agemix_pers_bal[,2], na.rm=TRUE))))
