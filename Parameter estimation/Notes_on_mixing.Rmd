@@ -1,4 +1,4 @@
-# Mixing by age, race, and region (#mixing)
+# Mixing by age, race, and region (#notes_mixing)
 
 ```{r, include=FALSE}
 ####################################################################################
