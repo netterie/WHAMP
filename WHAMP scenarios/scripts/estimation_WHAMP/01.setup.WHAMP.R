@@ -149,8 +149,9 @@ st <- calc_nwstats_msm_whamp(
   durs.main = durs.main,
   durs.pers = durs.pers,
   ages = ages,
+  asmr.H = asmr.H,
   asmr.B = asmr.B,
-  asmr.W = asmr.W,
+  asmr.O = asmr.O,
   role.B.prob = role.B.prob,
   role.W.prob = role.W.prob)
 
