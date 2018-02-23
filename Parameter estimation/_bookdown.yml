@@ -20,6 +20,7 @@ rmd_files: ["index.Rmd",
 "Notes_on_most_recent_partner_limitations.Rmd",
 "Notes_on_defining_partner_age_boundaries.Rmd",
 "HIV_testing.Rmd",
-"Notes_on_PrEP.Rmd"
+"Notes_on_PrEP.Rmd",
+"Notes_on_model_processes.Rmd"
 ]
 

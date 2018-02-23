@@ -26,3 +26,4 @@ This document presents the results of data analyses for estimation of parameters
     * Notes on restricting alters to the modeled age range
     * Notes on HIV testing
     * Notes on PrEP eligiblity and use
+    * Notes on model assumptions and processes
