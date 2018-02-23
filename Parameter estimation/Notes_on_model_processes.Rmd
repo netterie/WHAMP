@@ -1,0 +1,4 @@
+# Notes on model assumptions and processes {#model_describe}
+
+## Births
+- We introduce new entries to the network at a rate to balance out general background mortality and exits due to aging out. This preserves the network size across time steps. New entries arrive at age 18, with a racial/ethnic and regional composition specified to match the target population totals. New arrivals are assumed to be HIV-negative, not on PrEP, and with behaviors and transmission-related attributes (e.g. circumcision and CCR5) distributed as they were distributed in the initial conditions.
