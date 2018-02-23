@@ -81,7 +81,18 @@ durs.pers <- 1/rates.pers
 
 # Age-sex-specific mortality rates
 ages <- 18:59
-asmr.H <- c(rep(0, 17),
+
+asmr.B <- c(rep(0, 17),
+            1-(1-c(rep(0.00159, 7),
+                   rep(0.00225, 10),
+                   rep(0.00348, 25)))^(1/(365/time.unit)), 1) #-- To make old code work with new age str, I added 20 to the last deaths vector
+
+asmr.W <- c(rep(0, 17),
+            1-(1-c(rep(0.00103, 7),
+                   rep(0.00133, 10),
+                   rep(0.00214, 25)))^(1/(365/time.unit)), 1) #-- To make old code work with new age str, I added 20 to the last deaths vector
+
+asmr.H..wa <- c(rep(0, 17),
             1-(1-c(rep(0.00056, 2),
                    rep(0.00108, 5),
                    rep(0.00109, 5),
@@ -92,7 +103,7 @@ asmr.H <- c(rep(0, 17),
                    rep(0.00430, 5),
                    rep(0.00651, 5)))^(1/(365/time.unit)), 1)
 
-asmr.B <- c(rep(0, 17),
+asmr.B..wa <- c(rep(0, 17),
             1-(1-c(rep(0.00110, 2),
                    rep(0.00203, 5),
                    rep(0.00230, 5),
@@ -103,7 +114,7 @@ asmr.B <- c(rep(0, 17),
                    rep(0.00862, 5),
                    rep(0.01348, 5)))^(1/(365/time.unit)), 1)
 
-asmr.O <- c(rep(0, 17),
+asmr.O..wa <- c(rep(0, 17),
             1-(1-c(rep(6e-04, 2),
                    rep(0.00119, 5),
                    rep(0.00146, 5),
@@ -149,9 +160,11 @@ st <- calc_nwstats_msm_whamp(
   durs.main = durs.main,
   durs.pers = durs.pers,
   ages = ages,
-  asmr.H = asmr.H,
-  asmr.B = asmr.B,
-  asmr.O = asmr.O,
+  asmr.B <- asmr.B,
+  asmr.W <- asmr.W,
+  asmr.H..wa = asmr.H..wa,
+  asmr.B..wa = asmr.B..wa,
+  asmr.O..wa = asmr.O..wa,
   role.B.prob = role.B.prob,
   role.W.prob = role.W.prob)
 
