@@ -35,7 +35,7 @@ num <- 10000
   num.EW <- num.H.EW + num.B.EW + num.O.EW
     
   
-# Age structure (proportion in each age group 18-24, 25-29... 50-59)
+# Age structure (proportion in each age group 18-24, 25-29... 55-59)
 agestr <- c(0.1594, 0.1319, 0.1292, 0.1173, 0.1183, 0.1148, 0.1071, 0.122)
     
 # mean/pers degree distributions matrices.
