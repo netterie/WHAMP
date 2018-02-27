@@ -102,44 +102,69 @@ if (load) {
          # Fit time
         runtime_min_fit_inst <- (proc.time()-startclock_inst)['elapsed']/60
         
+        est <- list(fit.m, fit.p, fit.i)
   }
 ```
 
-## Fit times
-Main network: `r round(runtime_min_fit_main, 1)` minutes
-Persistent: `r round(runtime_min_fit_pers, 1)` minutes
-Instantaneous: `r round(runtime_min_fit_inst, 1)` minutes
+## Fit times (NA if loaded models that were fitted in the estim script)
+Main network: `r ifelse(load==FALSE,round(runtime_min_fit_main, 1),NA)` minutes
+Persistent: `r ifelse(load==FALSE,round(runtime_min_fit_pers, 1),NA)` minutes
+Instantaneous: `r ifelse(load==FALSE,round(runtime_min_fit_inst, 1),NA)` minutes
 
 ## Suffificient statistics
 Main
 ```{r}
+if (load) {
+  est[[1]]
+} else {
 data.frame("ergm_term(s)" = as.character(formation.m)[-1], "target_stat(s)" = st$stats.m)
+}
 ```
 
 Persistent
 ```{r}
+if (load) {
+  est[[2]]
+} else {
 data.frame("ergm_term(s)" = as.character(formation.p)[-1], "target_stat(s)" = st$stats.p)
+}
 ```
 
 Instantaneous
 ```{r}
+if (load) {
+  est[[3]]
+} else {
 data.frame("ergm_term(s)" = as.character(formation.i)[-1], "target_stat(s)" = st$stats.i)
+}
 ```
 
 ## Summary of model fit
 Main
 ```{r}
+if (load) {
+  summary(est[[1]])
+} else {
 summary(fit.m)
+}
 ```
 
 Persistent
 ```{r}
+if (load) {
+  summary(est[[2]])
+} else {
 summary(fit.p)
+}
 ```
 
 Instantaneous
 ```{r}
+if (load) {
+  summary(est[[3]])
+} else {
 summary(fit.i)
+}
 ```
 
 ## MCMC diagnostics

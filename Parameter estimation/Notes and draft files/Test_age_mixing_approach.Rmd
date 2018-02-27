@@ -1,0 +1,340 @@
+# Walk through age mixing approach
+
+```{r, include=FALSE}
+####################################################################################
+# Setup
+####################################################################################
+#-----------------------------------------------------------------------------------
+# Load packages
+#-----------------------------------------------------------------------------------
+
+    library("tidyverse")
+    library("knitr")
+    library("kableExtra")
+    library("data.table")
+    library("survey")
+
+#-----------------------------------------------------------------------------------
+# Knitr options
+#-----------------------------------------------------------------------------------
+opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
+options(knitr.table.format = "html") 
+
+#-----------------------------------------------------------------------------------
+# Load data
+#-----------------------------------------------------------------------------------
+    load(file="/homes/dpwhite/R/GitHub Repos/WHAMP/Parameter estimation/Data/InternetSurveySample.Rdata")
+    load(file="/homes/dpwhite/R/GitHub Repos/WHAMP/Parameter estimation/Data/InternetSurvey_reweighted_neg.Rdata")
+    load(file="/homes/dpwhite/R/GitHub Repos/WHAMP/Parameter estimation/Data/InternetSurvey_reweighted_all.Rdata")
+        
+#-----------------------------------------------------------------------------------
+# Plot settings
+#-----------------------------------------------------------------------------------
+plot_background <- theme(panel.background = element_rect(fill="white", colour = "black")) +
+            theme(panel.grid.major = element_line(colour = "grey90"))
+theme_title <- theme(plot.title = element_text(hjust = 0.5, size=12)) 
+
+#-----------------------------------------------------------------------------------
+# Data manipulation
+#-----------------------------------------------------------------------------------
+# Make persistent degree indicator numeric, and cap it at 2 for those with 2+ since the network model caps men at 2 ongoing pers partners
+    sample_rake_all$variables$degpers <- ifelse(sample_rake_all$variables$degreecat_cas %in% "None", 0,
+                                              ifelse(sample_rake_all$variables$degreecat_cas %in% "One", 1,
+                                              ifelse(sample_rake_all$variables$degreecat_cas %in% "Two or more", 2,
+                                                     NA)))
+```
+
+We will capture age mixing using a term to specify the absolute difference in the square root of ego and alter ages. Since we only have data from the WHPP survey on the age of the most recent partner, we will weight the reported age mixing matrix in single years of age by the mean degree or rate of instantaneous partnerships. We will then take the averages of the off-diagonal terms to obtain a balanced matrix, which we will use to calculate the mean absolute difference between the square root of ego and alter ages. This approach is summarized below
+  1. obtain the row percentages for mixing in single years of age from the ego's perspective, 
+  2. multiply these row percentages by the mean degree (or the mean rate of instantaneous partnerships) for egos of a given age, 
+  3. multiply this product by the target population size of each age. This will produce a weighted mixing matrix. 
+  4. Balance the matrix by taking the mean of the off-diagonal elements.
+  5. Obtain the target statistic by taking the square root of ego and alter ages, calculating the absolute difference for each combination of ego and alter ages, weighting these differences by the edge count in the corresponding cell in the balanced matrix, and taking the mean of the non-zero elements.
+
+This approach assumes that mixing with the unobserved ties follows the same pattern as mixing with the observed ties, and that men who did not report on their main/persistnet/instantaneous partner have the same mixing propensities as those of the same age who did report on their main/persistnet/instantaneous partner. Since we did not observe age mixing to vary meaningfully by race/ethnicity or region (section \@ref(explore_heterogeneity)), there is not an indication that we need to account for heterogeneity on these characteristics, such that this approach seems reasonable. Additionally, in section \@ref(mrp_limitations), we did not observe any differences in main partnerships reported by those with 0 compared to those with 1+ persistent partnerships, suggesting that we can use data on the most recent partnership to represent all partnerships of that type.
+
+## Main partnerships
+The table below shows the unbalanced mixing matrix for main partnerships by age from the WHPP survey reweighted to the population totals for all men and scaled back to the total sample size from the WHPP survey. Note these counts are not integers because they are from the re-weighted sample. <span style=color:red>_When I get data from MMP on positives, use the WHPP sample reweighted to population totals for negative/unknown men, but may need to use the overall degree from the WHPP sample reweighted to the population totals for HIV-neg/unknown and HIV+ samples since MMP doesn't measure momentary degree._</span>
+```{r, echo=TRUE}
+#Conditional row probabilities
+  agemix_main <- prop.table(svytable(~age + mrp_ageinyears_approx, sample_rake_all[sample_rake_all$variables$mrp_type_ongoing %in% "Main"], Ntotal=dim(sample[sample$mrp_type_ongoing %in% "Main",])[1], round=FALSE),1)
+  agemix_main[1:5,1:5]
+
+  #Mean degree by age - calculate on subset for which casual degree is not missing to be consistent with how the overall degree matrix is defined so total edges are consistent
+  meandegXage_main <- svyby(~degree_main, ~age, sample_rake_all[!is.na(sample_rake_all$variables$degreecat_cas)], svymean, na.rm=TRUE)[2]
+  meandegXage_main[1:5,1]
+  
+  #N by age in reweighted sample (scaled back to the size of the original sample) -- scaling to the total N assumes that those with missing data on degree or who didn't provide the age of their most recent partner are msising at random
+    ## Allocate the number in each 5-yr age group by dividing evenly within the age groups (b/c the model assumes a flat distribution within specified age groups and samples randomly)
+    n <- dim(sample)[1]
+    agestr <- as.vector(prop.table(svytable(~age_cat, sample_rake_all, round=FALSE)))
+    nXage <- n*(c(rep(agestr[1]/7, 7), rep(agestr[2]/5, 5), rep(agestr[3]/5, 5), rep(agestr[4]/5, 5), rep(agestr[5]/5, 5), rep(agestr[6]/5, 5), rep(agestr[7]/5, 5), rep(agestr[8]/5, 5)))  
+  
+    ## If we were to use the totals by age in the reweighted sample, which does not allocate the proportion in each age group evenly by age
+      # nXage <- svytable(~age, sample_rake_all, Ntotal=dim(sample)[1], round=FALSE)
+      
+    nXage[1:5]
+    
+  #Reweighted mixing matrix, accounting for mean degree
+    # Check that agemix_main has the same number of rows as meandegXage_main and nXage (i.e. no ages had missing values for any of these)
+    if (!(dim(agemix_main)[1] == dim(meandegXage_main)[1])) {
+    stop("objects must each have a row for every age")
+    }
+    if (!(dim(agemix_main)[1] == length(nXage))) {
+    stop("objects must each have a row for every age")
+    }
+    if (!(dim(agemix_main)[1] == 42)) {
+    stop("objects must each have a row for every age")
+    }
+    
+    # Construct an empty data frame
+    agemix_main_rwt <- as.data.frame(matrix(rep(NA, dim(agemix_main)[1]*dim(agemix_main)[2]), byrow=TRUE, nrow=dim(agemix_main)[1]))
+    
+    # Multiply each row in agemix_main by the corresponding n and mean degree
+    for(i in 1:dim(agemix_main)[1]){
+      agemix_main_rwt[i, ] <- c(agemix_main[i,]*meandegXage_main[i,1]*nXage[i])
+    }
+    row.names(agemix_main_rwt)=c(row.names(agemix_main))
+    names(agemix_main_rwt) <- c(as.character(sort(unique(sample_rake_all$variables$mrp_ageinyears_approx))))
+  
+agemix_main_rwt[1:5,1:5]
+```
+
+Taking the average of the off-diagonal elements to balance the matrix, we get the following:
+```{r}
+# Check whether any ages are missing from the vectors or ego or alter age (i.e. make sure the matrix is symmetric)
+egoages <- as.numeric(row.names(agemix_main_rwt))
+alterages <- as.numeric(names(agemix_main_rwt))
+mismatch <- egoages[!(egoages %in% alterages)]
+
+# Add a column to the reweighted mixing matrix for the missing alter age (53) containing 0s to make the matrix symmetric
+agemix_main_rwt$`53` <- rep(0, dim(agemix_main_rwt)[1])
+# Reorder columns so they are in numeric order
+agemix_main_rwt <- agemix_main_rwt[c("18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", "40", "41", "42", "43", "44", "45", "46", "47", "48", "49", "50", "51", "52", "53", "54", "55", "56", "57", "58", "59")]
+```
+```{r, echo=TRUE}
+# Take average of off-diagonals to balance
+agemix_main_bal <- as.data.frame(matrix(c(rep(NA, dim(agemix_main_rwt)[1]*dim(agemix_main_rwt)[2])), nrow=dim(agemix_main_rwt[1])))
+
+for(i in 1:dim(agemix_main_rwt)[1]){
+  for(j in 1:dim(agemix_main_rwt)[2]){
+      agemix_main_bal[i,j] <- mean(c(agemix_main_rwt[i,j],agemix_main_rwt[j,i]))
+      agemix_main_bal[j,i] <- mean(c(agemix_main_rwt[i,j],agemix_main_rwt[j,i]))
+  }
+}
+  
+row.names(agemix_main_bal)=c(row.names(agemix_main_rwt))
+names(agemix_main_bal) <- names(agemix_main_rwt)
+  
+agemix_main_bal[1:5,1:5]
+```
+
+To calculate the target statistic, we take the absolute difference between the square root of each combination of ego and alter ages and weight it by the count in the corresponding cell in the balanced mixing matrix. We then take the mean of the non-zero weighted differences (because cells are zero if no partnerships of that age combination were reported, which should not be included), shown below.
+
+```{r, echo=TRUE}
+# Create vectors with the square root of ego and alter ages corresponding to the rows and columns in the balanced matrix
+sqrt.ego <- sqrt(as.integer(row.names(agemix_main_bal)))
+sqrt.alter <- sqrt(as.integer(names(agemix_main_bal)))
+
+# Create a matrix with the absolute differences between sqrt.ego and sqrt.alter weighted by the count in the corresponding cell in the balanced matrix
+absdiff_main <- matrix(c(rep(NA, dim(agemix_main_bal)[1]*dim(agemix_main_bal)[2])), nrow=dim(agemix_main_bal[1]))
+
+for(i in 1:dim(agemix_main_bal)[1]){
+  for(j in 1:dim(agemix_main_bal)[2]){
+    absdiff_main[i,j] <- abs(sqrt.ego[i]-sqrt.alter[j])*agemix_main_bal[i,j]
+  }
+}
+absdiff_main[1:5,1:5]
+
+# Take the mean as the sum of the values in the matrix divided by the total number of main partnerships
+(mean.absdiff_main <- round(sum(absdiff_main),5) / sum(agemix_main_bal))
+```
+
+## Persistent partnerships
+The table below shows the unbalanced mixing matrix for persistent partnerships by age from the WHPP survey reweighted to the population totals for all men and scaled back to the total sample size from the WHPP survey. Note these counts are not integers because they are from the re-weighted sample. <span style=color:red>_When I get data from MMP on positives, use the WHPP sample reweighted to population totals for negative/unknown men, but may need to use the overall degree from the WHPP sample reweighted to the population totals for HIV-neg/unknown and HIV+ samples since MMP doesn't measure momentary degree._</span>
+```{r, echo=TRUE}
+#Conditional row probabilities
+  agemix_pers <- prop.table(svytable(~age + mrp_ageinyears_approx, sample_rake_all[sample_rake_all$variables$mrp_type_ongoing %in% "Persistent"], Ntotal=dim(sample[sample$mrp_type_ongoing %in% "Persistent",])[1], round=FALSE),1)
+  agemix_pers[1:5,1:5]
+  
+  #Mean degree by age - calculate on subset for which main degree is not missing to be consistent with how the overall degree matrix is defined so total edges are consistent
+  meandegXage_pers <- svyby(~degpers, ~age, sample_rake_all[!is.na(sample_rake_all$variables$degree_main)], svymean, na.rm=TRUE)[2]
+  meandegXage_pers[1:5,]
+  
+  nXage[1:5]
+  
+  #Reweighted mixing matrix, accounting for mean degree
+    # Check that agemix_pers has the same number of rows as meandegXage_pers and nXage (i.e. no ages had missing values for any of these)
+    if (!(dim(agemix_pers)[1] == dim(meandegXage_pers)[1])) {
+    stop("objects must each have a row for every age")
+    }
+    if (!(dim(agemix_pers)[1] == length(nXage))) {
+    stop("objects must each have a row for every age")
+    }
+    if (!(dim(agemix_pers)[1] == 42)) {
+    stop("objects must each have a row for every age")
+    }
+    
+    # Construct an empty data frame
+    agemix_pers_rwt <- as.data.frame(matrix(rep(NA, dim(agemix_pers)[1]*dim(agemix_pers)[2]), byrow=TRUE, nrow=dim(agemix_pers)[1]))
+    
+    # Multiply each row in agemix_pers by the corresponding n and mean degree
+    for(i in 1:dim(agemix_pers)[1]){
+      agemix_pers_rwt[i, ] <- c(agemix_pers[i,]*meandegXage_pers[i,1]*nXage[i])
+    }
+    row.names(agemix_pers_rwt)=c(row.names(agemix_pers))
+    names(agemix_pers_rwt) <- c(as.character(sort(unique(sample_rake_all$variables$mrp_ageinyears_approx))))
+    
+# Replace NA cells (which resulted for ego ages where no persistent partners were named and/or the age of partners was missing) with 0
+  agemix_pers_rwt[is.na(agemix_pers_rwt)] <- 0
+  
+  agemix_pers_rwt[1:5,1:5]
+  
+```
+
+Taking the average of the off-diagonal elements to balance the matrix, we get the following:
+```{r}
+# Check whether any ages are missing from the vectors or ego or alter age (i.e. make sure the matrix is symmetric)
+egoages <- as.numeric(row.names(agemix_pers_rwt))
+alterages <- as.numeric(names(agemix_pers_rwt))
+mismatch <- egoages[!(egoages %in% alterages)]
+
+# Add a column to the reweighted mixing matrix for the missing alter age (53) containing 0s to make the matrix symmetric
+agemix_pers_rwt$`53` <- rep(0, dim(agemix_pers_rwt)[1])
+# Reorder columns so they are in numeric order
+agemix_pers_rwt <- agemix_pers_rwt[c("18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", "40", "41", "42", "43", "44", "45", "46", "47", "48", "49", "50", "51", "52", "53", "54", "55", "56", "57", "58", "59")]
+```
+
+```{r, echo=TRUE}
+
+# Take average of off-diagonals to balance
+agemix_pers_bal <- as.data.frame(matrix(c(rep(NA, dim(agemix_pers_rwt)[1]*dim(agemix_pers_rwt)[2])), nrow=dim(agemix_pers_rwt[1])))
+
+for(i in 1:dim(agemix_pers_rwt)[1]){
+  for(j in 1:dim(agemix_pers_rwt)[2]){
+      agemix_pers_bal[i,j] <- mean(c(agemix_pers_rwt[i,j],agemix_pers_rwt[j,i]))
+      agemix_pers_bal[j,i] <- mean(c(agemix_pers_rwt[i,j],agemix_pers_rwt[j,i]))
+  }
+}
+  
+row.names(agemix_pers_bal)=c(row.names(agemix_pers_rwt))
+names(agemix_pers_bal) <- names(agemix_pers_rwt)
+
+agemix_pers_bal[1:5,1:5]
+
+```
+
+To calculate the target statistic, we take the absolute difference between the square root of each combination of ego and alter ages and weight it by the count in the corresponding cell in the balanced mixing matrix. We then take the mean of the non-zero weighted differences (because cells are zero if no partnerships of that age combination were reported, which should not be included), shown below.
+
+```{r, echo=TRUE}
+# Create vectors with the square root of ego and alter ages corresponding to the rows and columns in the balanced matrix
+sqrt.ego <- sqrt(as.integer(row.names(agemix_pers_bal)))
+sqrt.alter <- sqrt(as.integer(names(agemix_pers_bal)))
+
+# Create a matrix with the absolute differences between sqrt.ego and sqrt.alter weighted by the count in the corresponding cell in the balanced matrix
+absdiff_pers <- matrix(c(rep(NA, dim(agemix_pers_bal)[1]*dim(agemix_pers_bal)[2])), nrow=dim(agemix_pers_bal[1]))
+
+for(i in 1:dim(agemix_pers_bal)[1]){
+  for(j in 1:dim(agemix_pers_bal)[2]){
+    absdiff_pers[i,j] <- abs(sqrt.ego[i]-sqrt.alter[j])*agemix_pers_bal[i,j]
+  }
+}
+
+absdiff_pers[1:5,1:5]
+
+# Take the mean as the sum of the values in the matrix divided by the total number of persistent partnerships
+(mean.absdiff_pers <- round(sum(absdiff_pers),5) / sum(agemix_pers_bal))
+```
+
+## Instantaneous partnerships
+The table below shows the unbalanced mixing matrix for instantaneous partnerships by age from the WHPP survey reweighted to the population totals for all men and scaled back to the total sample size from the WHPP survey. Note these counts are not integers because they are from the re-weighted sample. <span style=color:red>_When I get data from MMP on positives, use the WHPP sample reweighted to population totals for negative/unknown men, but may need to use the overall degree from the WHPP sample reweighted to the population totals for HIV-neg/unknown and HIV+ samples since MMP doesn't measure momentary degree._</span>
+```{r, echo=TRUE}
+#Conditional row probabilities
+  agemix_inst <- prop.table(svytable(~age + mrp_ageinyears_approx, sample_rake_all[sample_rake_all$variables$mrp_type_r %in% "One time"], Ntotal=dim(sample[sample$mrp_type_r %in% "One time",])[1], round=FALSE),1)
+  agemix_inst[1:5,1:5]
+  
+  #Mean rate of instantaneous partnerships by age 
+  rateinstXage <- svyby(~rate_inst, ~age, sample_rake_all, svymean, na.rm=TRUE)[2]
+  rateinstXage[1:5,]
+  
+  nXage[1:5]
+  
+  #Reweighted mixing matrix, accounting for mean rate_inst
+    # Check that agemix_inst has the same number of rows as rateinstXage and nXage (i.e. no ages had missing values for any of these)
+    if (!(dim(agemix_inst)[1] == dim(rateinstXage)[1])) {
+    stop("objects must each have a row for every age")
+    }
+    if (!(dim(agemix_inst)[1] == length(nXage))) {
+    stop("objects must each have a row for every age")
+    }
+    if (!(dim(agemix_inst)[1] == 42)) {
+    stop("objects must each have a row for every age")
+    }
+    
+    # Construct an empty data frame
+    agemix_inst_rwt <- as.data.frame(matrix(rep(NA, dim(agemix_inst)[1]*dim(agemix_inst)[2]), byrow=TRUE, nrow=dim(agemix_inst)[1]))
+    
+    # Multiply each row in agemix_inst by the corresponding n and mean degree
+    for(i in 1:dim(agemix_inst)[1]){
+      agemix_inst_rwt[i, ] <- c(agemix_inst[i,]*rateinstXage[i,1]*nXage[i])
+    }
+    row.names(agemix_inst_rwt)=c(row.names(agemix_inst))
+    names(agemix_inst_rwt) <- c(as.character(sort(unique(sample_rake_all$variables$mrp_ageinyears_approx))))
+    
+# Replace NA cells (which resulted for ego ages where no instantaneous partners were named and/or the age of partners was missing) with 0
+  agemix_inst_rwt[is.na(agemix_inst_rwt)] <- 0
+  agemix_inst_rwt[1:5,1:5]
+```
+
+Taking the average of the off-diagonal elements to balance the matrix, we get the following:
+```{r}
+# Check whether any ages are missing from the vectors or ego or alter age (i.e. make sure the matrix is symmetric)
+egoages <- as.numeric(row.names(agemix_inst_rwt))
+alterages <- as.numeric(names(agemix_inst_rwt))
+mismatch <- egoages[!(egoages %in% alterages)]
+
+# Add a column to the reweighted mixing matrix for the missing alter age (53) containing 0s to make the matrix symmetric
+agemix_inst_rwt$`53` <- rep(0, dim(agemix_inst_rwt)[1])
+# Reorder columns so they are in numeric order
+agemix_inst_rwt <- agemix_inst_rwt[c("18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", "40", "41", "42", "43", "44", "45", "46", "47", "48", "49", "50", "51", "52", "53", "54", "55", "56", "57", "58", "59")]
+```
+```{r, echo=TRUE}
+# Take average of off-diagonals to balance
+agemix_inst_bal <- as.data.frame(matrix(c(rep(NA, dim(agemix_inst_rwt)[1]*dim(agemix_inst_rwt)[2])), nrow=dim(agemix_inst_rwt[1])))
+
+for(i in 1:dim(agemix_inst_rwt)[1]){
+  for(j in 1:dim(agemix_inst_rwt)[2]){
+      agemix_inst_bal[i,j] <- mean(c(agemix_inst_rwt[i,j],agemix_inst_rwt[j,i]))
+      agemix_inst_bal[j,i] <- mean(c(agemix_inst_rwt[i,j],agemix_inst_rwt[j,i]))
+  }
+}
+  
+row.names(agemix_inst_bal)=c(row.names(agemix_inst_rwt))
+names(agemix_inst_bal) <- names(agemix_inst_rwt)
+  
+agemix_inst_bal[1:5,1:5]
+
+```
+
+To calculate the target statistic, we take the absolute difference between the square root of each combination of ego and alter ages and weight it by the count in the corresponding cell in the balanced mixing matrix. We then take the mean of the non-zero weighted differences (because cells are zero if no partnerships of that age combination were reported, which should not be included), shown below.
+
+```{r, echo=TRUE}
+# Create vectors with the square root of ego and alter ages corresponding to the rows and columns in the balanced matrix
+sqrt.ego <- sqrt(as.integer(row.names(agemix_inst_bal)))
+sqrt.alter <- sqrt(as.integer(names(agemix_inst_bal)))
+
+# Create a matrix with the absolute differences between sqrt.ego and sqrt.alter weighted by the count in the corresponding cell in the balanced matrix
+absdiff_inst <- matrix(c(rep(NA, dim(agemix_inst_bal)[1]*dim(agemix_inst_bal)[2])), nrow=dim(agemix_inst_bal[1]))
+
+for(i in 1:dim(agemix_inst_bal)[1]){
+  for(j in 1:dim(agemix_inst_bal)[2]){
+    absdiff_inst[i,j] <- abs(sqrt.ego[i]-sqrt.alter[j])*agemix_inst_bal[i,j]
+  }
+}
+
+absdiff_inst[1:5,1:5]
+
+# Take the mean as the sum of the values in the matrix divided by the total number of instantaneous partnerships
+(mean.absdiff_inst <- round(sum(absdiff_inst),5) / sum(agemix_inst_bal))
+
+```
