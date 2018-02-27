@@ -54,7 +54,7 @@ We will capture age mixing using a term to specify the absolute difference in th
 This approach assumes that mixing with the unobserved ties follows the same pattern as mixing with the observed ties, and that men who did not report on their main/persistent/instantaneous partner have the same mixing propensities as those of the same age who did report on their main/persistnet/instantaneous partner. Since we did not observe age mixing to vary meaningfully by race/ethnicity or region (section \@ref(explore_heterogeneity)), there is not an indication that we need to account for heterogeneity on these characteristics, such that this approach seems reasonable. Additionally, in section \@ref(mrp_limitations), we did not observe any differences in main partnerships reported by those with 0 compared to those with 1+ persistent partnerships, suggesting that we can use data on the most recent partnership to represent all partnerships of that type.
 
 ## Main partnerships
-The table below shows part of the unbalanced mixing matrix for main partnerships by age from the WHPP survey reweighted to the population totals for all men and scaled to 10,000 to produce stable estimates for the number in each age group. Note these counts are not integers because they are from the re-weighted sample. <span style=color:red>_When I get data from MMP on positives, use the WHPP sample reweighted to population totals for negative/unknown men, but may need to use the overall degree from the WHPP sample reweighted to the population totals for HIV-neg/unknown and HIV+ samples since MMP doesn't measure momentary degree._</span>
+The table below shows part of the unbalanced mixing matrix for main partnerships by age from the WHPP survey reweighted to the population totals for all men and scaled back to the size of the original WHPP sample. Note these counts are not integers because they are from the re-weighted sample. <span style=color:red>_When I get data from MMP on positives, use the WHPP sample reweighted to population totals for negative/unknown men, but may need to use the overall degree from the WHPP sample reweighted to the population totals for HIV-neg/unknown and HIV+ samples since MMP doesn't measure momentary degree._</span>
 ```{r}
 #Conditional row probabilities
   agemix_main <- prop.table(svytable(~age + mrp_ageinyears_approx, sample_rake_all[sample_rake_all$variables$mrp_type_ongoing %in% "Main"], round=FALSE),1)
@@ -62,28 +62,19 @@ The table below shows part of the unbalanced mixing matrix for main partnerships
   #Mean degree by age - calculate on subset for which casual degree is not missing to be consistent with how the overall degree matrix is defined so total edges are consistent
   meandegXage_main <- svyby(~degree_main, ~age, sample_rake_all[!is.na(sample_rake_all$variables$degreecat_cas)], svymean, na.rm=TRUE)[2]
    
-  #N by age in reweighted sample -- scaling to the total N assumes that those with missing data on degree or who didn't provide the age of their most recent partner are missing at random
-      n <- 10000
+  #N by age in reweighted sample
+   ## Scaling to the total N assumes that those with missing data on degree or who didn't provide the age of their most recent partner are missing at random
+   ## Allocate the number in each 5-yr age group by dividing evenly within the age groups (b/c the model assumes a flat distribution within specified age groups and samples randomly)
+      n <- dim(sample)[1]
       agestr <- as.vector(prop.table(svytable(~age_cat, sample_rake_all, round=FALSE)))
-      n.by.age <- c(round(n*agestr[1]), round(n*agestr[2]), round(n*agestr[3]), round(n*agestr[4]), round(n*agestr[5]), round(n*agestr[6]),
-                    round(n*agestr[7]))
-      n.by.age[8] <- n - sum(n.by.age[1:7])
-      age <- c(sample(seq(18, 24, 1), n.by.age[1], TRUE),
-             sample(seq(25, 29, 1), n.by.age[2], TRUE),
-             sample(seq(30, 34, 1), n.by.age[3], TRUE),
-             sample(seq(35, 39, 1), n.by.age[4], TRUE),
-             sample(seq(40, 44, 1), n.by.age[5], TRUE),
-             sample(seq(45, 49, 1), n.by.age[6], TRUE),
-             sample(seq(50, 54, 1), n.by.age[7], TRUE),
-             sample(seq(55, 59, 1), n.by.age[8], TRUE))
-      nXage <- table(age)
+      nXage <- n*(c(rep(agestr[1]/7, 7), rep(agestr[2]/5, 5), rep(agestr[3]/5, 5), rep(agestr[4]/5, 5), rep(agestr[5]/5, 5), rep(agestr[6]/5, 5), rep(agestr[7]/5, 5), rep(agestr[8]/5, 5)))
     
   #Reweighted mixing matrix, accounting for mean degree
     # Check that agemix_main has the same number of rows as meandegXage_main and nXage (i.e. no ages had missing values for any of these)
     if (!(dim(agemix_main)[1] == dim(meandegXage_main)[1])) {
     stop("objects must each have a row for every age")
     }
-    if (!(dim(agemix_main)[1] == dim(nXage)[1])) {
+    if (!(dim(agemix_main)[1] == length(nXage))) {
     stop("objects must each have a row for every age")
     }
     if (!(dim(agemix_main)[1] == 42)) {
@@ -158,7 +149,9 @@ for(i in 1:dim(agemix_main_bal)[1]){
 ```
 
 ## Persistent partnerships
-The table below shows part of the unbalanced mixing matrix for persistent partnerships by age from the WHPP survey reweighted to the population totals for all men and scaled to 10,000 to produce stable estimates for the number in each age group. Note these counts are not integers because they are from the re-weighted sample. <span style=color:red>_When I get data from MMP on positives, use the WHPP sample reweighted to population totals for negative/unknown men, but may need to use the overall degree from the WHPP sample reweighted to the population totals for HIV-neg/unknown and HIV+ samples since MMP doesn't measure momentary degree._</span>
+The table below shows part of the unbalanced mixing matrix for persistent partnerships by age from the WHPP survey reweighted to the population totals for all men and scaled back to the size of the original WHPP sample. Note these counts are not integers because they are from the re-weighted sample. <span style=color:red>_When I get data from MMP on positives, use the WHPP sample reweighted to population totals for negative/unknown men, but may need to use the overall degree from the WHPP sample reweighted to the population totals for HIV-neg/unknown and HIV+ samples since MMP doesn't measure momentary degree._</span>
+
+<span style=color:red>There are some ages for which no egos reported on most recent ongoing persistent or instantaneous partnerships, though men at these ages did report ongoing persistent or instantaneous partnerships. For the way we are calculating the target statistic, the partnerships for men at these ages are omitted. Consider trying to interpolate the row conditional probabilities for age mixing for men at these ages using the averages from the two nearest ages with non-missing data on the most recent partner ages. If I do this, delete the paragraph noting this in the "For_future_exploration.Rmd" file.</span>
 ```{r}
 #Conditional row probabilities
   agemix_pers <- prop.table(svytable(~age + mrp_ageinyears_approx, sample_rake_all[sample_rake_all$variables$mrp_type_ongoing %in% "Persistent"], round=FALSE),1)
@@ -171,7 +164,7 @@ The table below shows part of the unbalanced mixing matrix for persistent partne
     if (!(dim(agemix_pers)[1] == dim(meandegXage_pers)[1])) {
     stop("objects must each have a row for every age")
     }
-    if (!(dim(agemix_pers)[1] == dim(nXage)[1])) {
+    if (!(dim(agemix_pers)[1] == length(nXage))) {
     stop("objects must each have a row for every age")
     }
     if (!(dim(agemix_pers)[1] == 42)) {
@@ -249,7 +242,7 @@ for(i in 1:dim(agemix_pers_bal)[1]){
 ```
 
 ## Instantaneous partnerships
-The table below shows part of the the unbalanced mixing matrix for instantaneous partnerships by age from the WHPP survey reweighted to the population totals for all men and scaled to 10,000 to produce stable estimates for the number in each age group. Note these counts are not integers because they are from the re-weighted sample. <span style=color:red>_When I get data from MMP on positives, use the WHPP sample reweighted to population totals for negative/unknown men, but may need to use the overall degree from the WHPP sample reweighted to the population totals for HIV-neg/unknown and HIV+ samples since MMP doesn't measure momentary degree._</span>
+The table below shows part of the the unbalanced mixing matrix for instantaneous partnerships by age from the WHPP survey reweighted to the population totals for all men and scaled back to the size of the original WHPP sample. Note these counts are not integers because they are from the re-weighted sample. <span style=color:red>_When I get data from MMP on positives, use the WHPP sample reweighted to population totals for negative/unknown men, but may need to use the overall degree from the WHPP sample reweighted to the population totals for HIV-neg/unknown and HIV+ samples since MMP doesn't measure momentary degree._</span>
 ```{r}
 #Conditional row probabilities
   agemix_inst <- prop.table(svytable(~age + mrp_ageinyears_approx, sample_rake_all[sample_rake_all$variables$mrp_type_r %in% "One time"], round=FALSE),1)
@@ -262,7 +255,7 @@ The table below shows part of the the unbalanced mixing matrix for instantaneous
     if (!(dim(agemix_inst)[1] == dim(rateinstXage)[1])) {
     stop("objects must each have a row for every age")
     }
-    if (!(dim(agemix_inst)[1] == dim(nXage)[1])) {
+    if (!(dim(agemix_inst)[1] == length(nXage))) {
     stop("objects must each have a row for every age")
     }
     if (!(dim(agemix_inst)[1] == 42)) {
@@ -339,3 +332,8 @@ for(i in 1:dim(agemix_inst_bal)[1]){
 (mean.absdiff_inst <- round(sum(absdiff_inst),5) / sum(agemix_inst_bal))
 
 ```
+
+```{r}
+#Save the means from the three networks
+sqrtabsdiff_agemix <- c(mean.absdiff_main, mean.absdiff_pers, mean.absdiff_inst)
+save(sqrtabsdiff_agemix, file="Data/sqrtabsdiff_agemix.Rdata")
