@@ -32,6 +32,7 @@
     load(file="Data/prop.hom.mpi.H.Rdata")
     load(file="Data/prop.hom.mpi.B.Rdata")
     load(file="Data/prop.hom.mpi.O.Rdata")
+    load(file="Data/sqrtabsdiff_agemix.Rdata")
 
 # Set options
     opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
@@ -106,11 +107,12 @@ param_table <- function(table, param, description, value, alt_value, sources){
   parameters <- param_table(parameters, "durs.pers", "Mean duration of persistent partnerships in days", as.numeric(round(svyquantile(~pship_age_pers, sample_rake_all, quantile=.5, na.rm=TRUE)/log(2), 0)), NA, "WHPP survey, assumed to apply to HIV-negative and HIV-positive MSM")
   
   # Age mixing
+  parameters <- param_table(parameters, "sqrt.adiff", "Vector of length 3 with the mean absolute differences between the square root of ego and alter ages in main, persistent, and instantaneous partnerships", paste(round(sqrtabsdiff_agemix,4), collapse=", "), NA, "WHPP survey, assumed to apply to HIV-negative and HIV-positive MSM. EVENTUALLY REPLACE USING DATA ON MIXING BY AGE FROM MMP AND FROM THE WHPP SAMPLE REWEIGHTED TO NEG/UNK TOTALS")
   
   # Race mixing
-  parameters <- param_table(parameters, "prop.hom.mpi.H", "A vector of length 3 for the proportion of main, casual, and instantaneous partnerships involving Hispanic MSM that are homophilous on race", paste(prop.hom.mpi.H, collapse=", "), NA, "WHPP survey, assumed to apply to HIV-negative and HIV-positive MSM. EVENTUALLY REPLACE USING DATA ON MIXING BY RACE/ETH FROM MMP AND FROM THE WHPP SAMPLE REWEIGHTED TO NEG/UNK TOTALS. WILL NEED TO USE DATA FROM WHPP REWEIGHTED TO ALL FOR DEGREE AND RATE_INST")
-  parameters <- param_table(parameters, "prop.hom.mpi.B", "A vector of length 3 for the proportion of main, casual, and instantaneous partnerships involving black MSM that are homophilous on race", paste(prop.hom.mpi.B, collapse=", "), NA, "WHPP survey, assumed to apply to HIV-negative and HIV-positive MSM. EVENTUALLY REPLACE USING DATA ON MIXING BY RACE/ETH FROM MMP AND FROM THE WHPP SAMPLE REWEIGHTED TO NEG/UNK TOTALS. WILL NEED TO USE DATA FROM WHPP REWEIGHTED TO ALL FOR DEGREE AND RATE_INST")
-  parameters <- param_table(parameters, "prop.hom.mpi.O", "A vector of length 3 for the proportion of main, casual, and instantaneous partnerships involving other race/ethnicity MSM that are homophilous on race", paste(prop.hom.mpi.O, collapse=", "), NA, "WHPP survey, assumed to apply to HIV-negative and HIV-positive MSM. EVENTUALLY REPLACE USING DATA ON MIXING BY RACE/ETH FROM MMP AND FROM THE WHPP SAMPLE REWEIGHTED TO NEG/UNK TOTALS. WILL NEED TO USE DATA FROM WHPP REWEIGHTED TO ALL FOR DEGREE AND RATE_INST")
+  parameters <- param_table(parameters, "prop.hom.mpi.H", "A vector of length 3 for the proportion of main, casual, and instantaneous partnerships involving Hispanic MSM that are homophilous on race", paste(round(prop.hom.mpi.H, 4), collapse=", "), NA, "WHPP survey, assumed to apply to HIV-negative and HIV-positive MSM. EVENTUALLY REPLACE USING DATA ON MIXING BY RACE/ETH FROM MMP AND FROM THE WHPP SAMPLE REWEIGHTED TO NEG/UNK TOTALS. WILL NEED TO USE DATA FROM WHPP REWEIGHTED TO ALL FOR DEGREE AND RATE_INST")
+  parameters <- param_table(parameters, "prop.hom.mpi.B", "A vector of length 3 for the proportion of main, casual, and instantaneous partnerships involving black MSM that are homophilous on race", paste(round(prop.hom.mpi.B, 4), collapse=", "), NA, "WHPP survey, assumed to apply to HIV-negative and HIV-positive MSM. EVENTUALLY REPLACE USING DATA ON MIXING BY RACE/ETH FROM MMP AND FROM THE WHPP SAMPLE REWEIGHTED TO NEG/UNK TOTALS. WILL NEED TO USE DATA FROM WHPP REWEIGHTED TO ALL FOR DEGREE AND RATE_INST")
+  parameters <- param_table(parameters, "prop.hom.mpi.O", "A vector of length 3 for the proportion of main, casual, and instantaneous partnerships involving other race/ethnicity MSM that are homophilous on race", paste(round(prop.hom.mpi.O, 4), collapse=", "), NA, "WHPP survey, assumed to apply to HIV-negative and HIV-positive MSM. EVENTUALLY REPLACE USING DATA ON MIXING BY RACE/ETH FROM MMP AND FROM THE WHPP SAMPLE REWEIGHTED TO NEG/UNK TOTALS. WILL NEED TO USE DATA FROM WHPP REWEIGHTED TO ALL FOR DEGREE AND RATE_INST")
   
   # Regional mixing
   parameters <- param_table(parameters, "prop.hom.mpi.region", "A vector of length 3 for the proportion of main, persistent, and instantaneous partnerships that are within-region", "1, random, random", "1, 1, 1", "Assumption/sensitivity analyses")
@@ -125,7 +127,7 @@ param_table <- function(table, param, description, value, alt_value, sources){
   
 # Make a kable
 rownames(parameters) <- NULL
-kable(parameters, caption="Parameter values and sources", digits=c(0, 0, 4, 4, 0)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, width = "5cm") %>% column_spec(2, width = "10cm") %>% column_spec(3, width = "5cm") %>% column_spec(4, width = "8cm") %>% column_spec(5, width = "20cm") %>% group_rows("Model specifications", 1,1) %>% group_rows("Network composition",2,11) %>% group_rows("Degree distribution by nodal attribute", 12,23) %>% group_rows("Rate of instantaneous partnerships", 24,26) %>% group_rows("Partnership duration", 27,28) %>% group_rows("Racial/ethnic mixing", 29,31) %>% group_rows("Regional mixing", 32,32) %>% group_rows("Sex role", 33,33) %>% group_rows("Age-specific mortality", 34,36)
+kable(parameters, caption="Parameter values and sources", digits=c(0, 0, 4, 4, 0)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, width = "5cm") %>% column_spec(2, width = "10cm") %>% column_spec(3, width = "5cm") %>% column_spec(4, width = "8cm") %>% column_spec(5, width = "20cm") %>% group_rows("Model specifications", 1,1) %>% group_rows("Network composition",2,11) %>% group_rows("Degree distribution by nodal attribute", 12,23) %>% group_rows("Rate of instantaneous partnerships", 24,26) %>% group_rows("Partnership duration", 27,28) %>% group_rows("Age mixing", 29,29) %>% group_rows("Racial/ethnic mixing", 30,32) %>% group_rows("Regional mixing", 33,33) %>% group_rows("Sex role", 34,34) %>% group_rows("Age-specific mortality", 35,37)
 ```
 
 ```{r functions}
