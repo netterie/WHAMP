@@ -11,7 +11,7 @@ This document presents the results of data analyses for estimation of parameters
 * Age mixing
 * Race mixing
 * Regional mixing
-* One-time network
+* Anal sex role
 * Summary of decisions made
 * Issues for future exploration
 * References
