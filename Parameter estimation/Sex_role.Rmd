@@ -1,0 +1,35 @@
+# Anal sex role {#sexrole}
+```{r, echo=FALSE, include=FALSE}
+####################################################################################
+# Setup
+####################################################################################
+#-----------------------------------------------------------------------------------
+# Load packages
+#-----------------------------------------------------------------------------------
+
+    library("tidyverse")
+    library("ggplot2")
+    library("survey")
+    library("knitr")
+    library("kableExtra")
+
+#-----------------------------------------------------------------------------------
+# Load data
+#-----------------------------------------------------------------------------------
+    load(file="Data/InternetSurveySample.Rdata")
+    load(file="Data/InternetSurvey_reweighted_all.Rdata")
+    load(file="Data/InternetSurvey_reweighted_neg.Rdata")
+
+# Set options
+    opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
+    options(knitr.table.format = "html") 
+  
+```
+This section summarises the target statistics for anal sex role, operationalized as the proportion of nodes that are exclusively insertive, exclusively receptive, or versatile. We use data from the WHPP sample, reweighted to the population totals for all MSM. In the WHPP survey, respondents were asked to characterize their role in anal sex with all of their male anal sex partners in the past 12 months, with options of: Always a bottom (receptive partner), Mostly a bottom (receptive partner), Equally a bottom (receptive partner) and a top (insertive partner), mostly a top (insertive partner), or always a top (insertive partner). Responses of mostly a bottom, equally a bottom and a top, and mostly a top were classified as versatile. Based on the results of exploratory analyses (section \@ref(explore_heterogeneity)), we decided not to stratify sex role by any attributes.
+
+```{r}
+position <- as.data.frame(prop.table(svytable(~position_cat, sample_rake_all, round=FALSE)))
+
+kable(position, col.names = c("", "Percent"), digits=c(0, 3), align = c("l", "c"))  %>% column_spec(1, bold=T, color="black", width="4cm")
+
+```
