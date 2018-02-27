@@ -80,7 +80,7 @@ param_table <- function(table, param, description, value, alt_value, sources){
   parameters <- param_table(parameters, "prop.H.EW", "Proportion of the population that lives in Eastern WA and is Hispanic", round(prop.table(svytable(~region + hbo, sample_rake_all, round=FALSE)),4)[3,1], NA, "2011-2015 American Community Survey (ACS) 5-year estimates [@WA-census] and estimates of the size of the MSM population by county [@Grey2016]")
   parameters <- param_table(parameters, "prop.B.EW", "Proportion of the population that lives in Eastern WA and is black", round(prop.table(svytable(~region + hbo, sample_rake_all, round=FALSE)),4)[3,2], NA, "2011-2015 American Community Survey (ACS) 5-year estimates [@WA-census] and estimates of the size of the MSM population by county [@Grey2016]")
   parameters <- param_table(parameters, "prop.O.EW", "Proportion of the population that lives in Eastern WA and is other race/ethnicity", round(prop.table(svytable(~region + hbo, sample_rake_all, round=FALSE)),4)[3,3], NA, "2011-2015 American Community Survey (ACS) 5-year estimates [@WA-census] and estimates of the size of the MSM population by county [@Grey2016]")
-  parameters <- param_table(parameters, "agestr", "Proportion of the population in each age group 18-24 through 50-59", paste(round(prop.table(svytable(~age_cat, sample_rake_all, round=FALSE)),4), collapse=", "), NA, "2011-2015 American Community Survey (ACS) 5-year estimates [@WA-census] and estimates of the size of the MSM population by county [@Grey2016]")
+  parameters <- param_table(parameters, "agestr", "Proportion of the population in each age group 18-24 through 55-59", paste(round(prop.table(svytable(~age_cat, sample_rake_all, round=FALSE)),4), collapse=", "), NA, "2011-2015 American Community Survey (ACS) 5-year estimates [@WA-census] and estimates of the size of the MSM population by county [@Grey2016]")
   
   #Degree distribution by race/ethnicity, region, and age
   parameters <- param_table(parameters, "deg.mp", "Overall degree distribution (order: 0 main 0 pers, 0 main 1 pers, 0 main 2+ pers, 1 main 0 pers, 1 main 1 pers, 1 main 2+ pers)", paste(as.vector(t(round(prop.table(svytable(~degree_main + degreecat_cas, sample_rake_all, round=FALSE)),4))), collapse=", "), NA, "WHPP survey, assumed to apply to HIV-negative and HIV-positive MSM")
@@ -115,6 +115,9 @@ param_table <- function(table, param, description, value, alt_value, sources){
   # Regional mixing
   parameters <- param_table(parameters, "prop.hom.mpi.region", "A vector of length 3 for the proportion of main, persistent, and instantaneous partnerships that are within-region", "1, random, random", "1, 1, 1", "Assumption/sensitivity analyses")
   
+  # Sex role
+  parameters <- param_table(parameters, "role.prob", "A vector of length 3 for the probability of sexual role as insertive, receptive, and versatile", paste(round(prop.table(svytable(~position_cat, sample_rake_all, round=FALSE)),3)[[2]], round(prop.table(svytable(~position_cat, sample_rake_all, round=FALSE)),3)[[1]], round(prop.table(svytable(~position_cat, sample_rake_all, round=FALSE)),3)[[3]], sep=", "), NA, "WHPP survey, assumed to apply to HIV-negative and HIV-positive MSM.")
+  
   #Age- and race-specific mortality 
   parameters <- param_table(parameters, "asmr.ann.H", "Annual age-specific mortality rate for Hispanic men (for 5-year age groups from 15 to 59)", paste(round(asmr[,1]/100000, 5), collapse=", "), NA, "National Vital Statistics data, 2015")
   parameters <- param_table(parameters, "asmr.ann.B", "Annual age-specific mortality rate for black men (for 5-year age groups from 15 to 59)", paste(round(asmr[,2]/100000, 5), collapse=", "), NA, "National Vital Statistics data, 2015")
@@ -122,7 +125,7 @@ param_table <- function(table, param, description, value, alt_value, sources){
   
 # Make a kable
 rownames(parameters) <- NULL
-kable(parameters, caption="Parameter values and sources", digits=c(0, 0, 4, 4, 0)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, width = "5cm") %>% column_spec(2, width = "10cm") %>% column_spec(3, width = "5cm") %>% column_spec(4, width = "8cm") %>% column_spec(5, width = "20cm") %>% group_rows("Model specifications", 1,1) %>% group_rows("Network composition",2,11) %>% group_rows("Degree distribution by nodal attribute", 12,23) %>% group_rows("Rate of instantaneous partnerships", 24,26) %>% group_rows("Partnership duration", 27,28) %>% group_rows("Racial/ethnic mixing", 29,31) %>% group_rows("Regional mixing", 32)  group_rows("Age-specific mortality", 33,35)
+kable(parameters, caption="Parameter values and sources", digits=c(0, 0, 4, 4, 0)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, width = "5cm") %>% column_spec(2, width = "10cm") %>% column_spec(3, width = "5cm") %>% column_spec(4, width = "8cm") %>% column_spec(5, width = "20cm") %>% group_rows("Model specifications", 1,1) %>% group_rows("Network composition",2,11) %>% group_rows("Degree distribution by nodal attribute", 12,23) %>% group_rows("Rate of instantaneous partnerships", 24,26) %>% group_rows("Partnership duration", 27,28) %>% group_rows("Racial/ethnic mixing", 29,31) %>% group_rows("Regional mixing", 32,32) %>% group_rows("Sex role", 33,33) %>% group_rows("Age-specific mortality", 34,36)
 ```
 
 ```{r functions}
