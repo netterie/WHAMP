@@ -51,23 +51,33 @@ We will capture age mixing using a term to specify the absolute difference in th
   4. Balance the matrix by taking the mean of the off-diagonal elements.
   5. Obtain the target statistic by taking the square root of ego and alter ages, calculating the absolute difference for each combination of ego and alter ages, weighting these differences by the edge count in the corresponding cell in the balanced matrix, and taking the mean of the non-zero elements.
 
-This approach assumes that mixing with the unobserved ties follows the same pattern as mixing with the observed ties, and that men who did not report on their main/persistnet/instantaneous partner have the same mixing propensities as those of the same age who did report on their main/persistnet/instantaneous partner. Since we did not observe age mixing to vary meaningfully by race/ethnicity or region (section \@ref(explore_heterogeneity)), there is not an indication that we need to account for heterogeneity on these characteristics, such that this approach seems reasonable. Additionally, in section \@ref(mrp_limitations), we did not observe any differences in main partnerships reported by those with 0 compared to those with 1+ persistent partnerships, suggesting that we can use data on the most recent partnership to represent all partnerships of that type.
+This approach assumes that mixing with the unobserved ties follows the same pattern as mixing with the observed ties, and that men who did not report on their main/persistent/instantaneous partner have the same mixing propensities as those of the same age who did report on their main/persistnet/instantaneous partner. Since we did not observe age mixing to vary meaningfully by race/ethnicity or region (section \@ref(explore_heterogeneity)), there is not an indication that we need to account for heterogeneity on these characteristics, such that this approach seems reasonable. Additionally, in section \@ref(mrp_limitations), we did not observe any differences in main partnerships reported by those with 0 compared to those with 1+ persistent partnerships, suggesting that we can use data on the most recent partnership to represent all partnerships of that type.
 
 ## Main partnerships
-The table below shows the unbalanced mixing matrix for main partnerships by age from the WHPP survey reweighted to the population totals for all men and scaled back to the total sample size from the WHPP survey. Note these counts are not integers because they are from the re-weighted sample. <span style=color:red>_When I get data from MMP on positives, use the WHPP sample reweighted to population totals for negative/unknown men, but may need to use the overall degree from the WHPP sample reweighted to the population totals for HIV-neg/unknown and HIV+ samples since MMP doesn't measure momentary degree._</span>
+The table below shows part of the unbalanced mixing matrix for main partnerships by age from the WHPP survey reweighted to the population totals for all men and scaled to 10,000 to produce stable estimates for the number in each age group. Note these counts are not integers because they are from the re-weighted sample. <span style=color:red>_When I get data from MMP on positives, use the WHPP sample reweighted to population totals for negative/unknown men, but may need to use the overall degree from the WHPP sample reweighted to the population totals for HIV-neg/unknown and HIV+ samples since MMP doesn't measure momentary degree._</span>
 ```{r}
 #Conditional row probabilities
-  agemix_main <- prop.table(svytable(~age + mrp_ageinyears_approx, sample_rake_all[sample_rake_all$variables$mrp_type_ongoing %in% "Main"], Ntotal=dim(sample[sample$mrp_type_ongoing %in% "Main",])[1], round=FALSE),1)
+  agemix_main <- prop.table(svytable(~age + mrp_ageinyears_approx, sample_rake_all[sample_rake_all$variables$mrp_type_ongoing %in% "Main"], round=FALSE),1)
 
   #Mean degree by age - calculate on subset for which casual degree is not missing to be consistent with how the overall degree matrix is defined so total edges are consistent
   meandegXage_main <- svyby(~degree_main, ~age, sample_rake_all[!is.na(sample_rake_all$variables$degreecat_cas)], svymean, na.rm=TRUE)[2]
-  
-  #N by age in reweighted sample (scaled back to the size of the original sample) -- scaling to the total N assumes that those with missing data on degree or who didn't provide the age of their most recent partner are msising at random
-  nXage <- svytable(~age, sample_rake_all, Ntotal=dim(sample)[1], round=FALSE)
-    # # If we divide proportion in each age group evenly across the component years
-    # propXagegroup <- prop.table(svytable(~age_cat_alt, sample_rake_all))
-    # nXage_evendist <- dim(sample)[1]*(c(rep(propXagegroup[1]/7, 7), rep(propXagegroup[2]/5, 5), rep(propXagegroup[3]/5, 5), rep(propXagegroup[4]/5, 5), rep(propXagegroup[5]/10, 10), rep(propXagegroup[6]/10, 10)))
-
+   
+  #N by age in reweighted sample -- scaling to the total N assumes that those with missing data on degree or who didn't provide the age of their most recent partner are missing at random
+      n <- 10000
+      agestr <- as.vector(prop.table(svytable(~age_cat, sample_rake_all, round=FALSE)))
+      n.by.age <- c(round(n*agestr[1]), round(n*agestr[2]), round(n*agestr[3]), round(n*agestr[4]), round(n*agestr[5]), round(n*agestr[6]),
+                    round(n*agestr[7]))
+      n.by.age[8] <- n - sum(n.by.age[1:7])
+      age <- c(sample(seq(18, 24, 1), n.by.age[1], TRUE),
+             sample(seq(25, 29, 1), n.by.age[2], TRUE),
+             sample(seq(30, 34, 1), n.by.age[3], TRUE),
+             sample(seq(35, 39, 1), n.by.age[4], TRUE),
+             sample(seq(40, 44, 1), n.by.age[5], TRUE),
+             sample(seq(45, 49, 1), n.by.age[6], TRUE),
+             sample(seq(50, 54, 1), n.by.age[7], TRUE),
+             sample(seq(55, 59, 1), n.by.age[8], TRUE))
+      nXage <- table(age)
+    
   #Reweighted mixing matrix, accounting for mean degree
     # Check that agemix_main has the same number of rows as meandegXage_main and nXage (i.e. no ages had missing values for any of these)
     if (!(dim(agemix_main)[1] == dim(meandegXage_main)[1])) {
@@ -91,7 +101,8 @@ The table below shows the unbalanced mixing matrix for main partnerships by age 
     names(agemix_main_rwt) <- c(as.character(sort(unique(sample_rake_all$variables$mrp_ageinyears_approx))))
   
 # Make a kable
-kable(agemix_main_rwt, align=c(rep("c", dim(agemix_main_rwt)[2]), digits=c(rep(1, dim(agemix_main_rwt)[2])))) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, bold=T, color="black", width="2cm")
+agemix_main_rwt.kbl <- agemix_main_rwt[1:10,1:10]
+kable(agemix_main_rwt.kbl, align=c(rep("c", dim(agemix_main_rwt.kbl)[2])), digits=c(rep(2, dim(agemix_main_rwt.kbl)[2]))) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, bold=T, color="black", width="2cm")
 
 ```
 
@@ -119,8 +130,10 @@ for(i in 1:dim(agemix_main_rwt)[1]){
   
 row.names(agemix_main_bal)=c(row.names(agemix_main_rwt))
 names(agemix_main_bal) <- names(agemix_main_rwt)
-  
-kable(agemix_main_bal, align=c(rep("c", dim(agemix_main_bal)[2]), digits=c(rep(1, dim(agemix_main_bal)[2])))) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, bold=T, color="black", width="2cm")
+
+# Make a kable
+agemix_main_bal.kbl <- agemix_main_bal[1:10,1:10]
+kable(agemix_main_bal.kbl, align=c(rep("c", dim(agemix_main_bal.kbl)[2])), digits=c(rep(2, dim(agemix_main_bal.kbl)[2]))) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, bold=T, color="black", width="2cm")
 
 ```
 
@@ -140,24 +153,18 @@ for(i in 1:dim(agemix_main_bal)[1]){
   }
 }
 
-# Take the mean of the non-zero values in this matrix
-round((mean.absdiff_main <- mean(absdiff_main[absdiff_main>0])),5)
+# Take the mean as the sum of the values in the matrix divided by the total number of main partnerships
+(mean.absdiff_main <- round(sum(absdiff_main),5) / sum(agemix_main_bal))
 ```
 
 ## Persistent partnerships
-The table below shows the unbalanced mixing matrix for persistent partnerships by age from the WHPP survey reweighted to the population totals for all men and scaled back to the total sample size from the WHPP survey. Note these counts are not integers because they are from the re-weighted sample. <span style=color:red>_When I get data from MMP on positives, use the WHPP sample reweighted to population totals for negative/unknown men, but may need to use the overall degree from the WHPP sample reweighted to the population totals for HIV-neg/unknown and HIV+ samples since MMP doesn't measure momentary degree._</span>
+The table below shows part of the unbalanced mixing matrix for persistent partnerships by age from the WHPP survey reweighted to the population totals for all men and scaled to 10,000 to produce stable estimates for the number in each age group. Note these counts are not integers because they are from the re-weighted sample. <span style=color:red>_When I get data from MMP on positives, use the WHPP sample reweighted to population totals for negative/unknown men, but may need to use the overall degree from the WHPP sample reweighted to the population totals for HIV-neg/unknown and HIV+ samples since MMP doesn't measure momentary degree._</span>
 ```{r}
 #Conditional row probabilities
-  agemix_pers <- prop.table(svytable(~age + mrp_ageinyears_approx, sample_rake_all[sample_rake_all$variables$mrp_type_ongoing %in% "Persistent"], Ntotal=dim(sample[sample$mrp_type_ongoing %in% "Persistent",])[1], round=FALSE),1)
+  agemix_pers <- prop.table(svytable(~age + mrp_ageinyears_approx, sample_rake_all[sample_rake_all$variables$mrp_type_ongoing %in% "Persistent"], round=FALSE),1)
 
   #Mean degree by age - calculate on subset for which main degree is not missing to be consistent with how the overall degree matrix is defined so total edges are consistent
   meandegXage_pers <- svyby(~degpers, ~age, sample_rake_all[!is.na(sample_rake_all$variables$degree_main)], svymean, na.rm=TRUE)[2]
-  
-  #N by age in reweighted sample (scaled back to the size of the original sample)
-  nXage <- svytable(~age, sample_rake_all, Ntotal=dim(sample)[1], round=FALSE)
-    # # If we divide proportion in each age group evenly across the component years
-    # propXagegroup <- prop.table(svytable(~age_cat_alt, sample_rake_all))
-    # nXage_evendist <- dim(sample)[1]*(c(rep(propXagegroup[1]/7, 7), rep(propXagegroup[2]/5, 5), rep(propXagegroup[3]/5, 5), rep(propXagegroup[4]/5, 5), rep(propXagegroup[5]/10, 10), rep(propXagegroup[6]/10, 10)))
 
   #Reweighted mixing matrix, accounting for mean degree
     # Check that agemix_pers has the same number of rows as meandegXage_pers and nXage (i.e. no ages had missing values for any of these)
@@ -185,7 +192,8 @@ The table below shows the unbalanced mixing matrix for persistent partnerships b
   agemix_pers_rwt[is.na(agemix_pers_rwt)] <- 0
   
 # Make a kable
-kable(agemix_pers_rwt, align=c(rep("c", dim(agemix_pers_rwt)[2]), digits=c(rep(1, dim(agemix_pers_rwt)[2])))) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, bold=T, color="black", width="2cm")
+agemix_pers_rwt.kbl <- agemix_pers_rwt[1:10,1:10]
+kable(agemix_pers_rwt.kbl, align=c(rep("c", dim(agemix_pers_rwt.kbl)[2])), digits=c(rep(2, dim(agemix_pers_rwt.kbl)[2]))) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, bold=T, color="black", width="2cm")
 
 ```
 
@@ -214,7 +222,9 @@ for(i in 1:dim(agemix_pers_rwt)[1]){
 row.names(agemix_pers_bal)=c(row.names(agemix_pers_rwt))
 names(agemix_pers_bal) <- names(agemix_pers_rwt)
   
-kable(agemix_pers_bal, align=c(rep("c", dim(agemix_pers_bal)[2]), digits=c(rep(1, dim(agemix_pers_bal)[2])))) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, bold=T, color="black", width="2cm")
+# Make a kable
+agemix_pers_bal.kbl <- agemix_pers_bal[1:10,1:10]
+kable(agemix_pers_bal.kbl, align=c(rep("c", dim(agemix_pers_bal.kbl)[2])), digits=c(rep(2, dim(agemix_pers_bal.kbl)[2]))) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, bold=T, color="black", width="2cm")
 
 ```
 
@@ -234,25 +244,18 @@ for(i in 1:dim(agemix_pers_bal)[1]){
   }
 }
 
-# Take the mean of the non-zero values in this matrix
-round((mean.absdiff_pers <- mean(absdiff_pers[absdiff_pers>0])),5)
-
+# Take the mean as the sum of the values in the matrix divided by the total number of persistent partnerships
+(mean.absdiff_pers <- round(sum(absdiff_pers),5) / sum(agemix_pers_bal))
 ```
 
 ## Instantaneous partnerships
-The table below shows the unbalanced mixing matrix for instantaneous partnerships by age from the WHPP survey reweighted to the population totals for all men and scaled back to the total sample size from the WHPP survey. Note these counts are not integers because they are from the re-weighted sample. <span style=color:red>_When I get data from MMP on positives, use the WHPP sample reweighted to population totals for negative/unknown men, but may need to use the overall degree from the WHPP sample reweighted to the population totals for HIV-neg/unknown and HIV+ samples since MMP doesn't measure momentary degree._</span>
+The table below shows part of the the unbalanced mixing matrix for instantaneous partnerships by age from the WHPP survey reweighted to the population totals for all men and scaled to 10,000 to produce stable estimates for the number in each age group. Note these counts are not integers because they are from the re-weighted sample. <span style=color:red>_When I get data from MMP on positives, use the WHPP sample reweighted to population totals for negative/unknown men, but may need to use the overall degree from the WHPP sample reweighted to the population totals for HIV-neg/unknown and HIV+ samples since MMP doesn't measure momentary degree._</span>
 ```{r}
 #Conditional row probabilities
-  agemix_inst <- prop.table(svytable(~age + mrp_ageinyears_approx, sample_rake_all[sample_rake_all$variables$mrp_type_r %in% "One time"], Ntotal=dim(sample[sample$mrp_type_r %in% "One time",])[1], round=FALSE),1)
+  agemix_inst <- prop.table(svytable(~age + mrp_ageinyears_approx, sample_rake_all[sample_rake_all$variables$mrp_type_r %in% "One time"], round=FALSE),1)
 
   #Mean rate of instantaneous partnerships by age 
   rateinstXage <- svyby(~rate_inst, ~age, sample_rake_all, svymean, na.rm=TRUE)[2]
-  
-  #N by age in reweighted sample (scaled back to the size of the original sample)
-  nXage <- svytable(~age, sample_rake_all, Ntotal=dim(sample)[1], round=FALSE)
-    # # If we divide proportion in each age group evenly across the component years
-    # propXagegroup <- prop.table(svytable(~age_cat_alt, sample_rake_all))
-    # nXage_evendist <- dim(sample)[1]*(c(rep(propXagegroup[1]/7, 7), rep(propXagegroup[2]/5, 5), rep(propXagegroup[3]/5, 5), rep(propXagegroup[4]/5, 5), rep(propXagegroup[5]/10, 10), rep(propXagegroup[6]/10, 10)))
 
   #Reweighted mixing matrix, accounting for mean rate_inst
     # Check that agemix_inst has the same number of rows as rateinstXage and nXage (i.e. no ages had missing values for any of these)
@@ -280,7 +283,8 @@ The table below shows the unbalanced mixing matrix for instantaneous partnership
   agemix_inst_rwt[is.na(agemix_inst_rwt)] <- 0
   
 # Make a kable
-kable(agemix_inst_rwt, align=c(rep("c", dim(agemix_inst_rwt)[2]), digits=c(rep(1, dim(agemix_inst_rwt)[2])))) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, bold=T, color="black", width="2cm")
+agemix_inst_rwt.kbl <- agemix_inst_rwt[1:10,1:10]
+kable(agemix_inst_rwt.kbl, align=c(rep("c", dim(agemix_inst_rwt.kbl)[2])), digits=c(rep(2, dim(agemix_inst_rwt.kbl)[2]))) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, bold=T, color="black", width="2cm")
 
 ```
 
@@ -308,8 +312,10 @@ for(i in 1:dim(agemix_inst_rwt)[1]){
   
 row.names(agemix_inst_bal)=c(row.names(agemix_inst_rwt))
 names(agemix_inst_bal) <- names(agemix_inst_rwt)
-  
-kable(agemix_inst_bal, align=c(rep("c", dim(agemix_inst_bal)[2]), digits=c(rep(1, dim(agemix_inst_bal)[2])))) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, bold=T, color="black", width="2cm")
+
+# Make a kable
+agemix_inst_bal.kbl <- agemix_inst_bal[1:10,1:10]
+kable(agemix_inst_bal.kbl, align=c(rep("c", dim(agemix_inst_bal.kbl)[2])), digits=c(rep(2, dim(agemix_inst_bal.kbl)[2]))) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, bold=T, color="black", width="2cm")
 
 ```
 
@@ -329,7 +335,7 @@ for(i in 1:dim(agemix_inst_bal)[1]){
   }
 }
 
-# Take the mean of the non-zero values in this matrix
-round((mean.absdiff_inst <- mean(absdiff_inst[absdiff_inst>0])),5)
+# Take the mean as the sum of the values in the matrix divided by the total number of instantaneous partnerships
+(mean.absdiff_inst <- round(sum(absdiff_inst),5) / sum(agemix_inst_bal))
 
 ```
