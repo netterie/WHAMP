@@ -15,25 +15,19 @@ num <- 10000
     ##--ORIGINAL CODE - DELETE WHEN FINISH DE-BUGGING
     num.B <- 5000
     num.W <- 5000
-    
-  num.H.KC <- num * 0.0549
-  num.B.KC <- num * 0.0421
-  num.O.KC <- num * 0.4739
-  num.H.OW <- num * 0.0309
-  num.B.OW <- num * 0.0166
-  num.O.OW <- num * 0.2807
-  num.H.EW <- num * 0.0222
-  num.B.EW <- num * 0.0021
-  num.O.EW <- num - sum(num.H.KC, num.B.KC, num.O.KC, num.H.OW, num.B.OW, num.O.OW, num.H.EW, num.B.EW) #set value for last group to remainder to avoid rounding error
+  ## Vector with the proportion of Hispanic, black, and other race/ethnicity men in King County, other western WA, and eastern WA
+  prop.race.region <- c(0.0549, 0.0421, 0.4739, 0.0309, 0.0166, 0.2807, 0.0222, 0.0021)
+  prop.race.region[9] <- 1 - sum(prop.race.region[1:8]) # Set last proportion to avoid rounding errors
+  race.region <- apportion_lr(num, c("H.KC", "B.KC", "O.KC", "H.OW", "B.OW", "O.OW", "H.EW", "B.EW", "O.EW"),
+                             prop.race.region)
   
-  num.H..wa <- num.H.KC + num.H.OW + num.H.EW
-  num.B..wa <- num.B.KC + num.B.OW + num.B.EW
-  num.O..wa <- num.O.KC + num.O.OW + num.O.EW
+  num.H..wa <- sum(race.region %in% c("H.KC", "H.OW", "H.EW"))
+  num.B..wa <- sum(race.region %in% c("B.KC", "B.OW", "B.EW"))
+  num.O..wa <- sum(race.region %in% c("O.KC", "O.OW", "O.EW"))
   
-  num.KC <- num.H.KC + num.B.KC + num.O.KC
-  num.OW <- num.H.OW + num.B.OW + num.O.OW
-  num.EW <- num.H.EW + num.B.EW + num.O.EW
-    
+  num.KC <- sum(race.region %in% c("H.KC", "B.KC", "O.KC"))
+  num.OW <- sum(race.region %in% c("H.OW", "B.OW", "O.OW"))
+  num.EW <- sum(race.region %in% c("H.EW", "B.EW", "O.EW"))
   
 # Age structure (proportion in each age group 18-24, 25-29... 55-59)
 agestr <- c(0.1594, 0.1319, 0.1292, 0.1173, 0.1183, 0.1148, 0.1071, 0.122)
