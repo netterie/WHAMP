@@ -8,3 +8,9 @@ Parameter estimation_old
 *templates/
 data/
 est/
+InternetSurvey_reweighted*
+InternetSurveySample*
+prepsurvey_clean4R.csv
+nodefactor_pers_age.Rdata
+rate_inst_mdeg.Rdata
+Parameter estimation/Data/
