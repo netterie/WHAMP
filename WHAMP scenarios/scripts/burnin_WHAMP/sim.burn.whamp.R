@@ -3,14 +3,15 @@
 library("methods")
 suppressMessages(library("EpiModelHIV"))
 
-## Environmental Arguments
-simno <- Sys.getenv("SIMNO")
-jobno <- Sys.getenv("PBS_ARRAYID")
-njobs <- as.numeric(Sys.getenv("NJOBS"))
-fsimno <- paste(simno, jobno, sep = ".")
+# ## Environmental Arguments - use these only when running simulations on Hyak
+# simno <- Sys.getenv("SIMNO")
+# jobno <- Sys.getenv("PBS_ARRAYID")
+# njobs <- as.numeric(Sys.getenv("NJOBS"))
+# fsimno <- paste(simno, jobno, sep = ".")
 
 ## Parameters
 load("WHAMP scenarios/est/nwstats.whamp.rda")
+load("WHAMP scenarios/est/fit.whamp.rda")
 
 param <- param_msm_whamp(nwstats = st,
                    rgc.tprob = 0.398,
@@ -25,12 +26,21 @@ param <- param_msm_whamp(nwstats = st,
                    hiv.uct.rr = 1.73,
                    hiv.dual.rr = 0.2)
 init <- init_msm_whamp(nwstats = st)
-control <- control_msm_whamp(simno = fsimno,
-                       nsteps = 3120,
-                       nsims = 16, ncores = 16,
-                       verbose = FALSE)
+# Use this code for control when debugging on csde or home machine
+control <- control_msm_whamp(nsteps = 10,
+                             nsims = 1,
+                             verbose = FALSE)
+## Use this version of the control code when running simulations on Hyak
+# control <- control_msm_whamp(simno = fsimno,
+#                        nsteps = 3120,
+#                        nsims = 16, ncores = 16,
+#                        verbose = FALSE)
 
 ## Simulation
-netsim_hpc("WHAMP scenarios/est/fit.whamp.rda", param, init, control, verbose = FALSE)
-process_simfiles(simno = simno, min.n = njobs, compress = TRUE,
-                 outdir = "data/", verbose = FALSE)
+  # Use this version when running simulations on CSDE or home machine to test and de-bug
+  netsim(est, param, init, control)
+
+  ## Use this code when running simulations on Hyak
+  # netsim_hpc(est, param, init, control, verbose = FALSE)
+  # process_simfiles(simno = simno, min.n = njobs, compress = TRUE,
+  #                  outdir = "data/", verbose = FALSE)
