@@ -4,7 +4,7 @@
 suppressMessages(library("EpiModelHIV"))
 rm(list = ls())
 
-load("WHAMP scenarios/est/nwstats.whamp.rda")
+load("/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/nwstats.whamp.rda")
 
 
 # 1. Main Model -----------------------------------------------------------
@@ -75,7 +75,7 @@ fit.i <- netest(nw.inst,
 
 # Save data
 est <- list(fit.m, fit.p, fit.i)
-save(est, file = "WHAMP scenarios/est/fit.whamp.rda")
+save(est, file = "/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/fit.whamp.rda")
 
 
 # Diagnostics -------------------------------------------------------------
