@@ -21,13 +21,15 @@ num <- 10000
   race.region <- apportion_lr(num, c("H.KC", "B.KC", "O.KC", "H.OW", "B.OW", "O.OW", "H.EW", "B.EW", "O.EW"),
                              prop.race.region)
   
-  num.H..wa <- sum(race.region %in% c("H.KC", "H.OW", "H.EW"))
-  num.B..wa <- sum(race.region %in% c("B.KC", "B.OW", "B.EW"))
-  num.O..wa <- sum(race.region %in% c("O.KC", "O.OW", "O.EW"))
-  
-  num.KC <- sum(race.region %in% c("H.KC", "B.KC", "O.KC"))
-  num.OW <- sum(race.region %in% c("H.OW", "B.OW", "O.OW"))
-  num.EW <- sum(race.region %in% c("H.EW", "B.EW", "O.EW"))
+  num.H.KC <- sum(race.region %in% "H.KC")
+  num.B.KC <- sum(race.region %in% "B.KC")
+  num.O.KC <- sum(race.region %in% "O.KC")
+  num.H.OW <- sum(race.region %in% "H.OW")
+  num.B.OW <- sum(race.region %in% "B.OW")
+  num.O.OW <- sum(race.region %in% "O.OW")
+  num.H.EW <- sum(race.region %in% "H.EW")
+  num.B.EW <- sum(race.region %in% "B.EW")
+  num.O.EW <- sum(race.region %in% "O.EW")
   
 # Age structure (proportion in each age group 18-24, 25-29... 55-59)
 agestr <- c(0.1594, 0.1319, 0.1292, 0.1173, 0.1183, 0.1148, 0.1071, 0.122)
@@ -130,13 +132,16 @@ st <- calc_nwstats_msm_whamp(
   time.unit = time.unit,
   num.B = num.B,
   num.W = num.W,
-  num.H..wa <- num.H..wa,
-  num.B..wa <- num.B..wa,
-  num.O..wa <- num.O..wa,
-  num.KC <- num.KC,
-  num.OW <- num.OW,
-  num.EW <- num.EW,
-  agestr <- agestr,
+  num.H.KC = num.H.KC,
+  num.B.KC = num.B.KC,
+  num.O.KC = num.O.KC,
+  num.H.OW = num.H.OW,
+  num.B.OW = num.B.OW,
+  num.O.OW = num.O.OW,
+  num.H.EW = num.H.EW,
+  num.B.EW = num.B.EW,
+  num.O.EW = num.O.EW,
+  agestr = agestr,
   deg.mp.B = deg.mp.B,
   deg.mp.W = deg.mp.W,
   mdeg.inst.B = mdeg.inst.B,
@@ -162,5 +167,5 @@ st <- calc_nwstats_msm_whamp(
   role.B.prob = role.B.prob,
   role.W.prob = role.W.prob)
 
-save(st, file = "WHAMP scenarios/est/nwstats.whamp.rda")
+save(st, file = "/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/nwstats.whamp.rda")
 rm(list = ls())
