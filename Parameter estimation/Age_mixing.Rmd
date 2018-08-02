@@ -59,7 +59,7 @@ The table below shows part of the unbalanced mixing matrix for main partnerships
 #Conditional row probabilities
   agemix_main <- prop.table(svytable(~age + mrp_ageinyears_approx, sample_rake_all[sample_rake_all$variables$mrp_type_ongoing %in% "Main"], round=FALSE),1)
 
-  #Mean degree by age - calculate on subset for which casual degree is not missing to be consistent with how the overall degree matrix is defined so total edges are consistent
+  #Mean degree by age - calculate on subset for which casual degree is not missing to be consistent with how the overall degree matrix is defined
   meandegXage_main <- svyby(~degree_main, ~age, sample_rake_all[!is.na(sample_rake_all$variables$degreecat_cas)], svymean, na.rm=TRUE)[2]
    
   #N by age in reweighted sample
@@ -156,7 +156,7 @@ The table below shows part of the unbalanced mixing matrix for persistent partne
 #Conditional row probabilities
   agemix_pers <- prop.table(svytable(~age + mrp_ageinyears_approx, sample_rake_all[sample_rake_all$variables$mrp_type_ongoing %in% "Persistent"], round=FALSE),1)
 
-  #Mean degree by age - calculate on subset for which main degree is not missing to be consistent with how the overall degree matrix is defined so total edges are consistent
+  #Mean degree by age - calculate on subset for which main degree is not missing to be consistent with how the overall degree matrix is defined
   meandegXage_pers <- svyby(~degpers, ~age, sample_rake_all[!is.na(sample_rake_all$variables$degree_main)], svymean, na.rm=TRUE)[2]
 
   #Reweighted mixing matrix, accounting for mean degree
