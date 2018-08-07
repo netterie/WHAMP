@@ -90,7 +90,7 @@ From the balanced mixing matrices, we get the following mean persistent degrees:
 #Mean degree by race/ethnicity
     meandegp.H <- degree$deg.mp.H[3,2] + 2*degree$deg.mp.H[3,3]   
     meandegp.B <- degree$deg.mp.B[3,2] + 2*degree$deg.mp.B[3,3]
-    meandegp.O <- degree$deg.mp.B[3,2] + 2*degree$deg.mp.O[3,3]
+    meandegp.O <- degree$deg.mp.O[3,2] + 2*degree$deg.mp.O[3,3]
 
   #N by race in reweighted sample (scaled back to the size of the original sample)
   nXrace <- svytable(~hbo, sample_rake_all, Ntotal=dim(sample)[1], round=FALSE)
