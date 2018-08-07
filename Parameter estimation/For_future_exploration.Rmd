@@ -5,6 +5,9 @@ This section documents issues that we decided to flag for future consideration, 
 ## Age distribution
 We decided to weight the sample to match the age distribution reported for males in the census. The issue is that this may not correspond to the age distribution of MSM, particularly if there is differential migration for MSM and non-MSM. We could eventually try to tackle this, perhaps using Susie Cassel's data on migration patterns from the Mobile study. We could represent internal migration as changes in the regional attribute by age. However, incorporating this would require weighting the sample to the joint distriubtion of age and region, which stretch the current data quite thin. 
 
+## Partnership formation by age
+In exploratory analyses with the WHPP data, the probabilities of having any persistent partners, concurrent persistent partners, and having a persistent partner concurrent with a main partner were all higher for men aged 40-49. However, examination of mixing matrices by age group (40-49 vs other) revealed imbalances wherein men aged 40-49 reported more partnerships with men of other ages than these men reported with men aged 40-49. When taking the mean of off-diagonal elements to account for this imbalance, the difference in persistent degree by age attenuated. Patterns of partnership formation across the life course would be valuable to investigate further with more (and more appropriate) data.
+
 ## Age mixing by age
 Section \@ref(explore_heterogeneity) documents that parameterizing age mixing as the absolute difference in the square root of ego and alter ages does not fully acount for heterogeneity in age mixing by the age of the partners. Even after taking the difference in the cube root of ego and alter ages, age differences are greater for older egos. Further research is needed to identify ways to paramterize age mixing to remove heterogeneity by age.
 
