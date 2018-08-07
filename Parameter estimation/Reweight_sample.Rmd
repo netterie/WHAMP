@@ -124,14 +124,14 @@ options(knitr.table.format = "html")
     pop.age.neg <- cbind.data.frame(age_cat_alt = c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"), Freq = c(round(pop.age.all$Freq - pop.age.pos$Freq)))
 
 #-----------------------------------------------------------------------------------
-# Post-stratify and rake the survey sample using population totals for negatives only
+# Rake the survey sample using population totals for negatives only
 #-----------------------------------------------------------------------------------
     sample_rake_neg <- rake(samplesvy, list(~hbo+region, ~age_cat_alt), list(pop.raceregion.neg, pop.age.neg))
     
      save(sample_rake_neg, file="Data/InternetSurvey_reweighted_neg.Rdata")
      
 #-----------------------------------------------------------------------------------
-# Post-stratify and rake the survey sample using population totals for all MSM
+# Rake the survey sample using population totals for all MSM
 #-----------------------------------------------------------------------------------
     sample_rake_all <- rake(samplesvy, list(~hbo+region, ~age_cat_alt), list(pop.raceregion.all, pop.age.all))
     
