@@ -34,53 +34,49 @@ num <- 10000
 agestr <- sumto1(c(0.1594, 0.1319, 0.1292, 0.1173, 0.1183, 0.1148, 0.1071, 0.122))
     
 # mean/pers degree distributions matrices.
-deg.mp <- matrix(sumto1(c(0.4073, 0.0766, 0.0675, 
-                          0.3472, 0.0473, 0.0541)), byrow = TRUE, nrow = 2)
-deg.mp.H <- matrix(sumto1(c(0.37, 0.0804, 0.0377, 
-                            0.4134, 0.0551, 0.0434)), byrow = TRUE, nrow = 2)
-deg.mp.B <- matrix(sumto1(c(0.5413, 0.048, 0.0961, 
-                            0.2171, 0.0225, 0.0751)), byrow = TRUE, nrow = 2)
-deg.mp.O <- matrix(sumto1(c(0.4027, 0.0781, 0.0692, 
-                            0.3481, 0.048, 0.0539)), byrow = TRUE, nrow = 2)
-deg.mp.KC <- matrix(sumto1(c(0.3588, 0.0832, 0.0739, 
-                             0.3798, 0.0462, 0.058)), byrow = TRUE, nrow = 2)
-deg.mp.OW <- matrix(sumto1(c(0.4902, 0.0691, 0.0511, 
-                             0.2853, 0.0518, 0.0526)), byrow = TRUE, nrow = 2)
-deg.mp.EW <- matrix(sumto1(c(0.4271, 0.0619, 0.0825, 
-                             0.3547, 0.0389, 0.0349)), byrow = TRUE, nrow = 2)
-deg.mp.40to49 <- matrix(sumto1(c(0.3057, 0.1098, 0.0984, 
-                                 0.3275, 0.0576, 0.1011)), byrow = TRUE, nrow = 2)
-deg.mp.otherages <- matrix(sumto1(c(0.4401, 0.0659, 0.0575, 
-                                    0.3536, 0.0439, 0.0389)), byrow = TRUE, nrow = 2)
+deg.mp <- matrix(sumto1(c(0.4086, 0.0759, 0.0671, 
+                          0.3481, 0.047, 0.0534)), byrow = TRUE, nrow = 2)
+deg.mp.H <- matrix(sumto1(c(0.2366, 0.1575, 0.0391,
+                            0.3413, 0.1759, 0.0496)), byrow = TRUE, nrow = 2)
+deg.mp.B <- matrix(sumto1(c(0.4923, 0.0814, 0.0839, 
+                            0.2307, 0.0395, 0.0723)), byrow = TRUE, nrow = 2)
+deg.mp.O <- matrix(sumto1(c(0.4275, 0.062, 0.0696, 
+                            0.3548, 0.0337, 0.0523)), byrow = TRUE, nrow = 2)
+deg.mp.KC <- matrix(sumto1(c(0.3609, 0.0824, 0.0735, 
+                             0.3792, 0.0464, 0.0577)), byrow = TRUE, nrow = 2)
+deg.mp.OW <- matrix(sumto1(c(0.4885, 0.0688, 0.0517, 
+                             0.289, 0.0502, 0.0518)), byrow = TRUE, nrow = 2)
+deg.mp.EW <- matrix(sumto1(c(0.4186, 0.0621, 0.0806, 
+                             0.364, 0.0401, 0.0346)), byrow = TRUE, nrow = 2)
 
-# Instant rates (Mean rate of one-off partnerships (degree) per day by momentary degree 
+# Instantaneous partner rates (Mean rate (degree) of inst partnerships per day by momentary main/pers degree)
   # (order: 0 main 0 pers, 0 main 1 pers, 0 main 2+ pers, 1 main 0 pers, 1 main 1 pers, 1 main 2+ pers)
-mdeg.inst <- matrix(c(0.015843, 0.006068, 0.021088, 
-                             0.00708, 0.009796, 0.032999), byrow = TRUE, nrow = 2) 
+mdeg.inst <- matrix(c(0.015734, 0.005987, 0.021057, 
+                      0.007052, 0.009709, 0.032598), byrow = TRUE, nrow = 2) 
 
-# Quintile distribution of overall AI rates
-qnts.18to49 <- c(0, 0.000508, 0.004995, 0.05502)
-qnts.50to59 <- c(0, 0, 0.001387, 0.021098)
+# Quintile distribution of overall instantaneous AI rates
+qnts.18to49 <- c(0, 0.000525, 0.005024, 0.054838)
+qnts.50to59 <- c(0, 0, 0.001551, 0.021283)
 
-# Proportion in same-race partnerships (main, casl, inst)
-prop.hom.mpi.B <- prop.hom.mpi.W <- (c(0.9484, 0.9019, 0.9085) +
-                                     c(0.9154, 0.8509, 0.8944))/2
+# Mean rate of instantaneous partnerships by race (black, Hispanic, other)
+inst.bho <- c(0.0202, 0.012978, 0.012418)
 
-# Mean age diffs (main, casl, inst)
+# Mean rate of instantaneous partnerships by region (EW, KC, OW)
+inst.region <- c(0.011216, 0.014955, 0.01)
+
+# Proportion in same-race partnerships (main, pers, inst)
+prop.hom.mpi.H <- c(0.4229, 0.1631, 0.1787)
+prop.hom.mpi.B <- c(0.2939, 0.0701, 0.0853)
+prop.hom.mpi.O <- c(0.8911, 0.7847, 0.7666)
+
+# Mean age diffs (main, casl, inst) #-- UPDATE
 sqrt.adiff.BB <- c(0.417, 0.498, 0.456)
 sqrt.adiff.BW <- c(0.454, 0.629, 0.585)
 sqrt.adiff.WW <- c(0.520, 0.632, 0.590)
 
 # Mean durations
-rates.main <- mean(c(0.002876,
-                     0.002692,
-                     0.001803))
-rates.pers <- mean(c(0.007617,
-                     0.003501,
-                     0.006931))
-
-durs.main <- 1/rates.main
-durs.pers <- 1/rates.pers
+durs.main <- 1020
+durs.pers <- 192
 
 # Age-sex-specific mortality rates
 ages <- 18:59
@@ -129,14 +125,12 @@ asmr.O..wa <- c(rep(0, 17),
                    rep(0.00885, 5)))^(1/(365/time.unit)), 1)
 
 # I, R, V role frequencies
-role.B.prob <- role.W.prob <- (c(0.242, 0.321, 0.437) +
-                               c(0.228, 0.228, 0.544))/2
+role.prob <- c(0.15, 0.205, 0.645)
 
 
 # Create meanstats
 st <- calc_nwstats_msm_whamp(
   method = 1,
-  pers.by.age = 0,
   time.unit = time.unit,
   num.B = num.B,
   num.W = num.W,
@@ -157,13 +151,14 @@ st <- calc_nwstats_msm_whamp(
   deg.mp.KC = deg.mp.KC,
   deg.mp.OW = deg.mp.OW,
   deg.mp.EW = deg.mp.EW,
-  deg.mp.40to49 = deg.mp.40to49,
-  deg.mp.otherages = deg.mp.otherages,
   mdeg.inst = mdeg.inst,
   qnts.18to49 = qnts.18to49,
   qnts.50to59 = qnts.50to59,
+  inst.bho = inst.bho,
+  inst.region = inst.region,
+  prop.hom.mpi.H = prop.hom.mpi.H,
   prop.hom.mpi.B = prop.hom.mpi.B,
-  prop.hom.mpi.W = prop.hom.mpi.W,
+  prop.hom.mpi.O = prop.hom.mpi.O,
   balance = "mean",
   sqrt.adiff.BB = sqrt.adiff.BB,
   sqrt.adiff.WW = sqrt.adiff.WW,
@@ -178,8 +173,7 @@ st <- calc_nwstats_msm_whamp(
   asmr.H..wa = asmr.H..wa,
   asmr.B..wa = asmr.B..wa,
   asmr.O..wa = asmr.O..wa,
-  role.B.prob = role.B.prob,
-  role.W.prob = role.W.prob)
+  role.prob = role.prob)
 
 save(st, file = "/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/nwstats.whamp.rda")
 rm(list = ls())
