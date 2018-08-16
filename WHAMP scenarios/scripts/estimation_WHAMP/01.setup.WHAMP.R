@@ -16,8 +16,7 @@ num <- 10000
     num.B <- 5000
     num.W <- 5000
   ## Vector with the proportion of Hispanic, black, and other race/ethnicity men in King County, other western WA, and eastern WA
-  prop.race.region <- c(0.0549, 0.0421, 0.4739, 0.0309, 0.0166, 0.2807, 0.0222, 0.0021)
-  prop.race.region[9] <- 1 - sum(prop.race.region[1:8]) # Set last proportion to avoid rounding errors
+  prop.race.region <- sumto1(c(0.0549, 0.0421, 0.4739, 0.0309, 0.0166, 0.2807, 0.0222, 0.0021, 0.0767))
   race.region <- apportion_lr(num, c("H.KC", "B.KC", "O.KC", "H.OW", "B.OW", "O.OW", "H.EW", "B.EW", "O.EW"),
                              prop.race.region)
   
@@ -32,28 +31,36 @@ num <- 10000
   num.O.EW <- sum(race.region %in% "O.EW")
   
 # Age structure (proportion in each age group 18-24, 25-29... 55-59)
-agestr <- c(0.1594, 0.1319, 0.1292, 0.1173, 0.1183, 0.1148, 0.1071, 0.122)
+agestr <- sumto1(c(0.1594, 0.1319, 0.1292, 0.1173, 0.1183, 0.1148, 0.1071, 0.122))
     
 # mean/pers degree distributions matrices.
-deg.mp.B <- deg.mp.W <-
-  (matrix(c(0.506, 0.151, 0.053,
-            0.207, 0.061, 0.022), byrow = TRUE, nrow = 2) +
-   matrix(c(0.435, 0.184, 0.095,
-            0.233, 0.033, 0.020), byrow = TRUE, nrow = 2))/2
+deg.mp <- matrix(sumto1(c(0.4073, 0.0766, 0.0675, 
+                          0.3472, 0.0473, 0.0541)), byrow = TRUE, nrow = 2)
+deg.mp.H <- matrix(sumto1(c(0.37, 0.0804, 0.0377, 
+                            0.4134, 0.0551, 0.0434)), byrow = TRUE, nrow = 2)
+deg.mp.B <- matrix(sumto1(c(0.5413, 0.048, 0.0961, 
+                            0.2171, 0.0225, 0.0751)), byrow = TRUE, nrow = 2)
+deg.mp.O <- matrix(sumto1(c(0.4027, 0.0781, 0.0692, 
+                            0.3481, 0.048, 0.0539)), byrow = TRUE, nrow = 2)
+deg.mp.KC <- matrix(sumto1(c(0.3588, 0.0832, 0.0739, 
+                             0.3798, 0.0462, 0.058)), byrow = TRUE, nrow = 2)
+deg.mp.OW <- matrix(sumto1(c(0.4902, 0.0691, 0.0511, 
+                             0.2853, 0.0518, 0.0526)), byrow = TRUE, nrow = 2)
+deg.mp.EW <- matrix(sumto1(c(0.4271, 0.0619, 0.0825, 
+                             0.3547, 0.0389, 0.0349)), byrow = TRUE, nrow = 2)
+deg.mp.40to49 <- matrix(sumto1(c(0.3057, 0.1098, 0.0984, 
+                                 0.3275, 0.0576, 0.1011)), byrow = TRUE, nrow = 2)
+deg.mp.otherages <- matrix(sumto1(c(0.4401, 0.0659, 0.0575, 
+                                    0.3536, 0.0439, 0.0389)), byrow = TRUE, nrow = 2)
 
-# Instant rates
-mdeg.inst.B <- mdeg.inst.W <-
-  (matrix(c(0.010402, 0.012954, 0.011485,
-            0.007912, 0.007424, 0.007424), byrow = TRUE, nrow = 2) +
-   matrix(c(0.008186, 0.012017, 0.013024,
-            0.008151, 0.008341, 0.008341), byrow = TRUE, nrow = 2))/2
+# Instant rates (Mean rate of one-off partnerships (degree) per day by momentary degree 
+  # (order: 0 main 0 pers, 0 main 1 pers, 0 main 2+ pers, 1 main 0 pers, 1 main 1 pers, 1 main 2+ pers)
+mdeg.inst <- matrix(c(0.015843, 0.006068, 0.021088, 
+                             0.00708, 0.009796, 0.032999), byrow = TRUE, nrow = 2) 
 
 # Quintile distribution of overall AI rates
-qnts.W <- qnts.B <- c(0.0000,
-                      0.0010,
-                      0.0054,
-                      0.0102,
-                      0.0315)
+qnts.18to49 <- c(0, 0.000508, 0.004995, 0.05502)
+qnts.50to59 <- c(0, 0, 0.001387, 0.021098)
 
 # Proportion in same-race partnerships (main, casl, inst)
 prop.hom.mpi.B <- prop.hom.mpi.W <- (c(0.9484, 0.9019, 0.9085) +
@@ -129,6 +136,7 @@ role.B.prob <- role.W.prob <- (c(0.242, 0.321, 0.437) +
 # Create meanstats
 st <- calc_nwstats_msm_whamp(
   method = 1,
+  pers.by.age = 0,
   time.unit = time.unit,
   num.B = num.B,
   num.W = num.W,
@@ -142,12 +150,18 @@ st <- calc_nwstats_msm_whamp(
   num.B.EW = num.B.EW,
   num.O.EW = num.O.EW,
   agestr = agestr,
+  deg.mp = deg.mp,
+  deg.mp.H = deg.mp.H,
   deg.mp.B = deg.mp.B,
-  deg.mp.W = deg.mp.W,
-  mdeg.inst.B = mdeg.inst.B,
-  mdeg.inst.W = mdeg.inst.W,
-  qnts.B = qnts.B,
-  qnts.W = qnts.W,
+  deg.mp.O = deg.mp.O,
+  deg.mp.KC = deg.mp.KC,
+  deg.mp.OW = deg.mp.OW,
+  deg.mp.EW = deg.mp.EW,
+  deg.mp.40to49 = deg.mp.40to49,
+  deg.mp.otherages = deg.mp.otherages,
+  mdeg.inst = mdeg.inst,
+  qnts.18to49 = qnts.18to49,
+  qnts.50to59 = qnts.50to59,
   prop.hom.mpi.B = prop.hom.mpi.B,
   prop.hom.mpi.W = prop.hom.mpi.W,
   balance = "mean",
