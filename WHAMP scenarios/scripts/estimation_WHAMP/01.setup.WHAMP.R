@@ -69,10 +69,8 @@ prop.hom.mpi.H <- c(0.4229, 0.1631, 0.1787)
 prop.hom.mpi.B <- c(0.2939, 0.0701, 0.0853)
 prop.hom.mpi.O <- c(0.8911, 0.7847, 0.7666)
 
-# Mean age diffs (main, casl, inst) #-- UPDATE
-sqrt.adiff.BB <- c(0.417, 0.498, 0.456)
-sqrt.adiff.BW <- c(0.454, 0.629, 0.585)
-sqrt.adiff.WW <- c(0.520, 0.632, 0.590)
+# Mean age diffs (main, pers, inst)
+sqrt.adiff.mpi <- c(0.539, 0.7619, 0.7741)
 
 # Mean durations
 durs.main <- 1020
@@ -160,9 +158,7 @@ st <- calc_nwstats_msm_whamp(
   prop.hom.mpi.B = prop.hom.mpi.B,
   prop.hom.mpi.O = prop.hom.mpi.O,
   balance = "mean",
-  sqrt.adiff.BB = sqrt.adiff.BB,
-  sqrt.adiff.WW = sqrt.adiff.WW,
-  sqrt.adiff.BW = sqrt.adiff.BW,
+  sqrt.adiff.mpi = sqrt.adiff.mpi,
   diss.main = ~offset(edges),
   diss.pers = ~offset(edges),
   durs.main = durs.main,
