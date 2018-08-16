@@ -61,9 +61,6 @@ qnts.50to59 <- c(0, 0, 0.001551, 0.021283)
 # Mean rate of instantaneous partnerships by race (black, Hispanic, other)
 inst.bho <- c(0.0202, 0.012978, 0.012418)
 
-# Mean rate of instantaneous partnerships by region (EW, KC, OW)
-inst.region <- c(0.011216, 0.014955, 0.01)
-
 # Proportion in same-race partnerships (main, pers, inst)
 prop.hom.mpi.H <- c(0.4229, 0.1631, 0.1787)
 prop.hom.mpi.B <- c(0.2939, 0.0701, 0.0853)
@@ -71,6 +68,9 @@ prop.hom.mpi.O <- c(0.8911, 0.7847, 0.7666)
 
 # Mean age diffs (main, pers, inst)
 sqrt.adiff.mpi <- c(0.539, 0.7619, 0.7741)
+
+# Region mixing (main, pers, inst)
+prop.hom.region.mpi <- c(1.0, 0.8, 0.8)
 
 # Mean durations
 durs.main <- 1020
@@ -153,12 +153,11 @@ st <- calc_nwstats_msm_whamp(
   qnts.18to49 = qnts.18to49,
   qnts.50to59 = qnts.50to59,
   inst.bho = inst.bho,
-  inst.region = inst.region,
   prop.hom.mpi.H = prop.hom.mpi.H,
   prop.hom.mpi.B = prop.hom.mpi.B,
   prop.hom.mpi.O = prop.hom.mpi.O,
-  balance = "mean",
   sqrt.adiff.mpi = sqrt.adiff.mpi,
+  prop.hom.region.mpi,
   diss.main = ~offset(edges),
   diss.pers = ~offset(edges),
   durs.main = durs.main,
