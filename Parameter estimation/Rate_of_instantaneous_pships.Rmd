@@ -31,7 +31,7 @@
  
 
 ```
-The statistics in this file are based on the total number of reported instantaneous partnerships in the past 12 months. To account for differential missingness in data on the number of one-time partners in the past 12 months, we impute values for respondents with missing data using data from respondents of the same race/ethnicity, region, and age group. We do this by defining a restricted sample of people who had complete data on the number of one-time partners and main and persistent momentary degree.^[Because we define the rate of one-time partners stratified by main/persistent degree, we need to define the sample as those with non-missing data on all three variables. Only `r sum(!is.na(sample$deg_matrix) & is.na(sample$rate_inst))` people had missing data on the rate of one-time partners who did not have missing data on main/persistent degree, and `r sum(is.na(sample$deg_matrix) & !is.na(sample$rate_inst))` had missing data on main/pers degree who did not have missing data on the number of one-time partners.] We then rake this restricted sample to the joint distribution of race/ethnicity and region and simultaneously to the marginal distribution by age in the target population (see section \@ref(reweight) for details on this approach). Because we do not have data specific to HIV-positive men on these parameters, we rake to the population totals for all MSM. This approach assumes that there is non-differential missingness. It ensures that the rate of instantaneous partnerships defined by main/persistent degree and age are consistent and imply the same total number of partnerships (see [issue 39](https://github.com/statnet/WHAMP/issues/39)). We also define the rate of instantaneous partnerships by race/ethnicity and region for use in calculating mixing (`nodematch`) target statistics.
+The statistics in this file are based on the total number of reported instantaneous partnerships in the past 12 months. To account for differential missingness in data on the number of one-time partners in the past 12 months, we impute values for respondents with missing data using data from respondents of the same race/ethnicity, region, and age group. We do this by defining a restricted sample of people who had complete data on the number of one-time partners and main and persistent momentary degree.^[Because we define the rate of one-time partners stratified by main/persistent degree, we need to define the sample as those with non-missing data on all three variables. Only `r sum(!is.na(sample$deg_matrix) & is.na(sample$rate_inst))` people had missing data on the rate of one-time partners who did not have missing data on main/persistent degree, and `r sum(is.na(sample$deg_matrix) & !is.na(sample$rate_inst))` had missing data on main/pers degree who did not have missing data on the number of one-time partners.] We then rake this restricted sample to the joint distribution of race/ethnicity and region and simultaneously to the marginal distribution by age in the target population (see section \@ref(reweight) for details on this approach). Because we do not have data specific to HIV-positive men on these parameters, we rake to the population totals for all MSM. This approach assumes that there is non-differential missingness. It ensures that the rate of instantaneous partnerships defined by main/persistent degree and age are consistent and imply the same total number of partnerships (see [issue 39](https://github.com/statnet/WHAMP/issues/39)). We also define the rate of instantaneous partnerships by race/ethnicity for use in calculating mixing (`nodematch`) target statistics.
 
 ```{r, impute}
 #-----------------------------------------------------------------------------------
@@ -180,21 +180,4 @@ kable(meansXhbo, caption="Mean rate of instantaneous partnerships per day by rac
 
 #save means
 save(meansXhbo, file="Data/rate_inst_hbo.Rdata")
-```
-
-## Instantaneous partnerships by region
-The rate of instantaneous partnerships by region is needed to calcalate target statistics for regional mixing.
-```{r rate_instXregion}
-means.region <- svyby(~rate_inst, ~region, sample_rake_rate.inst, svymean, na.rm=TRUE)
-meansXregion <- cbind.data.frame("Region" = means.region$region, "Mean" = round(means.region$rate_inst, 6))
-
-#Reorder region var to alphabetical order
-meansXregion$Region <- factor(meansXregion$Region, levels = c("Eastern WA", "King County", "Western WA"))
-meansXregion <- meansXregion %>% arrange(Region)
-
-#Make kable
-kable(meansXregion, caption="Mean rate of instantaneous partnerships per day by region", digits=c(6)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1:2, width = "4cm")
-
-#save means
-save(meansXregion, file="Data/rate_inst_region.Rdata")
 ```
