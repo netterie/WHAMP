@@ -1,5 +1,4 @@
-
-## Paper 1 estimation file
+# WHAMP network estimation
 
 suppressMessages(library("EpiModelHIV"))
 rm(list = ls())
@@ -16,12 +15,20 @@ nw.main <- base_nw_msm_whamp(st)
 nw.main <- assign_degree_whamp(nw.main, deg.type = "pers", nwstats = st)
 
 # Formulas
-formation.m <- ~edges
+formation.m <- ~edges +
+                nodefactor("deg.pers") +
+                nodefactor("race..wa", base=3) + 
+                nodefactor("region", base=2) +
+                nodematch("race..wa", diff=TRUE) +
+                absdiff("sqrt.age") +
+                offset(nodematch("role.class", diff = TRUE, keep = 1:2)) +
+                offset(nodemix("region", base = c(1,3,6)))
 
 # Fit model
 fit.m <- netest(nw.main,
                 formation = formation.m,
                 target.stats = st$stats.m,
+                coef.form = c(-Inf, -Inf, -Inf, -Inf, -Inf),
                 coef.diss = st$coef.diss.m,
                 constraints = ~bd(maxout = 1),
                 set.control.ergm = control.ergm(MPLE.max.dyad.types = 1e10,
@@ -38,12 +45,19 @@ nw.pers <- nw.main
 nw.pers <- assign_degree_whamp(nw.pers, deg.type = "main", nwstats = st)
 
 # Formulas
-formation.p <- ~edges 
+formation.p <- ~edges +
+                nodefactor("deg.main") +
+                concurrent +
+                nodematch("race..wa", diff=TRUE) +
+                nodematch("region", diff=FALSE) +
+                absdiff("sqrt.age") +
+                offset(nodematch("role.class", diff = TRUE, keep = 1:2))
 
 # Fit model
 fit.p <- netest(nw.pers,
                 formation = formation.p,
                 target.stats = st$stats.p,
+                coef.form = c(-Inf, -Inf),
                 coef.diss = st$coef.diss.p,
                 constraints = ~bd(maxout = 2), 
                 edapprox = FALSE,
@@ -63,7 +77,13 @@ nw.inst <- set.vertex.attribute(nw.inst, "deg.pers", nw.main %v% "deg.pers")
 table(nw.inst %v% "deg.main", nw.inst %v% "deg.pers")
 
 # Formulas
-formation.i <- ~edges 
+formation.i <- ~edges +
+                nodefactor(c("deg.main", "deg.pers")) +
+                nodefactor("riskg") +
+                nodematch("race..wa", diff=TRUE) +
+                nodematch("region", diff=FALSE) +
+                absdiff("sqrt.age") +
+                offset(nodematch("role.class", diff = TRUE, keep = 1:2)) 
 
 # Fit model
 fit.i <- netest(nw.inst,
