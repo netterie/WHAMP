@@ -1,0 +1,275 @@
+# Age-specific mortality ratios {#mortality}
+
+```{r, include=FALSE}
+####################################################################################
+# Setup
+####################################################################################
+#-----------------------------------------------------------------------------------
+# Load packages
+#-----------------------------------------------------------------------------------
+
+    library("tidyverse")
+    library("knitr")
+    library("EpiModelHIV")
+    library("reshape2")
+    library("data.table")
+    library("kableExtra")
+
+
+#-----------------------------------------------------------------------------------
+# Knitr options
+#-----------------------------------------------------------------------------------
+opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
+options(tibble.print_max = Inf)
+options(knitr.table.format = "html") 
+```
+
+This file estimates age-specific mortality ratios using 2015 Washington deaths data from the CCSR database (obtained by Jeanette from Tina Tian via email on 5/16/17). The codebooks for the data are available on the Washington State Depatment of Health [website](https://www.doh.wa.gov/DataandStatisticalReports/HealthStatistics/Death).^[The Death Statistical File Data Notes from the WADOH website states that mortality estimates for Native Americans, some Asian subgroups, and Hispanics are underestimated: "Reporting of race/Hispanic ethnicity(origin) on death certificates is sometimes based on observing the decedent, rather than questioning the next of kin.  This procedure causes an underestimate of deaths for certain groups, particularly Native Americans, some Asian subgroups, and Hispanics. Thus, death rates based on death certificate data are lower than true death rates for these groups." Native Americans and Asians would likely be misclassified as White, and since these are grouped together in the model, it would have no effect. However it would impact estimated mortality among Hispanics.] Population denominators are 2011-2015 American Community Survey 5-year estimates (Source: U.S. Census Bureau, Table B01001: SEX BY AGE).
+
+## Mortality
+```{r}
+# Load and subset the data ----
+
+## Load file
+wa_mort <- read.csv("/homes/dpwhite/R/GitHub Repos/WHAMP/Parameter estimation/Data/DeathStatF2015.csv", header=TRUE, sep=",")
+
+## Codebook for key variables ## ----
+        ### sex 
+            # F - Female 
+            # M - Male 
+            # U - Unknown
+
+        ### age
+            # _Age in Years_
+            # 0 - Less than 1 year 
+            # 999 – Unknown
+
+        ### race categories
+        #_Use unedited multiple race data (race_* variables) to group men who reported black race alone or in combination with any other race as black. Group all other non-Hispanic men as "Other". 
+            # Y - Yes, 
+            # N - No, 
+            # U - Unknown
+        
+        ### Bridged race (for comparison)
+        #_In this variable, multiple race data are bridged back to a single race by NCHS.  Decedents of a single race retain that race with the exception of people of “Other” race which are handled differently depending on what bridged race variable is used.  Decedents of multiple races are bridged back to a single race.  The single race categories used are those of the 1977 OMB standards and are White, Black, American Indian/Alaska Native, and See http://www.cdc.gov/nchs/nvss/bridged_race.htm for details on the bridging process.  
+            # Single race specified
+            # 01 – White
+            # 02 – Black
+            # 03 – AIAN
+            # 04 – Asian Indian
+            # 05 – Chinese
+            # 06 - Filipino
+            # 07 - Japanese
+            # 08 - Korean
+            # 09 - Vietnamese
+            # 10 – Other Asian
+            # 11 – Native Hawaiian
+            # 12 – Guamanian or Chamorro
+            # 13 - Samoan
+            # 14 – Other Pacific Islander
+            # 15 - Other
+            # 
+            # Bridged multiple specified race
+            # 21 – White
+            # 22 – Black
+            # 23 – AIAN
+            # 24 – Asian or Pacific Islander
+
+        ### Race summary code
+        # This is the multiple race data with duplicate entries removed and individuals who selected "Other" assigned to one of the 31 race categories.
+        # 10 = White
+        # 11 = Black
+        # 12 = American/Alaskan Native
+        # 13 = Asian
+        # 14 = Native Hawaiian or Pacific Islander
+        # 20 = White and Black
+        # 21 = White and American/Alaskan Indian
+        # 22 = White and Asian Indian
+        # 23 = White and NativeHawaiian or Pacific Islander
+        # 24 = Black and American/Alaskan Indian
+        # 25 = Black and Asian Indian
+        # 26 = Black and Native Hawaiian or Pacific Islander
+        # 27 = American/Alaskan Indian and Asian Indian
+        # 28 = American/Alaskan Indian and Native Hawaiian or Pacific Islander
+        # 29 = Asian Indian and Native Hawaiian or Pacific Islander
+        # 30 = White and Black and American/Alaskan Indian
+        # 31 = White and Black and Asian Indian
+        # 32 = White and Black and Native Hawaiian or Pacific Islander
+        # 33 = White and American/Alaskan Indian and Asian Indian
+        # 34 = White and American/Alaskan Indian and Native Hawaiian or Pacific Islander
+        # 35 = White and Asian Indian and Native HAwaiianor Pacific Islander
+        # 36 = Black and American/Alaskan Indian and Asian Indian
+        # 37 = Black and American/Alaskan Indian and Native Hawaiian or Pacific Islander
+        # 38 = Black and Asian Indian and Native Hawaiian or Pacific Islander
+        # 39 = American/Alaskan Indian and Asian Indian and Native Hawaiian or Pacific Islander
+        # 40 = White and Black and American/Alaskan Indian and Asian Indian
+        # 41 = White and Black and American/Alaskan Indian and Native Hawaiian or Pacific Islander
+        # 42 = White and Black and Asian Indian and Native Hawaiian or Pacific Islander
+        # 43 = White and American/Alaskan Indian and Asian Indian and Native Hawaiian or Pacific Islander
+        # 44 = Black and American/Alaskan Indian and Asian Indian and Native Hawaiian or Pacific Islander
+        # 50 = White and Black and American/Alaskan Indian and Asian Indian and Native Hawaiian or Pacific Islander
+        # 99 = Unknown
+
+        ### hisp
+        # This variable is bridged by NCHS to assign those who reported multiple Hispanic ethnicities to a single Hispanic ethnicity. 
+        # 0 - Non-Hispanic
+        # 1 - Mexican
+        # 2 - Puerto Rican
+        # 3 - Cuban
+        # 4 - Central or South American
+        # 5 - Other and Unknown Hispanic
+        # 9 - Unknown/Not Stated
+        # Blank – Not processed by NCHS
+
+
+## Restrict to male Washington state residents ages 18-59 (excludes 13 obs with unknown sex (0.02% of deaths))----
+wa_mort_males <- wa_mort %>% filter(st_res %in% 48 & 
+                                        sex %in% "M" &
+                                        age %in% c(18:59))
+
+## Define variables to keep
+wa_mort_males <- wa_mort_males %>% select(sex, age, starts_with("race_"), starts_with("hisp_"), brg_race, sum_race, race, hisp)
+
+```
+
+These data indicate that there were `r nrow(wa_mort[wa_mort$st_res %in% 48,])` deaths in Washington State in 2015, `r nrow(wa_mort[wa_mort$st_res %in% 48 & wa_mort$sex %in% "M",])` (`r 100*round(nrow(wa_mort[wa_mort$st_res %in% 48 & wa_mort$sex %in% "M",])/nrow(wa_mort[wa_mort$st_res %in% 48,]),4)`%) of which were male, and `r nrow(wa_mort_males)` (`r 100*round(nrow(wa_mort_males)/nrow(wa_mort[wa_mort$st_res %in% 48 & wa_mort$sex %in% "M",]),4)`% of male deaths) were ages 18-59 at death.
+
+### Missing data
+Using the race multiple race/ethnicity category data, race was missing (not processed by NHCS or unknown) for `r (sum(!(wa_mort_males$race_blk %in% "Y" | wa_mort_males$race_wht %in% "Y" | wa_mort_males$race_AMI %in% "Y" | wa_mort_males$race_ASI %in% "Y" | wa_mort_males$race_chi %in% "Y" | wa_mort_males$race_fil %in% "Y" | wa_mort_males$race_jap %in% "Y" | wa_mort_males$race_kor %in% "Y" | wa_mort_males$race_vie %in% "Y" | wa_mort_males$race_oas %in% "Y" | wa_mort_males$race_haw %in% "Y" | wa_mort_males$race_gua %in% "Y" | wa_mort_males$race_sam %in% "Y" | wa_mort_males$race_oPI %in% "Y" | wa_mort_males$race_oth %in% "Y")))` deaths and ethnicity was missing for `r (sum(!(wa_mort_males$hisp_mex %in% "Y" | wa_mort_males$hisp_cub %in% "Y" | wa_mort_males$hisp_pr %in% "Y" | wa_mort_males$hisp_oth %in% "Y" | wa_mort_males$hisp_no %in% "Y")))`. Both race and ethnicity were missing for `r (sum(!(wa_mort_males$race_blk %in% "Y" | wa_mort_males$race_wht %in% "Y" | wa_mort_males$race_AMI %in% "Y" | wa_mort_males$race_ASI %in% "Y" | wa_mort_males$race_chi %in% "Y" | wa_mort_males$race_fil %in% "Y" | wa_mort_males$race_jap %in% "Y" | wa_mort_males$race_kor %in% "Y" | wa_mort_males$race_vie %in% "Y" | wa_mort_males$race_oas %in% "Y" | wa_mort_males$race_haw %in% "Y" | wa_mort_males$race_gua %in% "Y" | wa_mort_males$race_sam %in% "Y" | wa_mort_males$race_oPI %in% "Y" | wa_mort_males$race_oth %in% "Y") & !(wa_mort_males$hisp_mex %in% "Y" | wa_mort_males$hisp_cub %in% "Y" | wa_mort_males$hisp_pr %in% "Y" | wa_mort_males$hisp_oth %in% "Y" | wa_mort_males$hisp_no %in% "Y")))`. For those missing ethnicity but not race, we will assign an ethnicity according to the distribution of Hispanic ethnicity among men of each racial group who were not missing data on ethnicity. For those missing race but not ethnicity, we will assign race according to the distribution of each race. For those missing both, we will assign race/ethnicity according to the distribution among those not missing data.
+
+```{r}
+# RACE/ETHINCITY CODING VERSION 1 #
+# Define new race/ethnicity var (using raw (unbridged) data). Also code as black anyone for whom sum_race %in% c(11, 20, 24, 25, 26, 30, 31, 32, 36, 37, 38, 40, 41, 42, 44, 50) - these are people who listed "other" race and were assigned a race group (the listed race codes are for black single race (11)  and the multi-race black options)
+
+wa_mort_males <- within(wa_mort_males, {
+                    hispanic <- ifelse(hisp_mex %in% "Y" | hisp_cub %in% "Y" | hisp_pr %in% "Y" | hisp_oth %in% "Y", 1, 
+                                       ifelse(hisp_no %in% "Y", 0, 
+                                              NA))
+                    hbo <- ifelse(hispanic %in% 1, "Hispanic", 
+                                  ifelse(race_blk %in% "Y" | sum_race %in% c(11, 20, 24, 25, 26, 30, 31, 32, 36, 37, 38, 40, 41, 42, 44, 50), "Black", 
+                                         ifelse((race_wht %in% "Y" | race_AMI %in% "Y" | race_ASI %in% "Y" | race_chi %in% "Y" | race_fil %in% "Y" | race_jap %in% "Y" | race_kor %in% "Y" | race_vie %in% "Y" | race_oas %in% "Y" | race_haw %in% "Y" | race_gua %in% "Y" | race_sam %in% "Y" | race_oPI %in% "Y" | race_oth %in% "Y"), "Other", 
+                                                                            NA)))
+})
+    # Distribute those with missing ethnicity but not missing on race proportionately as either Hispanic or not (propotional to distirbution of Hispanic ethincity among those who reported an "other" race)
+        wa_mort_males$hbo[is.na(wa_mort_males$hispanic) & wa_mort_males$hbo %in% "Other"] <-  apportion_lr(sum(is.na(wa_mort_males$hispanic) & wa_mort_males$hbo %in% "Other"), c("Other", "Hispanic"), c(as.vector(prop.table(table(wa_mort_males$hispanic[(wa_mort_males$race_wht %in% "Y" | wa_mort_males$race_AMI %in% "Y" | wa_mort_males$race_ASI %in% "Y" | wa_mort_males$race_chi %in% "Y" | wa_mort_males$race_fil %in% "Y" | wa_mort_males$race_jap %in% "Y" | wa_mort_males$race_kor %in% "Y" | wa_mort_males$race_vie %in% "Y" | wa_mort_males$race_oas %in% "Y" | wa_mort_males$race_haw %in% "Y" | wa_mort_males$race_gua %in% "Y" | wa_mort_males$race_sam %in% "Y" | wa_mort_males$race_oPI %in% "Y" | wa_mort_males$race_oth %in% "Y")])))), shuffled = TRUE)
+    
+    # Distribute those with missing race who are not hispanic proportionately as either Black or Other
+        wa_mort_males$hbo[is.na(wa_mort_males$hbo) & wa_mort_males$hispanic %in% 0] <- apportion_lr(sum(is.na(wa_mort_males$hbo) & wa_mort_males$hispanic %in% 0), c("Black", "Other"), c(as.vector(prop.table(table(wa_mort_males$hbo[!(wa_mort_males$hbo %in% "Hispanic")])))), shuffled = TRUE)
+
+    # Distribute those with missing race and ethnicity proportionately as H, B, or O
+        wa_mort_males$hbo[is.na(wa_mort_males$hbo) & is.na(wa_mort_males$hispanic)] <- apportion_lr(sum(is.na(wa_mort_males$hbo) & is.na(wa_mort_males$hispanic)), c("Black", "Hispanic", "Other"), c(as.vector(prop.table(table(wa_mort_males$hbo)))), shuffled = TRUE)
+        
+        
+# RACE/ETHINCITY CODING VERSION 2 #
+# Define new race/ethnicity var (using nchs composite vars based on bridged data). There is some confusing inconsistencies between the bridged variables and the raw variables (many people coded as missing/uknown in the bridged variable who are coded as having selected a racial/ethnic group on the raw varibles), so we will look at how much of a difference it makes to use these variables. We assign people with missing race/ethincity proportionately - the atlernative is to assume they are "other" race/ethncity, but the documentation suggests that daeths are already underestimated for Hispanics due to incomplete ethnicity data, so this would only exaggerate that bias.
+wa_mort_males <- within(wa_mort_males, {
+                    hispanic.brg <- ifelse(hisp %in% c(1:5), 1, 
+                                       ifelse(hisp %in% 0, 0, 
+                                              NA))
+                    hbo.brg <- ifelse(hispanic.brg %in% 1, "Hispanic", 
+                                  ifelse(race %in% "2", "Black", 
+                                         ifelse(!(race %in% c("8", "9", "")), "Other", 
+                                                                            NA)))
+})
+    # Distribute those with missing ethnicity but not missing on race proportionately as either Hispanic or not
+        wa_mort_males$hbo.brg[is.na(wa_mort_males$hispanic.brg) & wa_mort_males$hbo.brg %in% "Other"] <-  apportion_lr(sum(is.na(wa_mort_males$hispanic.brg) & wa_mort_males$hbo.brg %in% "Other"), c("Other", "Hispanic"), c(as.vector(prop.table(table(wa_mort_males$hispanic.brg[!wa_mort_males$race %in% c("2", "8", "9", "")])))), shuffled = TRUE)
+        wa_mort_males$hbo.brg[is.na(wa_mort_males$hispanic.brg) & wa_mort_males$hbo.brg %in% "Black"] <-  apportion_lr(sum(is.na(wa_mort_males$hispanic.brg) & wa_mort_males$hbo.brg %in% "Black"), c("Black", "Hispanic"), c(as.vector(prop.table(table(wa_mort_males$hispanic.brg[wa_mort_males$race %in% "2"])))), shuffled = TRUE)
+    
+    # Distribute those with missing race who are not hispanic proportionately as either Black or Other
+        wa_mort_males$hbo.brg[is.na(wa_mort_males$hbo.brg) & wa_mort_males$hispanic.brg %in% 0] <- apportion_lr(sum(is.na(wa_mort_males$hbo.brg) & wa_mort_males$hispanic.brg %in% 0), c("Black", "Other"), c(as.vector(prop.table(table(wa_mort_males$hbo.brg[!(wa_mort_males$hbo.brg %in% "Hispanic")])))), shuffled = TRUE)
+
+    # Distribute those with missing race and ethnicity proportionately as H, B, or O
+        wa_mort_males$hbo.brg[is.na(wa_mort_males$hbo.brg) & is.na(wa_mort_males$hispanic.brg)] <- apportion_lr(sum(is.na(wa_mort_males$hbo.brg) & is.na(wa_mort_males$hispanic.brg)), c("Black", "Hispanic", "Other"), c(as.vector(prop.table(table(wa_mort_males$hbo.brg)))), shuffled = TRUE)
+        
+        
+# DEFINE AGE GROUPS #
+wa_mort_males$age_cat = cut(wa_mort_males$age, c(17, 24, 29, 34, 39, 44, 49, 54, 59), labels=c("18-24", "25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59"))
+
+```
+
+### Count the number of deaths in each strata
+```{r}
+
+#This uses the racial/ethnic groups defined from the raw data. To use the groups defined from the bridged variables, use "hbo.brg"
+wa_mort_count <- wa_mort_males %>% group_by(hbo, age_cat) %>% summarise(n())
+
+#Shape as data frame with race groups in columns
+nums <- cbind.data.frame("age_cat" = c("18-24", "25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59"), "Black" = c(wa_mort_count$`n()`[wa_mort_count$hbo %in% "Black"]), "Hispanic" = c(wa_mort_count$`n()`[wa_mort_count$hbo %in% "Hispanic"]), "Other" = c(wa_mort_count$`n()`[wa_mort_count$hbo %in% "Other"]))
+
+#Make kable
+kable(nums, caption="Washington 2015 deaths by age group and race/ethnicity", align = c("c", "c", "c"), digits=c(1, 1, 1), col.names = c("Age group", "Black", "Hispanic", "Other")) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, width = "4cm") %>% column_spec(2:4, width = "3cm")
+
+```
+
+## Population denominators (persons in each stratum defined by race/ethincity and age)
+To estimate the denominators for mortality rates, we use the 2011-2015 American Community Survey 5-year estimates.
+
+```{r}
+#Load data
+  wa_acs <- read.csv("Data/WA census data-ACS_15_SPT_B01001-5/ACS_15_SPT_B01001_with_ann.csv", skip=1, header=TRUE, sep=",")
+
+#Select the columns with ages 18-59 for males and the total for males
+    wa_acs_male18to59 <- wa_acs %>% select(Geography, Population.Group, Estimate..Male., Estimate..Male....18.and.19.years, Estimate..Male....20.years, Estimate..Male....21.years, Estimate..Male....22.to.24.years, Estimate..Male....25.to.29.years, Estimate..Male....30.to.34.years, Estimate..Male....35.to.39.years, Estimate..Male....40.to.44.years, Estimate..Male....45.to.49.years, Estimate..Male....50.to.54.years, Estimate..Male....55.to.59.years)
+    
+#Rename columns
+    setnames(wa_acs_male18to59, old=c("Geography", "Estimate..Male.", "Estimate..Male....18.and.19.years", "Estimate..Male....20.years", "Estimate..Male....21.years", "Estimate..Male....22.to.24.years", "Estimate..Male....25.to.29.years", "Estimate..Male....30.to.34.years", "Estimate..Male....35.to.39.years", "Estimate..Male....40.to.44.years", "Estimate..Male....45.to.49.years", "Estimate..Male....50.to.54.years", "Estimate..Male....55.to.59.years"), new=c("county", "tot.male", "males.18to19", "males.20", "males.21", "males.22to24", "males.25to29", "males.30to34", "males.35to39", "males.40to44", "males.45to49", "males.50to54", "males.55to59"))
+
+    #Define a variable for Total males 18-59 
+    wa_acs_male18to59$males.18to59 <-  (wa_acs_male18to59$males.18to19 + wa_acs_male18to59$males.20 +  wa_acs_male18to59$males.21 + wa_acs_male18to59$males.22to24 + wa_acs_male18to59$males.25to29 + wa_acs_male18to59$males.30to34 + wa_acs_male18to59$males.35to39 + wa_acs_male18to59$males.40to44 + wa_acs_male18to59$males.45to49 + wa_acs_male18to59$males.50to54 + wa_acs_male18to59$males.55to59)
+    
+#Re-group ages 18-24 into bin 18-24
+    wa_acs_male18to59$males.18to24 <- (wa_acs_male18to59$males.18to19 + wa_acs_male18to59$males.20 +  wa_acs_male18to59$males.21 + wa_acs_male18to59$males.22to24)
+
+#Select only age groups of interest
+    wa_acs_male18to59 <- wa_acs_male18to59 %>% select(county, Population.Group, males.18to24, males.25to29, males.30to34, males.35to39, males.40to44, males.45to49, males.50to54, males.55to59)
+    
+#Reshape the data so race/ethnicity groups are columns
+    #Melt the data
+    wa_acs_male18to59_melt <- melt(wa_acs_male18to59, id=c("county", "Population.Group"))
+    wa_acs_male18to59_cast <- dcast(wa_acs_male18to59_melt, county + variable ~ Population.Group)
+    
+    #replace NA to 0 - race/ethnic groups with no values are likely b/c 0 men in that group were counted
+    wa_acs_male18to59_cast[is.na(wa_acs_male18to59_cast)] <- 0
+    
+    #Rename columns
+    setnames(wa_acs_male18to59_cast, old=c("variable", "American Indian and Alaska Native alone, not Hispanic or Latino", "Asian alone, not Hispanic or Latino", "Black or African American alone or in combination with one or more other races, Hispanic or Latino", "Black or African American alone or in combination with one or more other races, not Hispanic or Latino", "Black or African American alone, Hispanic or Latino", "Black or African American alone, not Hispanic or Latino", "Hispanic or Latino (of any race) (200-299)", "Native Hawaiian and Other Pacific Islander alone, not Hispanic or Latino", "Some other race alone, not Hispanic or Latino", "Total population", "Two or more races, not Hispanic or Latino", "White alone, not Hispanic or Latino"), new=c("Age_group", "AIAN", "Asian", "Black_any_Hispanic", "Black_any", "Black_alone_Hispanic", "Black_alone", "Hispanic", "NHOPI", "Other", "Total", "Multiple", "White"))
+    
+    #Replace original dataset with the reshaped one
+    wa_acs_male18to59_orig <- wa_acs_male18to59
+    wa_acs_male18to59 <- wa_acs_male18to59_cast
+    
+#Define race groups - note: this is not perfect because the numbers for the individuals race/eth groups (Hispanic, NH white, NH black alone, NH Asian, NH Native Hawaiian/Other Pacific Islander, NH American Indian/Alaska Native, NH other, and NH two or more) do not sum to the total in each county. This is likely due to variability in the estimates for each group. Could keep the columns with the margin of error for the original data frame and work with those (details on how they are calculated here: https://www.census.gov/content/dam/Census/programs-surveys/acs/guidance/training-presentations/2016_MOE_Transcript_01.pdf. But for now use use the point estimates and define other group as total - Hispanic - black alone or in combination
+    
+    #Define HBO race groups, with 'other' as total minus Hispanic and black
+    wa_acs_male18to59_hbo <- wa_acs_male18to59 %>% select(county, Age_group, Black_any, Hispanic, Total) %>% mutate(Other = Total - Black_any - Hispanic)
+    
+    #Define new age group var with desired formating
+    wa_acs_male18to59_hbo = within(wa_acs_male18to59_hbo, {
+                            age_cat = ifelse(Age_group %in% "males.18to24", "18-24", 
+                                             ifelse(Age_group %in% "males.25to29", "25-29",
+                                                    ifelse(Age_group %in% "males.30to34", "30-34", 
+                                                           ifelse(Age_group %in% "males.35to39", "35-39", 
+                                                                  ifelse(Age_group %in% "males.40to44", "40-44",
+                                                                         ifelse(Age_group %in% "males.45to49", "45-49",
+                                                                                ifelse(Age_group %in% "males.50to54", "50-54",
+                                                                                       ifelse(Age_group %in% "males.55to59", "55-59", NA))))))))
+    })
+    
+    #Count the number in each race/ethnicity by age strata
+    denoms <- wa_acs_male18to59_hbo %>% group_by(age_cat) %>% summarise_at(c("Black_any", "Hispanic", "Other"), sum)
+    
+#Make kable
+kable(denoms, caption="Washington 2011-2015 5-year population estimates", align = c("c", "c", "c"), digits=c(1, 1, 1), col.names = c("Age group", "Black", "Hispanic", "Other")) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, width = "4cm") %>% column_spec(2:4, width = "3cm")
+```
+
+## Age-specific mortality rates
+Using the numerators and denominators calculated above, the age-specific mortality rates are: 
+
+```{r}
+wa_asmr <- cbind(nums[,1], (nums[,-1] / denoms[,-1])*100000)
+save(wa_asmr, file="Data/asmr_wa.Rdata")
+
+#Make kable
+kable(wa_asmr, caption="Washington 2015 age- and race/ethnicity-specific mortality rates for males (per 100,000)", align = c("c", "c", "c"), digits=c(1, 1, 1), col.names = c("Age group", "Black", "Hispanic", "Other")) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, width = "4cm") %>% column_spec(2:4, width = "3cm")
+
+```
