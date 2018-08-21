@@ -14,4 +14,4 @@ nw <- set.vertex.attribute(nw, attrname = "race", value = rep(c("H", "B", "O"), 
 
 # Fill in the model equation with the terms of interest and it will indicate which target stats are expected and in what order
 summary(nw ~ edges + nodefactor("qntbyage"))
-summary(nw ~ edges + nodefactor("race") + nodefactor("region") + nodematch("race", diff=TRUE))
+summary(nw ~ edges + nodefactor("race") + nodefactor("region") + nodematch("race", diff=TRUE) + offset(nodemix("region", base=c(1,3,6))))
