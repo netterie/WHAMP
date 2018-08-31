@@ -90,17 +90,19 @@ asmr.W <- c(rep(0, 17),
                    rep(0.00214, 25)))^(1/(365/time.unit)), 1) #-- To make old code work with new age str, I added 20 to the last deaths vector
 
 asmr.H..wa <- c(rep(0, 17),
-            1-(1-c(rep(0.00102, 7),
+            1-(1-c(rep(0.00089, 2),
+                   rep(0.00107, 5),
                    rep(0.00112, 5),
                    rep(0.00123, 5),
                    rep(0.00126, 5),
                    rep(0.00186, 5),
-                   rep(0.00202, 5),
+                   rep(0.00207, 5),
                    rep(0.00343, 5),
-                   rep(0.00503, 5)))^(1/(365/time.unit)), 1)
+                   rep(0.00495, 5)))^(1/(365/time.unit)), 1)
 
 asmr.B..wa <- c(rep(0, 17),
-            1-(1-c(rep(0.0013, 7),
+            1-(1-c(rep(0.00168, 2),
+                   rep(0.00117, 5),
                    rep(0.00161, 5),
                    rep(0.00169, 5),
                    rep(0.00267, 5),
@@ -110,7 +112,8 @@ asmr.B..wa <- c(rep(0, 17),
                    rep(0.01311, 5)))^(1/(365/time.unit)), 1)
 
 asmr.O..wa <- c(rep(0, 17),
-            1-(1-c(rep(0.00093, 7),
+            1-(1-c(rep(0.00068, 2),
+                   rep(0.00101, 5),
                    rep(0.00119, 5),
                    rep(0.00138, 5),
                    rep(0.00161, 5),
