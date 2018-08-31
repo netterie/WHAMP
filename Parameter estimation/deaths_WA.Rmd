@@ -183,7 +183,7 @@ wa_mort_males <- within(wa_mort_males, {
         
         
 # DEFINE AGE GROUPS #
-wa_mort_males$age_cat = cut(wa_mort_males$age, c(17, 24, 29, 34, 39, 44, 49, 54, 59), labels=c("18-24", "25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59"))
+wa_mort_males$age_cat = cut(wa_mort_males$age, c(17, 19, 24, 29, 34, 39, 44, 49, 54, 59), labels=c("18-19", "20-24", "25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59"))
 
 ```
 
@@ -194,7 +194,7 @@ wa_mort_males$age_cat = cut(wa_mort_males$age, c(17, 24, 29, 34, 39, 44, 49, 54,
 wa_mort_count <- wa_mort_males %>% group_by(hbo, age_cat) %>% summarise(n())
 
 #Shape as data frame with race groups in columns
-nums <- cbind.data.frame("age_cat" = c("18-24", "25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59"), "Black" = c(wa_mort_count$`n()`[wa_mort_count$hbo %in% "Black"]), "Hispanic" = c(wa_mort_count$`n()`[wa_mort_count$hbo %in% "Hispanic"]), "Other" = c(wa_mort_count$`n()`[wa_mort_count$hbo %in% "Other"]))
+nums <- cbind.data.frame("age_cat" = c("18-19", "20-24", "25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59"), "Black" = c(wa_mort_count$`n()`[wa_mort_count$hbo %in% "Black"]), "Hispanic" = c(wa_mort_count$`n()`[wa_mort_count$hbo %in% "Hispanic"]), "Other" = c(wa_mort_count$`n()`[wa_mort_count$hbo %in% "Other"]))
 
 #Make kable
 kable(nums, caption="Washington 2015 deaths by age group and race/ethnicity", align = c("c", "c", "c"), digits=c(1, 1, 1), col.names = c("Age group", "Black", "Hispanic", "Other")) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, width = "4cm") %>% column_spec(2:4, width = "3cm")
@@ -217,11 +217,11 @@ To estimate the denominators for mortality rates, we use the 2011-2015 American 
     #Define a variable for Total males 18-59 
     wa_acs_male18to59$males.18to59 <-  (wa_acs_male18to59$males.18to19 + wa_acs_male18to59$males.20 +  wa_acs_male18to59$males.21 + wa_acs_male18to59$males.22to24 + wa_acs_male18to59$males.25to29 + wa_acs_male18to59$males.30to34 + wa_acs_male18to59$males.35to39 + wa_acs_male18to59$males.40to44 + wa_acs_male18to59$males.45to49 + wa_acs_male18to59$males.50to54 + wa_acs_male18to59$males.55to59)
     
-#Re-group ages 18-24 into bin 18-24
-    wa_acs_male18to59$males.18to24 <- (wa_acs_male18to59$males.18to19 + wa_acs_male18to59$males.20 +  wa_acs_male18to59$males.21 + wa_acs_male18to59$males.22to24)
+#Re-group ages 20-24 into bin 20-24
+    wa_acs_male18to59$males.20to24 <- (wa_acs_male18to59$males.20 +  wa_acs_male18to59$males.21 + wa_acs_male18to59$males.22to24)
 
 #Select only age groups of interest
-    wa_acs_male18to59 <- wa_acs_male18to59 %>% select(county, Population.Group, males.18to24, males.25to29, males.30to34, males.35to39, males.40to44, males.45to49, males.50to54, males.55to59)
+    wa_acs_male18to59 <- wa_acs_male18to59 %>% select(county, Population.Group, males.18to19, males.20to24, males.25to29, males.30to34, males.35to39, males.40to44, males.45to49, males.50to54, males.55to59)
     
 #Reshape the data so race/ethnicity groups are columns
     #Melt the data
@@ -245,14 +245,15 @@ To estimate the denominators for mortality rates, we use the 2011-2015 American 
     
     #Define new age group var with desired formating
     wa_acs_male18to59_hbo = within(wa_acs_male18to59_hbo, {
-                            age_cat = ifelse(Age_group %in% "males.18to24", "18-24", 
-                                             ifelse(Age_group %in% "males.25to29", "25-29",
+                            age_cat = ifelse(Age_group %in% "males.18to19", "18-19",
+                                             ifelse(Age_group %in% "males.20to24", "20-24",
+                                                ifelse(Age_group %in% "males.25to29", "25-29",
                                                     ifelse(Age_group %in% "males.30to34", "30-34", 
                                                            ifelse(Age_group %in% "males.35to39", "35-39", 
                                                                   ifelse(Age_group %in% "males.40to44", "40-44",
                                                                          ifelse(Age_group %in% "males.45to49", "45-49",
                                                                                 ifelse(Age_group %in% "males.50to54", "50-54",
-                                                                                       ifelse(Age_group %in% "males.55to59", "55-59", NA))))))))
+                                                                                       ifelse(Age_group %in% "males.55to59", "55-59", NA)))))))))
     })
     
     #Count the number in each race/ethnicity by age strata
