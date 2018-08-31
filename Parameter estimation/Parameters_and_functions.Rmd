@@ -73,9 +73,9 @@ param_table <- function(table, param, description, value, alt_value, sources){
   parameters <- param_table(parameters, "agestr", "Proportion of the population in each age group 18-24 through 55-59", paste(round(prop.table(svytable(~age_cat, sample_rake_all, round=FALSE)),4), collapse=", "), NA, "2011-2015 American Community Survey (ACS) 5-year estimates [@WA-census] and estimates of the size of the MSM population by county [@Grey2016]")
   
    #Age- and race-specific mortality 
-  parameters <- param_table(parameters, "asmr.ann.H", "Annual age-specific mortality rate for Hispanic men (for 18-24 and 5-yr age groups from 25 to 59)", paste(round(wa_asmr[,3]/100000, 5), collapse=", "), NA, "National Vital Statistics data, 2015")
-  parameters <- param_table(parameters, "asmr.ann.B", "Annual age-specific mortality rate for black men (for 18-24 and 5-yr age groups from 25 to 59)", paste(round(wa_asmr[,2]/100000, 5), collapse=", "), NA, "National Vital Statistics data, 2015")
-  parameters <- param_table(parameters, "asmr.ann.O", "Annual age-specific mortality rate for other men (for 18-24 and 5-yr age groups from 25 to 59)", paste(round(wa_asmr[,4]/100000, 5), collapse=", "), NA, "National Vital Statistics data, 2015")
+  parameters <- param_table(parameters, "asmr.ann.H", "Annual age-specific mortality rate for Hispanic men (for 18-19 and 5-yr age groups from 20 to 59)", paste(round(wa_asmr[,3]/100000, 5), collapse=", "), NA, "National Vital Statistics data, 2015")
+  parameters <- param_table(parameters, "asmr.ann.B", "Annual age-specific mortality rate for black men (for 18-19 and 5-yr age groups from 20 to 59)", paste(round(wa_asmr[,2]/100000, 5), collapse=", "), NA, "National Vital Statistics data, 2015")
+  parameters <- param_table(parameters, "asmr.ann.O", "Annual age-specific mortality rate for other men (for 18-19 and 5-yr age groups from 20 to 59)", paste(round(wa_asmr[,4]/100000, 5), collapse=", "), NA, "National Vital Statistics data, 2015")
   
   #Degree distribution by race/ethnicity, region, and age
   parameters <- param_table(parameters, "deg.mp", "Overall degree distribution (order: 0 main 0 pers, 0 main 1 pers, 0 main 2+ pers, 1 main 0 pers, 1 main 1 pers, 1 main 2+ pers)", paste(as.vector(t(round(degree$deg.mp[1:2,1:3], 4))), collapse=", "), NA, "WHPP survey, assumed to apply to HIV-negative and HIV-positive MSM")
