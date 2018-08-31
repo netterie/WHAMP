@@ -252,12 +252,16 @@ save(race_mixing, file="Data/race_mixing.Rdata")
     # round(sum(deg.mp.O.adj),10) == 1
     # sum(deg.mp.O.adj[2,]) == bal.degm[3]
     # round(sum(deg.mp.O.adj[,2]) + 2*sum(deg.mp.O.adj[,3]), 10) == round(bal.degp[3], 10)
+
+# Define overall adjusted degree distribution as weighted avg of balanced degrees
+deg.mp.adj <- deg.mp.H.adj*prop.table(svytable(~hbo, sample_rake_all, round=FALSE))[1] + deg.mp.B.adj*prop.table(svytable(~hbo, sample_rake_all, round=FALSE))[2] + deg.mp.O.adj*prop.table(svytable(~hbo, sample_rake_all, round=FALSE))[3] 
     
 ```
 
 ## Momentary degree distribution
 
 ### Overall
+Tables \@ref(tab:degmatrix) and \@ref(tab:degmatrix_adj), below, present the overall momentary degree distribution based on the data reported by egos and based on the weighted average of the race-specific matrices adjusted to correspond to the balanced mixing matrices, respectively. Note that the margins are the same for these.
 ```{r degmatrix}
 # Add margins to degree distribution table
 deg.mp <- addmargins(deg.mp, margin=c(1,2), sum, quiet = TRUE)
@@ -266,7 +270,14 @@ row.names(deg.mp) <- c("No main", "Main", "Total")
 kable(deg.mp, col.names=c("0 pers", "1 pers", "2+ pers", "Total"), caption="Observed main and persistent degree distribution", digits = c(4,4,4,4)) %>% kable_styling(full_width=F, position="center") %>% row_spec(3, color="#1C91D7")  %>% column_spec(1, bold=T, color="black", width="2cm") %>% column_spec(2:5, width = "2cm") %>% column_spec(5, color="#1C91D7")
 
 ```
+```{r degmatrix_adj}
+# Add margins to degree distribution table
+deg.mp.adj <- addmargins(deg.mp.adj, margin=c(1,2), sum, quiet = TRUE)
+row.names(deg.mp.adj) <- c("No main", "Main", "Total")
 
+kable(deg.mp.adj, col.names=c("0 pers", "1 pers", "2+ pers", "Total"), caption="Adjusted main and persistent degree distribution", digits = c(4,4,4,4)) %>% kable_styling(full_width=F, position="center") %>% row_spec(3, color="#1C91D7")  %>% column_spec(1, bold=T, color="black", width="2cm") %>% column_spec(2:5, width = "2cm") %>% column_spec(5, color="#1C91D7")
+
+```
 ### By race/ethnicity
 To assign main and persistent degree as a nodal attribute according to race/ethnicity, region, and age, we will also need the degree distributions by these characteristics. 
 
@@ -357,5 +368,5 @@ Overall, `r round(100*sum(deg.mp[1,3], deg.mp[2,2], deg.mp[2,3]), 2)`% of the re
 
 ```{r include=FALSE}
 # Save parameters
-degree <- list(deg.mp = deg.mp, deg.mp.H = deg.mp.H, deg.mp.B = deg.mp.B, deg.mp.O = deg.mp.O, deg.mp.H.adj = deg.mp.H.adj, deg.mp.B.adj = deg.mp.B.adj, deg.mp.O.adj = deg.mp.O.adj, deg.mp.KC = deg.mp.KC, deg.mp.OW = deg.mp.OW, deg.mp.EW = deg.mp.EW)
+degree <- list(deg.mp = deg.mp, deg.mp.H = deg.mp.H, deg.mp.B = deg.mp.B, deg.mp.O = deg.mp.O, deg.mp.adj = deg.mp.adj, deg.mp.H.adj = deg.mp.H.adj, deg.mp.B.adj = deg.mp.B.adj, deg.mp.O.adj = deg.mp.O.adj, deg.mp.KC = deg.mp.KC, deg.mp.OW = deg.mp.OW, deg.mp.EW = deg.mp.EW)
 save(degree, file="Data/degreedists.Rdata")
