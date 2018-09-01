@@ -34,8 +34,8 @@ num <- 10000
 agestr <- sumto1(c(0.1594, 0.1319, 0.1292, 0.1173, 0.1183, 0.1148, 0.1071, 0.122))
     
 # mean/pers degree distributions matrices.
-deg.mp <- matrix(sumto1(c(0.4086, 0.0759, 0.0671, 
-                          0.3481, 0.047, 0.0534)), byrow = TRUE, nrow = 2)
+deg.mp <- matrix(sumto1(c(0.4108, 0.0735, 0.0672, 
+                          0.3458, 0.0494, 0.0532)), byrow = TRUE, nrow = 2)
 deg.mp.H <- matrix(sumto1(c(0.2366, 0.1575, 0.0391,
                             0.3413, 0.1759, 0.0496)), byrow = TRUE, nrow = 2)
 deg.mp.B <- matrix(sumto1(c(0.4923, 0.0814, 0.0839, 
