@@ -55,11 +55,14 @@ mdeg.inst <- matrix(c(0.015734, 0.005987, 0.021057,
                       0.007052, 0.009709, 0.032598), byrow = TRUE, nrow = 2) 
 
 # Quintile distribution of overall instantaneous AI rates
-qnts.18to49 <- c(0, 0.000525, 0.005024, 0.054838)
-qnts.50to59 <- c(0, 0, 0.001551, 0.021283)
+qnts.18to49 <- c(0.0001, 0.000525, 0.005024, 0.054838) #set to 0.0001 if 0 to give non-zero prob
+qnts.50to59 <- c(0.0001, 0.0001, 0.001551, 0.021283)  #set to 0.0001 if 0 to give non-zero prob
 
 # Mean rate of instantaneous partnerships by race (black, Hispanic, other)
 inst.bho <- c(0.0202, 0.012978, 0.012418)
+
+# Mean rate of instantaneous partnerships by region (EW, KC, OW)
+inst.region <- c(0.011216, 0.014955, 0.01)
 
 # Proportion in same-race partnerships (main, pers, inst)
 prop.hom.mpi.H <- c(0.4229, 0.1631, 0.1787)
@@ -153,6 +156,7 @@ st <- calc_nwstats_msm_whamp(
   qnts.18to49 = qnts.18to49,
   qnts.50to59 = qnts.50to59,
   inst.bho = inst.bho,
+  inst.region = inst.region,
   prop.hom.mpi.H = prop.hom.mpi.H,
   prop.hom.mpi.B = prop.hom.mpi.B,
   prop.hom.mpi.O = prop.hom.mpi.O,
