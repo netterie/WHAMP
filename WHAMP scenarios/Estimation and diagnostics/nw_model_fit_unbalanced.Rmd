@@ -67,11 +67,14 @@ mdeg.inst <- matrix(c(0.015734, 0.005987, 0.021057,
                       0.007052, 0.009709, 0.032598), byrow = TRUE, nrow = 2) 
 
 # Quintile distribution of overall instantaneous AI rates
-qnts.18to49 <- c(0, 0.000525, 0.005024, 0.054838)
-qnts.50to59 <- c(0, 0, 0.001551, 0.021283)
+qnts.18to49 <- c(0.0001, 0.000525, 0.005024, 0.054838) #set to 0.0001 if 0 to give non-zero prob
+qnts.50to59 <- c(0.0001, 0.0001, 0.001551, 0.021283)  #set to 0.0001 if 0 to give non-zero prob
 
 # Mean rate of instantaneous partnerships by race (black, Hispanic, other)
 inst.bho <- c(0.0202, 0.012978, 0.012418)
+
+# Mean rate of instantaneous partnerships by region (EW, KC, OW)
+inst.region <- c(0.011216, 0.014955, 0.01)
 
 # Proportion in same-race partnerships (main, pers, inst)
 prop.hom.mpi.H <- c(0.467, 0.2661, 0.2661)
@@ -165,6 +168,7 @@ st <- calc_nwstats_msm_whamp(
   qnts.18to49 = qnts.18to49,
   qnts.50to59 = qnts.50to59,
   inst.bho = inst.bho,
+  inst.region = inst.region,
   prop.hom.mpi.H = prop.hom.mpi.H,
   prop.hom.mpi.B = prop.hom.mpi.B,
   prop.hom.mpi.O = prop.hom.mpi.O,
@@ -182,7 +186,7 @@ st <- calc_nwstats_msm_whamp(
   asmr.O..wa = asmr.O..wa,
   role.prob = role.prob)
 
-save(st, file = "/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/nwstats.whamp.balanced.rda")
+save(st, file = "/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/nwstats.whamp.unbalanced.rda")
 
 
 ```
@@ -191,7 +195,7 @@ save(st, file = "/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/nwstats
 ```{r, message=FALSE}
 
 #Load data
-load("/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/nwstats.whamp.balanced.rda")
+load("/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/nwstats.whamp.unbalanced.rda")
   
 # Fit models
   
@@ -282,6 +286,8 @@ load("/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/nwstats.whamp.bala
    formation.i <- ~edges +
                     nodefactor(c("deg.main", "deg.pers")) +
                     nodefactor("riskg") +
+                    nodefactor("race..wa", base=3) + 
+                    nodefactor("region", base=2) +
                     nodematch("race..wa", diff=TRUE) +
                     nodematch("region", diff=FALSE) +
                     absdiff("sqrt.age") +
@@ -312,6 +318,23 @@ load("/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/nwstats.whamp.bala
 Main network: `r round(runtime_min_fit_main, 1)` minutes
 Persistent: `r round(runtime_min_fit_pers, 1)` minutes
 Instantaneous: `r round(runtime_min_fit_inst, 1)` minutes
+
+## MCMC diagnostics
+
+### Main
+```{r}
+mcmc.diagnostics(fit.m)
+```
+
+### Persistent
+```{r}
+mcmc.diagnostics(fit.p)
+```
+
+### Instantaneous
+```{r}
+mcmc.diagnostics(fit.i)
+```
 
 ## Suffificient statistics
 
@@ -347,7 +370,7 @@ summary(fit.p)
 summary(fit.i)
 ```
 
-## MCMC diagnostics
+## Network diagnostics
 
 ### Main
 ```{r}
