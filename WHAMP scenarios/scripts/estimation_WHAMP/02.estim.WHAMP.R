@@ -47,6 +47,8 @@ nw.pers <- assign_degree_whamp(nw.pers, deg.type = "main", nwstats = st)
 # Formulas
 formation.p <- ~edges +
                 nodefactor("deg.main") +
+                nodefactor("race..wa", base=3) + 
+                nodefactor("region", base=2) +
                 concurrent +
                 nodematch("race..wa", diff=TRUE) +
                 nodematch("region", diff=FALSE) +
@@ -80,6 +82,8 @@ table(nw.inst %v% "deg.main", nw.inst %v% "deg.pers")
 formation.i <- ~edges +
                 nodefactor(c("deg.main", "deg.pers")) +
                 nodefactor("riskg") +
+                nodefactor("race..wa", base=3) + 
+                nodefactor("region", base=2) +
                 nodematch("race..wa", diff=TRUE) +
                 nodematch("region", diff=FALSE) +
                 absdiff("sqrt.age") +
