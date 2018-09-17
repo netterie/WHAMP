@@ -1,0 +1,345 @@
+#MMP data preparation
+
+```{r, include=FALSE}
+####################################################################################
+# Setup
+####################################################################################
+
+#-----------------------------------------------------------------------------------
+# Load packages
+#-----------------------------------------------------------------------------------
+    #install.packages("tidyverse")
+    library("tidyverse")
+
+    #install.packages("psych") #To use "describe" function for continuous vars
+    library("psych")
+
+    #install.packages("ggplot2")
+    library("ggplot2")
+    
+    #install.packages("survey")
+    library("survey")
+
+    #install.packages(mice) # To look at patterns of missing data with md.pattern function
+    library("mice")
+
+    #install.packages("kableExtra")
+    library("knitr")
+    library("kableExtra")
+
+#-----------------------------------------------------------------------------------
+# Import data 
+#-----------------------------------------------------------------------------------
+    
+    # Need to mount windows to access the data because this server is on Linux. Open the Terminal in RStudio, and type "winmount" It will first ask for password to mount the U drive and H drive, which I don't need, so hit enter. Then it will prompt me for a password to mount the CSDE Project (R:) directory. Enter my UW netid password. Then type cd /homes/dpwhite/win/project/MMP_WADOH The mount will expire after ~24 hours, so will need to re-mount it periodically by typing "winmount"
+
+  mmp2014 <- read.csv("/homes/dpwhite/win/project/MMP_WADOH/mmp14_darcy.20180905.csv",
+                         header=TRUE, sep=",", na.strings = c("NA", "", "."))
+  
+#-----------------------------------------------------------------------------------
+# Rename and code new variables 
+#-----------------------------------------------------------------------------------
+
+# Ego race/ethnicity
+ mmp2014 <- within(mmp2014, {
+                hbo <- ifelse(HISPA_13 %in% 1, "Hispanic",
+                            ifelse(RACE_9C %in% 1, "Black",
+                             ifelse((RACE_9A %in% 1 | RACE_9B %in% 1 | RACE_9D %in% 1 | RACE_9E %in% 1), "Other", 
+                                    NA)))
+})
+
+# Ego region 
+mmp2014$region <- ifelse(mmp2014$CNTY_RES %in% "KING CO.", "King County", 
+                         ifelse(mmp2014$CNTY_RES %in% c("CLALLAM CO.", "CLARK CO.", "COWLITZ CO.", "GRAYS HARBOR CO.", "ISLAND CO.", "JEFFERSON CO.", "KITSAP CO.", "LEWIS CO.", "MASON CO.", "PACIFIC CO.", "PIERCE CO.", "SAN JUAN CO.", "SKAGIT CO.", "SKAMANIA CO.", "SNOHOMISH CO.", "THURSTON CO.", "WAHKIAKUM CO.", "WHATCOM CO."), "Other Western", 
+                                ifelse(mmp2014$CNTY_RES %in% c("ADAMS CO.", "ASOTIN CO.", "BENTON CO.", "CHELAN CO.", "COLUMBIA CO.", "DOUGLAS CO.", "FERRY CO.", "FRANKLIN CO.", "GARFIELD CO.", "GRANT CO.", "KITTITAS CO.", "KLICKITAT CO.", "LINCOLN CO.", "OKANOGAN CO.", "PEND OREILLE CO.", "SPOKANE CO.", "STEVENS CO.", "WALLA WALLA CO.", "WHITMAN CO.", "YAKIMA CO."), "Eastern",
+                                       NA)))
+
+# Sexual orientation
+mmp2014$SEXORI8 <- factor(mmp2014$SEXORI8, 
+                          levels = c(1,2,3), 
+                          labels = c("Homosexual", "Heterosexual", "Bisexual"))
+
+colnames(mmp2014)[colnames(mmp2014)=="ANTIRE_9"] <- "art_ever"
+colnames(mmp2014)[colnames(mmp2014)=="CURME_9"] <- "art_curr"
+colnames(mmp2014)[colnames(mmp2014)=="SX_TMPN4"] <- "num_male"
+
+# Any male sex partners
+mmp2014$any_male <- ifelse(mmp2014$num_male >=1, 1, 
+                           ifelse(mmp2014$num_male == 0, 0,
+                                  NA))
+
+# Partner gender - if all sex partners were male (SXMLONN4 %in% 1), then partner gender is male
+mmp2014 <- within(mmp2014, {
+    p1male <- ifelse(SX_NM1N4 %in% "Name" & SXMLONN4 %in% 1, 1,
+                          ifelse(SXPGN1N4 %in% 1, 1,
+                                 ifelse(SX_NM1N4 %in% "Name", 0, 
+                                        NA)))
+    p2male <- ifelse(SX_NM2N4 %in% "Name" & SXMLONN4 %in% 1, 1,
+                          ifelse(SXPGN2N4 %in% 1, 1,
+                                 ifelse(SX_NM2N4 %in% "Name", 0, 
+                                        NA)))
+    p3male <- ifelse(SX_NM3N4 %in% "Name" & SXMLONN4 %in% 1, 1,
+                          ifelse(SXPGN3N4 %in% 1, 1,
+                                 ifelse(SX_NM3N4 %in% "Name", 0, 
+                                        NA)))
+    p4male <- ifelse(SX_NM4N4 %in% "Name" & SXMLONN4 %in% 1, 1,
+                          ifelse(SXPGN4N4 %in% 1, 1,
+                                 ifelse(SX_NM4N4 %in% "Name", 0, 
+                                        NA)))
+    p5male <- ifelse(SX_NM5N4 %in% "Name" & SXMLONN4 %in% 1, 1,
+                          ifelse(SXPGN5N4 %in% 1, 1,
+                                 ifelse(SX_NM5N4 %in% "Name", 0, 
+                                        NA)))
+})
+
+# Number of named male sex partners
+mmp2014$named_p <- rowSums(select(mmp2014, p1male, p2male, p3male, p4male, p5male), na.rm=TRUE)
+
+# Partner age - set to 3 different values: low = set to lower bound of range, mid = set to midpiont of range, high = set to upper bound of range
+  ## Only recode for most recent partner b/c for now this is all we will use
+mmp2014$p1age_low <- ifelse(mmp2014$SXPAG1N4 %in% 1, 18, #set <=24 cat to 18 in low scenario
+                            ifelse(mmp2014$SXPAG1N4 %in% 2, 25,
+                                   ifelse(mmp2014$SXPAG1N4 %in% 3, 30,
+                                          ifelse(mmp2014$SXPAG1N4 %in% 4, 35,
+                                                 ifelse(mmp2014$SXPAG1N4 %in% 5, 40,
+                                                        ifelse(mmp2014$SXPAG1N4 %in% 6, 45,
+                                                               ifelse(mmp2014$SXPAG1N4 %in% 7, 50, 
+                                                                      NA)))))))
+mmp2014$p1age_mid <- ifelse(mmp2014$SXPAG1N4 %in% 1, 21, 
+                            ifelse(mmp2014$SXPAG1N4 %in% 2, 27,
+                                   ifelse(mmp2014$SXPAG1N4 %in% 3, 32,
+                                          ifelse(mmp2014$SXPAG1N4 %in% 4, 37,
+                                                 ifelse(mmp2014$SXPAG1N4 %in% 5, 42,
+                                                        ifelse(mmp2014$SXPAG1N4 %in% 6, 47,
+                                                               ifelse(mmp2014$SXPAG1N4 %in% 7, 55, #set to median age of egos over 50
+                                                                      NA)))))))
+
+mmp2014$p1age_high <- ifelse(mmp2014$SXPAG1N4 %in% 1, 24, 
+                            ifelse(mmp2014$SXPAG1N4 %in% 2, 29,
+                                   ifelse(mmp2014$SXPAG1N4 %in% 3, 34,
+                                          ifelse(mmp2014$SXPAG1N4 %in% 4, 39,
+                                                 ifelse(mmp2014$SXPAG1N4 %in% 5, 44,
+                                                        ifelse(mmp2014$SXPAG1N4 %in% 6, 49,
+                                                               ifelse(mmp2014$SXPAG1N4 %in% 7, 59, #set to 75th percentile of age of egos over 50
+                                                                      NA)))))))
+
+# Partner race/ethnicity
+  ## Only recode for most recent partner b/c for now this is all we will use
+mmp2014 <- within(mmp2014, {
+                    p1hbo <- ifelse(SXPEN1N4 %in% 1, "Hispanic",
+                                    ifelse(SXPR1N4C %in% 1, "Black",
+                                           ifelse((SXPR1N4A %in% 1 | SXPR1N4B %in% 1 | SXPR1N4D %in% 1 | SXPR1N4E %in% 1), "Other",
+                                                  NA)))
+})
+
+# Partner type - if commitment is 4 (above and beyond) = main, else if had anal sex only once in the past 12 mons = instantaneous, else if had any anal sex in the past 12 months, persistent
+  # Note this is restricted to partners that were male gender
+mmp2014$p1type <- ifelse(!(mmp2014$p1male %in% 1) | !(mmp2014$SXANL1N4 %in% 1), NA,
+                         ifelse(mmp2014$SXPCM1N4 %in% 4, "Main",
+                        ifelse(mmp2014$SXAEN1N4 %in% 1, "Instantaneous",
+                               ifelse(mmp2014$SXANL1N4 %in% 1, "Persistent",
+                                      NA))))
+
+mmp2014$p2type <- ifelse(!(mmp2014$p2male %in% 1) | !(mmp2014$SXANL2N4 %in% 1), NA,
+                         ifelse(mmp2014$SXPCM2N4 %in% 4, "Main",
+                        ifelse(mmp2014$SXAEN2N4 %in% 1, "Instantaneous",
+                               ifelse(mmp2014$SXANL2N4 %in% 1, "Persistent",
+                                      NA))))
+mmp2014$p3type <- ifelse(!(mmp2014$p3male %in% 1) | !(mmp2014$SXANL3N4 %in% 1), NA,
+                         ifelse(mmp2014$SXPCM3N4 %in% 4, "Main",
+                        ifelse(mmp2014$SXAEN3N4 %in% 1, "Instantaneous",
+                               ifelse(mmp2014$SXANL3N4 %in% 1, "Persistent",
+                                      NA))))
+mmp2014$p4type <- ifelse(!(mmp2014$p4male %in% 1) | !(mmp2014$SXANL4N4 %in% 1), NA,
+                         ifelse(mmp2014$SXPCM4N4 %in% 4, "Main",
+                        ifelse(mmp2014$SXAEN4N4 %in% 1, "Instantaneous",
+                               ifelse(mmp2014$SXANL4N4 %in% 1, "Persistent",
+                                      NA))))
+mmp2014$p5type <- ifelse(!(mmp2014$p5male %in% 1) | !(mmp2014$SXANL5N4 %in% 1), NA,
+                         ifelse(mmp2014$SXPCM5N4 %in% 4, "Main",
+                        ifelse(mmp2014$SXAEN5N4 %in% 1, "Instantaneous",
+                               ifelse(mmp2014$SXANL5N4 %in% 1, "Persistent",
+                                      NA))))
+
+# AI times
+mmp2014$p1aitimes <- ifelse(!(mmp2014$p1male %in% 1), NA,
+                            ifelse(mmp2014$SXANL1N4 %in% 0, 0,
+                          ifelse(mmp2014$SA10_1N4 %in% 0, mmp2014$SXAEN1N4[!(mmp2014$SXAEN1N4 %in% c(77, 88))],
+                                 ifelse(mmp2014$SA10_1N4 %in% 1, (mmp2014$SXANA1N4[!(mmp2014$SXANA1N4 %in% c(777, 888))]*mmp2014$SXMAN1N4[!(mmp2014$SXMAN1N4 %in% c(77, 88))]), 
+                                                                  NA))))
+
+
+# Sex role
+mmp2014$p1anybottom <- ifelse((mmp2014$ABTM1AN4 %in% 1) | (mmp2014$ABTM1BN4 %in% c(2, 3)) , 1,
+                            ifelse((mmp2014$ABTM1AN4 %in% 0) | (mmp2014$ABTM1BN4 %in% 1), 0,
+                                   NA))
+mmp2014$p2anybottom <- ifelse((mmp2014$ABTM2AN4 %in% 1) | (mmp2014$ABTM2BN4 %in% c(2, 3)) , 1,
+                            ifelse((mmp2014$ABTM2AN4 %in% 0) | (mmp2014$ABTM2BN4 %in% 1), 0,
+                                   NA))
+mmp2014$p3anybottom <- ifelse((mmp2014$ABTM3AN4 %in% 1) | (mmp2014$ABTM3BN4 %in% c(2, 3)) , 1,
+                            ifelse((mmp2014$ABTM3AN4 %in% 0) | (mmp2014$ABTM3BN4 %in% 1), 0,
+                                   NA))
+mmp2014$p4anybottom <- ifelse((mmp2014$ABTM4AN4 %in% 1) | (mmp2014$ABTM4BN4 %in% c(2, 3)) , 1,
+                            ifelse((mmp2014$ABTM4AN4 %in% 0) | (mmp2014$ABTM4BN4 %in% 1), 0,
+                                   NA))
+mmp2014$p5anybottom <- ifelse((mmp2014$ABTM5AN4 %in% 1) | (mmp2014$ABTM5BN4 %in% c(2, 3)) , 1,
+                            ifelse((mmp2014$ABTM5AN4 %in% 0) | (mmp2014$ABTM5BN4 %in% 1), 0,
+                                   NA))
+
+mmp2014$p1anytop <- ifelse((mmp2014$ATP1AN4  %in% 1) | (mmp2014$ATP1BN4 %in% c(2, 3)) , 1,
+                            ifelse((mmp2014$ATP1AN4 %in% 0) | (mmp2014$ATP1BN4 %in% 1), 0,
+                                   NA))
+mmp2014$p2anytop <- ifelse((mmp2014$ATP2AN4  %in% 1) | (mmp2014$ATP2BN4 %in% c(2, 3)) , 1,
+                            ifelse((mmp2014$ATP2AN4 %in% 0) | (mmp2014$ATP2BN4 %in% 1), 0,
+                                   NA))
+mmp2014$p3anytop <- ifelse((mmp2014$ATP3AN4  %in% 1) | (mmp2014$ATP3BN4 %in% c(2, 3)) , 1,
+                            ifelse((mmp2014$ATP3AN4 %in% 0) | (mmp2014$ATP3BN4 %in% 1), 0,
+                                   NA))
+mmp2014$p4anytop <- ifelse((mmp2014$ATP4AN4  %in% 1) | (mmp2014$ATP4BN4 %in% c(2, 3)) , 1,
+                            ifelse((mmp2014$ATP4AN4 %in% 0) | (mmp2014$ATP4BN4 %in% 1), 0,
+                                   NA))
+mmp2014$p5anytop <- ifelse((mmp2014$ATP5AN4  %in% 1) | (mmp2014$ATP5BN4 %in% c(2, 3)) , 1,
+                            ifelse((mmp2014$ATP5AN4 %in% 0) | (mmp2014$ATP5BN4 %in% 1), 0,
+                                   NA))
+
+mmp2014$anybottom <- ifelse(mmp2014$p1anybottom %in% 1 | mmp2014$p2anybottom %in% 1 | mmp2014$p3anybottom %in% 1 | mmp2014$p4anybottom %in% 1 | mmp2014$p5anybottom %in% 1, 1, 
+                            ifelse(mmp2014$p1anybottom %in% 0 | mmp2014$p2anybottom %in% 0 | mmp2014$p3anybottom %in% 0 | mmp2014$p4anybottom %in% 0 | mmp2014$p5anybottom %in% 0, 0, NA))
+
+mmp2014$anytop <- ifelse(mmp2014$p1anytop %in% 1 | mmp2014$p2anytop %in% 1 | mmp2014$p3anytop %in% 1 | mmp2014$p4anytop %in% 1 | mmp2014$p5anytop %in% 1, 1, 
+                            ifelse(mmp2014$p1anytop %in% 0 | mmp2014$p2anytop %in% 0 | mmp2014$p3anytop %in% 0 | mmp2014$p4anytop %in% 0 | mmp2014$p5anytop %in% 0, 0, NA))
+
+mmp2014$sexrole <- ifelse(mmp2014$anybottom %in% 1 & mmp2014$anytop %in% 1, "Versatile",
+                          ifelse(mmp2014$anybottom %in% 1 & mmp2014$anytop %in% 0, "Bottom",
+                                 ifelse(mmp2014$anytop %in% 1 & mmp2014$anybottom %in% 0, "Top",
+                                        NA)))
+
+# Condom use
+mmp2014$p1condoms <- ifelse((mmp2014$ABTC1AN4 %in% 0) | (mmp2014$ATPC1AN4 %in% 0) | (mmp2014$ABTC1BN4 %in% 1) | (mmp2014$ATPC1BN4 %in% 1), "Never", 
+                          ifelse((mmp2014$ABTC1BN4 %in% 2) | (mmp2014$ATPC1BN4 %in% 2), "Sometimes",
+                                 ifelse((mmp2014$ABTC1AN4 %in% 1) | (mmp2014$ATPC1AN4 %in% 1) | (mmp2014$ABTC1BN4 %in% 3) | (mmp2014$ATPC1BN4 %in% 3), "Always",
+                                        NA)))
+
+mmp2014$p2condoms <- ifelse((mmp2014$ABTC2AN4 %in% 0) | (mmp2014$ATPC2AN4 %in% 0) | (mmp2014$ABTC2BN4 %in% 1) | (mmp2014$ATPC2BN4 %in% 1), "Never", 
+                          ifelse((mmp2014$ABTC2BN4 %in% 2) | (mmp2014$ATPC2BN4 %in% 2), "Sometimes",
+                                 ifelse((mmp2014$ABTC2AN4 %in% 1) | (mmp2014$ATPC2AN4 %in% 1) | (mmp2014$ABTC2BN4 %in% 3) | (mmp2014$ATPC2BN4 %in% 3), "Always",
+                                        NA)))
+
+mmp2014$p3condoms <- ifelse((mmp2014$ABTC3AN4 %in% 0) | (mmp2014$ATPC3AN4 %in% 0) | (mmp2014$ABTC3BN4 %in% 1) | (mmp2014$ATPC3BN4 %in% 1), "Never", 
+                          ifelse((mmp2014$ABTC3BN4 %in% 2) | (mmp2014$ATPC3BN4 %in% 2), "Sometimes",
+                                 ifelse((mmp2014$ABTC3AN4 %in% 1) | (mmp2014$ATPC3AN4 %in% 1) | (mmp2014$ABTC3BN4 %in% 3) | (mmp2014$ATPC3BN4 %in% 3), "Always",
+                                        NA)))
+
+mmp2014$p4condoms <- ifelse((mmp2014$ABTC4AN4 %in% 0) | (mmp2014$ATPC4AN4 %in% 0) | (mmp2014$ABTC4BN4 %in% 1) | (mmp2014$ATPC4BN4 %in% 1), "Never", 
+                          ifelse((mmp2014$ABTC4BN4 %in% 2) | (mmp2014$ATPC4BN4 %in% 2), "Sometimes",
+                                 ifelse((mmp2014$ABTC4AN4 %in% 1) | (mmp2014$ATPC4AN4 %in% 1) | (mmp2014$ABTC4BN4 %in% 3) | (mmp2014$ATPC4BN4 %in% 3), "Always",
+                                        NA)))
+
+mmp2014$p5condoms <- ifelse((mmp2014$ABTC5AN4 %in% 0) | (mmp2014$ATPC5AN4 %in% 0) | (mmp2014$ABTC5BN4 %in% 1) | (mmp2014$ATPC5BN4 %in% 1), "Never", 
+                          ifelse((mmp2014$ABTC5BN4 %in% 2) | (mmp2014$ATPC5BN4 %in% 2), "Sometimes",
+                                 ifelse((mmp2014$ABTC5AN4 %in% 1) | (mmp2014$ATPC5AN4 %in% 1) | (mmp2014$ABTC5BN4 %in% 3) | (mmp2014$ATPC5BN4 %in% 3), "Always",
+                                        NA)))
+
+# Disclosure - NOTE if p aware every time had sex in the past 12 mo may not mean disclosed before 1st sex if 1st sex more than 12 mo ago
+  #Restricted to partners who are male gender and had anal sex
+mmp2014$p1disclosure <- ifelse(!(mmp2014$p1male %in% 1) | !(mmp2014$SXANL1N4 %in% 1), NA,
+                               ifelse(mmp2014$STATS1N4 %in% 0, "Never disclosed",
+                               ifelse(mmp2014$AWRST1N4 %in% 0, "Disclosed after 1st sex",
+                                      ifelse(mmp2014$AWRST1N4 %in% 1, "Disclosed before 1st sex in past 12 mo",
+                                             NA))))
+mmp2014$p2disclosure <- ifelse(!(mmp2014$p2male %in% 1) | !(mmp2014$SXANL2N4 %in% 1), NA,
+                               ifelse(mmp2014$STATS2N4 %in% 0, "Never disclosed",
+                               ifelse(mmp2014$AWRST2N4 %in% 0, "Disclosed after 1st sex",
+                                      ifelse(mmp2014$AWRST2N4 %in% 1, "Disclosed before 1st sex in past 12 mo",
+                                             NA))))
+mmp2014$p3disclosure <- ifelse(!(mmp2014$p3male %in% 1) | !(mmp2014$SXANL3N4 %in% 1), NA,
+                               ifelse(mmp2014$STATS3N4 %in% 0, "Never disclosed",
+                               ifelse(mmp2014$AWRST3N4 %in% 0, "Disclosed after 1st sex",
+                                      ifelse(mmp2014$AWRST3N4 %in% 1, "Disclosed before 1st sex in past 12 mo",
+                                             NA))))
+mmp2014$p4disclosure <- ifelse(!(mmp2014$p4male %in% 1) | !(mmp2014$SXANL4N4 %in% 1), NA,
+                               ifelse(mmp2014$STATS4N4 %in% 0, "Never disclosed",
+                               ifelse(mmp2014$AWRST4N4 %in% 0, "Disclosed after 1st sex",
+                                      ifelse(mmp2014$AWRST4N4 %in% 1, "Disclosed before 1st sex in past 12 mo",
+                                             NA))))
+mmp2014$p5disclosure <- ifelse(!(mmp2014$p5male %in% 1) | !(mmp2014$SXANL5N4 %in% 1), NA,
+                               ifelse(mmp2014$STATS5N4 %in% 0, "Never disclosed",
+                               ifelse(mmp2014$AWRST5N4 %in% 0, "Disclosed after 1st sex",
+                                      ifelse(mmp2014$AWRST5N4 %in% 1, "Disclosed before 1st sex in past 12 mo",
+                                             NA))))
+
+mmp2014$p1status <- ifelse(!(mmp2014$p1male %in% 1) | !(mmp2014$SXANL1N4 %in% 1), NA,
+                           ifelse(mmp2014$STPRT1N4 %in% 0, "Unknown",
+                           ifelse(mmp2014$PRTST1N4 %in% 1, "HIV-positive",
+                                  ifelse(mmp2014$PRTST1N4 %in% 2, "HIV-negative",
+                                         NA))))
+mmp2014$p2status <- ifelse(!(mmp2014$p2male %in% 1) | !(mmp2014$SXANL2N4 %in% 1), NA,
+                           ifelse(mmp2014$STPRT2N4 %in% 0, "Unknown",
+                           ifelse(mmp2014$PRTST2N4 %in% 1, "HIV-positive",
+                                  ifelse(mmp2014$PRTST2N4 %in% 2, "HIV-negative",
+                                         NA))))
+mmp2014$p3status <- ifelse(!(mmp2014$p3male %in% 1) | !(mmp2014$SXANL3N4 %in% 1), NA,
+                           ifelse(mmp2014$STPRT3N4 %in% 0, "Unknown",
+                           ifelse(mmp2014$PRTST3N4 %in% 1, "HIV-positive",
+                                  ifelse(mmp2014$PRTST3N4 %in% 2, "HIV-negative",
+                                         NA))))
+mmp2014$p4status <- ifelse(!(mmp2014$p4male %in% 1) | !(mmp2014$SXANL4N4 %in% 1), NA,
+                           ifelse(mmp2014$STPRT4N4 %in% 0, "Unknown",
+                           ifelse(mmp2014$PRTST4N4 %in% 1, "HIV-positive",
+                                  ifelse(mmp2014$PRTST4N4 %in% 2, "HIV-negative",
+                                         NA))))
+mmp2014$p5status <- ifelse(!(mmp2014$p5male %in% 1) | !(mmp2014$SXANL5N4 %in% 1), NA,
+                           ifelse(mmp2014$STPRT5N4 %in% 0, "Unknown",
+                           ifelse(mmp2014$PRTST5N4 %in% 1, "HIV-positive",
+                                  ifelse(mmp2014$PRTST5N4 %in% 2, "HIV-negative",
+                                         NA))))
+
+# PrEP use if partner was negative, male, and had anal sex
+mmp2014$p1prep <- ifelse(!(mmp2014$p1male %in% 1) | !(mmp2014$SXANL1N4 %in% 1), NA,
+                         ifelse(mmp2014$PREP1N4 %in% 1, 1,
+                                ifelse(mmp2014$PREP1N4 %in% 0, 0,
+                                       NA)))
+mmp2014$p2prep <- ifelse(!(mmp2014$p2male %in% 1) | !(mmp2014$SXANL2N4 %in% 1), NA,
+                         ifelse(mmp2014$PREP2N4 %in% 1, 1,
+                                ifelse(mmp2014$PREP2N4 %in% 0, 0,
+                                       NA)))
+mmp2014$p3prep <- ifelse(!(mmp2014$p3male %in% 1) | !(mmp2014$SXANL3N4 %in% 1), NA,
+                         ifelse(mmp2014$PREP3N4 %in% 1, 1,
+                                ifelse(mmp2014$PREP3N4 %in% 0, 0,
+                                       NA)))
+mmp2014$p4prep <- ifelse(!(mmp2014$p4male %in% 1) | !(mmp2014$SXANL4N4 %in% 1), NA,
+                         ifelse(mmp2014$PREP4N4 %in% 1, 1,
+                                ifelse(mmp2014$PREP4N4 %in% 0, 0,
+                                       NA)))
+mmp2014$p5prep <- ifelse(!(mmp2014$p5male %in% 1) | !(mmp2014$SXANL5N4 %in% 1), NA,
+                         ifelse(mmp2014$PREP5N4 %in% 1, 1,
+                                ifelse(mmp2014$PREP5N4 %in% 0, 0,
+                                       NA)))
+
+#-----------------------------------------------------------------------------------
+# Define indicator variable to use to identify WA males who had anal sex with males for analyses
+#-----------------------------------------------------------------------------------
+# Males who had anal sex with males and have residence in WA State
+mmp2014$msm <- ifelse(mmp2014$SX_GEN %in% 1 & mmp2014$any_male %in% 1 & !is.na(mmp2014$region), 1,
+                      0)
+
+#-----------------------------------------------------------------------------------
+# Select variables of interest
+#-----------------------------------------------------------------------------------
+
+mmp2014 <- mmp2014 %>% select(msm, AGE, hbo, region, named_p, p1male, p2male, p3male, p4male, p5male, p1age_low, p1age_mid, p1age_high, p1hbo, p1type, p2type, p3type, p4type, p5type, sexrole, p1condoms, p2condoms, p3condoms, p4condoms, p5condoms, p1disclosure, p2disclosure, p3disclosure, p4disclosure, p5disclosure, p1status, p2status, p3status, p4status, p5status, p1prep, p2prep,p3prep, p4prep, p5prep, pa_wgt_over, pa_clust, pa_strat)
+
+#-----------------------------------------------------------------------------------
+# Define survey object
+#-----------------------------------------------------------------------------------
+
+mmp_svy <- svydesign(ids = ~pa_clust, strata = ~pa_strat, weights = ~pa_wgt_over, data = mmp2014, nest = TRUE)
+
+```
+
+Look at disclosure for each of the last 5 partners among discordant pships by ptype
+- use mmp2014_msm dataset and use only partners that are male gender and HIV-
+
+Can look at condom use by disclosure status just to see
+Could also tabulate PrEP use and compare condom use if neg partner is/is not on PrEP
+
+AGe and race mixing - restrict to p1gender %in% 1 and SXANL1N4 %in% 1
