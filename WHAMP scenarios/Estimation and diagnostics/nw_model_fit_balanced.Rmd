@@ -11,6 +11,8 @@ This file uses the balanced mixing matrices and degree distributions/rate of ins
 ```{r, warning=FALSE}
 rm(list = ls())
 suppressMessages(library("EpiModelHIV"))
+library("parallel")
+np <- detectCores()
 ```
 
 ## Calculate target statistics
@@ -67,11 +69,14 @@ mdeg.inst <- matrix(c(0.015734, 0.005987, 0.021057,
                       0.007052, 0.009709, 0.032598), byrow = TRUE, nrow = 2) 
 
 # Quintile distribution of overall instantaneous AI rates
-qnts.18to49 <- c(0, 0.000525, 0.005024, 0.054838)
-qnts.50to59 <- c(0, 0, 0.001551, 0.021283)
+qnts.18to49 <- c(0.0001, 0.000525, 0.005024, 0.054838) #set to 0.0001 if 0 to give non-zero prob
+qnts.50to59 <- c(0.0001, 0.0001, 0.001551, 0.021283)  #set to 0.0001 if 0 to give non-zero prob
 
 # Mean rate of instantaneous partnerships by race (black, Hispanic, other)
 inst.bho <- c(0.0202, 0.012978, 0.012418)
+
+# Mean rate of instantaneous partnerships by region (EW, KC, OW)
+inst.region <- c(0.011216, 0.014955, 0.01)
 
 # Proportion in same-race partnerships (main, pers, inst)
 prop.hom.mpi.H <- c(0.4229, 0.1631, 0.1787)
@@ -165,6 +170,7 @@ st <- calc_nwstats_msm_whamp(
   qnts.18to49 = qnts.18to49,
   qnts.50to59 = qnts.50to59,
   inst.bho = inst.bho,
+  inst.region = inst.region,
   prop.hom.mpi.H = prop.hom.mpi.H,
   prop.hom.mpi.B = prop.hom.mpi.B,
   prop.hom.mpi.O = prop.hom.mpi.O,
@@ -188,7 +194,7 @@ save(st, file = "/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/nwstats
 ```
 
 ## Fit models
-```{r, message=FALSE}
+```{r fit.main, message=FALSE}
 
 #Load data
 load("/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/nwstats.whamp.balanced.rda")
@@ -223,15 +229,23 @@ load("/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/nwstats.whamp.bala
                     coef.form = c(-Inf, -Inf, -Inf, -Inf, -Inf),
                     coef.diss = st$coef.diss.m,
                     constraints = ~bd(maxout = 1),
-                    set.control.ergm = control.ergm(MPLE.max.dyad.types = 1e10,
-                                                    init.method = "zeros",
-                                                    MCMLE.maxit = 250))
+                    set.control.ergm = control.ergm(MCMC.interval = 1e+5,                                                                           MCMC.samplesize=7500,
+                                                    MCMC.burnin = 1e+6,
+                                                    MPLE.max.dyad.types = 1e+7,
+                                                    init.method = "MPLE",
+                                                    MCMLE.maxit = 400,
+                                                    parallel = np - 1, 
+							                                      parallel.type="PSOCK"))
 
     # Fit time
     runtime_min_fit_main <- (proc.time()-startclock_main)['elapsed']/60
+ 
+    save(fit.m.bal, file = "/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/fit.m.whamp.balanced.rda")
+
+    ```   
     
-        
-  ## 2. Casual Model ---------------------------------------------------------
+```{r fit.pers, message = FALSE}      
+  ## 2. Persistent Model ---------------------------------------------------------
 
     # Initialize network
     nw.pers <- nw.main
@@ -242,12 +256,13 @@ load("/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/nwstats.whamp.bala
     # Formulas
     formation.p <- ~edges +
                     nodefactor("deg.main") +
+                    nodefactor("race..wa", base=3) + 
+                    nodefactor("region", base=2) +
                     concurrent +
                     nodematch("race..wa", diff=TRUE) +
                     nodematch("region", diff=FALSE) +
                     absdiff("sqrt.age") +
                     offset(nodematch("role.class", diff = TRUE, keep = 1:2))
-
         
     # Start clock to calculate runtime
     startclock_pers <- proc.time()
@@ -260,14 +275,21 @@ load("/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/nwstats.whamp.bala
                     coef.diss = st$coef.diss.p,
                     constraints = ~bd(maxout = 2), 
                     edapprox = TRUE,
-                    set.control.ergm = control.ergm(MPLE.max.dyad.types = 1e9,
-                                                init.method = "zeros",
-                                                MCMLE.maxit = 250))
+                    set.control.ergm = control.ergm(MCMC.interval = 1e+5,                                                                           MCMC.samplesize=7500,
+                                                    MCMC.burnin = 1e+6,
+                                                    MPLE.max.dyad.types = 1e+7,
+                                                    init.method = "MPLE",
+                                                    MCMLE.maxit = 400,
+                                                    parallel = np - 1, 
+							                                      parallel.type="PSOCK"))
 
     # Fit time
     runtime_min_fit_pers <- (proc.time()-startclock_pers)['elapsed']/60
     
+    save(fit.p.bal, file = "/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/fit.m.whamp.balanced.rda")
+```
 
+```{r fit.inst, message = FALSE} 
   ## Fit inst model ----------------------------------------------------------
 
     # Initialize network
@@ -282,6 +304,8 @@ load("/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/nwstats.whamp.bala
    formation.i <- ~edges +
                     nodefactor(c("deg.main", "deg.pers")) +
                     nodefactor("riskg") +
+                    nodefactor("race..wa", base=3) + 
+                    nodefactor("region", base=2) +
                     nodematch("race..wa", diff=TRUE) +
                     nodematch("region", diff=FALSE) +
                     absdiff("sqrt.age") +
@@ -296,8 +320,13 @@ load("/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/nwstats.whamp.bala
                     target.stats = st$stats.i,
                     coef.form = c(-Inf, -Inf),
                     coef.diss = dissolution_coefs(~offset(edges), 1),
-                    set.control.ergm = control.ergm(MPLE.max.dyad.types = 1e9,
-                                                    MCMLE.maxit = 250))
+                    set.control.ergm = control.ergm(MCMC.interval = 1e+5,                                                                           MCMC.samplesize=7500,
+                                                    MCMC.burnin = 1e+6,
+                                                    MPLE.max.dyad.types = 1e+7,
+                                                    init.method = "MPLE",
+                                                    MCMLE.maxit = 400,
+                                                    parallel = np - 1, 
+							                                      parallel.type="PSOCK"))))
     
      # Fit time
     runtime_min_fit_inst <- (proc.time()-startclock_inst)['elapsed']/60
@@ -312,6 +341,23 @@ load("/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/nwstats.whamp.bala
 Main network: `r round(runtime_min_fit_main, 1)` minutes
 Persistent: `r round(runtime_min_fit_pers, 1)` minutes
 Instantaneous: `r round(runtime_min_fit_inst, 1)` minutes
+
+## MCMC diagnostics
+
+### Main
+```{r}
+mcmc.diagnostics(fit.m)
+```
+
+### Persistent
+```{r}
+mcmc.diagnostics(fit.p)
+```
+
+### Instantaneous
+```{r}
+mcmc.diagnostics(fit.i)
+```
 
 ## Suffificient statistics
 
@@ -347,7 +393,7 @@ summary(fit.p)
 summary(fit.i)
 ```
 
-## MCMC diagnostics
+## Network diagnostics
 
 ### Main
 ```{r}
