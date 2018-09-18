@@ -40,6 +40,9 @@
 # Rename and code new variables 
 #-----------------------------------------------------------------------------------
 
+# Age group
+ mmp2014$age_cat <- cut(mmp2014$AGE, c(17, 24, 29, 34, 39, 49, 59, 100), labels=c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59", "60 and up"))
+
 # Ego race/ethnicity
  mmp2014 <- within(mmp2014, {
                 hbo <- ifelse(HISPA_13 %in% 1, "Hispanic",
@@ -50,8 +53,8 @@
 
 # Ego region 
 mmp2014$region <- ifelse(mmp2014$CNTY_RES %in% "KING CO.", "King County", 
-                         ifelse(mmp2014$CNTY_RES %in% c("CLALLAM CO.", "CLARK CO.", "COWLITZ CO.", "GRAYS HARBOR CO.", "ISLAND CO.", "JEFFERSON CO.", "KITSAP CO.", "LEWIS CO.", "MASON CO.", "PACIFIC CO.", "PIERCE CO.", "SAN JUAN CO.", "SKAGIT CO.", "SKAMANIA CO.", "SNOHOMISH CO.", "THURSTON CO.", "WAHKIAKUM CO.", "WHATCOM CO."), "Other Western", 
-                                ifelse(mmp2014$CNTY_RES %in% c("ADAMS CO.", "ASOTIN CO.", "BENTON CO.", "CHELAN CO.", "COLUMBIA CO.", "DOUGLAS CO.", "FERRY CO.", "FRANKLIN CO.", "GARFIELD CO.", "GRANT CO.", "KITTITAS CO.", "KLICKITAT CO.", "LINCOLN CO.", "OKANOGAN CO.", "PEND OREILLE CO.", "SPOKANE CO.", "STEVENS CO.", "WALLA WALLA CO.", "WHITMAN CO.", "YAKIMA CO."), "Eastern",
+                         ifelse(mmp2014$CNTY_RES %in% c("CLALLAM CO.", "CLARK CO.", "COWLITZ CO.", "GRAYS HARBOR CO.", "ISLAND CO.", "JEFFERSON CO.", "KITSAP CO.", "LEWIS CO.", "MASON CO.", "PACIFIC CO.", "PIERCE CO.", "SAN JUAN CO.", "SKAGIT CO.", "SKAMANIA CO.", "SNOHOMISH CO.", "THURSTON CO.", "WAHKIAKUM CO.", "WHATCOM CO."), "Western WA", 
+                                ifelse(mmp2014$CNTY_RES %in% c("ADAMS CO.", "ASOTIN CO.", "BENTON CO.", "CHELAN CO.", "COLUMBIA CO.", "DOUGLAS CO.", "FERRY CO.", "FRANKLIN CO.", "GARFIELD CO.", "GRANT CO.", "KITTITAS CO.", "KLICKITAT CO.", "LINCOLN CO.", "OKANOGAN CO.", "PEND OREILLE CO.", "SPOKANE CO.", "STEVENS CO.", "WALLA WALLA CO.", "WHITMAN CO.", "YAKIMA CO."), "Eastern WA",
                                        NA)))
 
 # Sexual orientation
@@ -208,9 +211,9 @@ mmp2014$anybottom <- ifelse(mmp2014$p1anybottom %in% 1 | mmp2014$p2anybottom %in
 mmp2014$anytop <- ifelse(mmp2014$p1anytop %in% 1 | mmp2014$p2anytop %in% 1 | mmp2014$p3anytop %in% 1 | mmp2014$p4anytop %in% 1 | mmp2014$p5anytop %in% 1, 1, 
                             ifelse(mmp2014$p1anytop %in% 0 | mmp2014$p2anytop %in% 0 | mmp2014$p3anytop %in% 0 | mmp2014$p4anytop %in% 0 | mmp2014$p5anytop %in% 0, 0, NA))
 
-mmp2014$sexrole <- ifelse(mmp2014$anybottom %in% 1 & mmp2014$anytop %in% 1, "Versatile",
-                          ifelse(mmp2014$anybottom %in% 1 & mmp2014$anytop %in% 0, "Bottom",
-                                 ifelse(mmp2014$anytop %in% 1 & mmp2014$anybottom %in% 0, "Top",
+mmp2014$position_cat <- ifelse(mmp2014$anybottom %in% 1 & mmp2014$anytop %in% 1, "Versatile",
+                          ifelse(mmp2014$anybottom %in% 1 & mmp2014$anytop %in% 0, "Exclusively bottom",
+                                 ifelse(mmp2014$anytop %in% 1 & mmp2014$anybottom %in% 0, "Exclusively top",
                                         NA)))
 
 # Condom use
@@ -316,7 +319,7 @@ mmp2014$p5prep <- ifelse(!(mmp2014$p5male %in% 1) | !(mmp2014$SXANL5N4 %in% 1), 
                                        NA)))
 
 #-----------------------------------------------------------------------------------
-# Define indicator variable to use to identify WA males who had anal sex with males for analyses
+# Define indicator variables to use to identify WA males who had anal sex with males
 #-----------------------------------------------------------------------------------
 # Males who had anal sex with males and have residence in WA State
 mmp2014$msm <- ifelse(mmp2014$SX_GEN %in% 1 & mmp2014$any_male %in% 1 & !is.na(mmp2014$region), 1,
@@ -326,13 +329,16 @@ mmp2014$msm <- ifelse(mmp2014$SX_GEN %in% 1 & mmp2014$any_male %in% 1 & !is.na(m
 # Select variables of interest
 #-----------------------------------------------------------------------------------
 
-mmp2014 <- mmp2014 %>% select(msm, AGE, hbo, region, named_p, p1male, p2male, p3male, p4male, p5male, p1age_low, p1age_mid, p1age_high, p1hbo, p1type, p2type, p3type, p4type, p5type, sexrole, p1condoms, p2condoms, p3condoms, p4condoms, p5condoms, p1disclosure, p2disclosure, p3disclosure, p4disclosure, p5disclosure, p1status, p2status, p3status, p4status, p5status, p1prep, p2prep,p3prep, p4prep, p5prep, pa_wgt_over, pa_clust, pa_strat)
+mmp2014 <- mmp2014 %>% select(msm, AGE, age_cat, hbo, region, named_p, p1male, p2male, p3male, p4male, p5male, p1age_low, p1age_mid, p1age_high, p1hbo, p1type, p2type, p3type, p4type, p5type, position_cat, p1condoms, p2condoms, p3condoms, p4condoms, p5condoms, p1disclosure, p2disclosure, p3disclosure, p4disclosure, p5disclosure, p1status, p2status, p3status, p4status, p5status, p1prep, p2prep,p3prep, p4prep, p5prep, pa_wgt_over, pa_clust, pa_strat)
 
 #-----------------------------------------------------------------------------------
-# Define survey object
+# Define survey object and save it
 #-----------------------------------------------------------------------------------
 
 mmp_svy <- svydesign(ids = ~pa_clust, strata = ~pa_strat, weights = ~pa_wgt_over, data = mmp2014, nest = TRUE)
+mmp_svy_msm <- mmp_svy[mmp_svy$variables$msm %in% 1 & mmp_svy$variables$AGE %in% c(18:59),]
+
+save(mmp_svy_msm, file="/homes/dpwhite/win/project/MMP_WADOH/mmp_clean_msm.Rdata")
 
 ```
 
