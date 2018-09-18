@@ -1,13 +1,13 @@
 # Post-stratification and raking {#reweight}
-The primary source of data on HIV-negative MSM for this project is the 2017 Washington HIV Prevention Project, an online survey administered from January 1 to February 28, 2017. __As an online convenience sample, there are undoubtedly sampling biases that affect the representativeness of the survey data.__ While these biases are difficult to quantify and adjust for, we can compare the composition of the sample to that of Washington males on age, race/ethnicity, and region, the three nodal attributes included in the model. 
+The primary source of data on HIV-negative MSM for this project is the 2017 Washington HIV Prevention Project (WHPP), an online survey administered from January 1 to February 28, 2017. The sources of data on HIV-positive men are the 2017-2018 ART-Net study (PI Sam Jenness at Emory University) and the 2014 Washington Medical Monitoring Project (MMP) questionaire (contact: Jen Reuer at WADOH). __As online convenience samples, there are undoubtedly sampling biases that affect the representativeness of the WHPP and ART-Net survey data.__ While these biases are difficult to quantify and adjust for, we can compare the composition of the sample to that of Washington males on age, race/ethnicity, and region (for WHPP and MMP), the three nodal attributes included in the model. 
 
-For the __expected regional distribution__, we use data from a 2016 analysis by @Grey2016 that estimated the sizes of the MSM population by state and county. County-level data were obtained from [Emory's Coalition for Applied Modeling for Prevention (CAMP) website](http://www.emorycamp.org/item.php?i=48) and aggregated to the regional level to estimate the proportion of males who are MSM by region. Population totals of MSM in each region were estimated by multiplying these proportions by the number of males aged 18 to 59 in the 2011-2015 American Community Survey (ACS) 5-year estimates [@WA-census].^[Data were downloaded from the American FactFinder using the Guided Search. I selected the option "I'm looking for information about people", then under topics I selected Age and Sex from the "Age & Sex" menu. For Geographies, I selected County as the geographic type, Washington as the state, clicked "All counties within Washington," and added my selection. For Race/Ethnic Groups, I clicked "Select from detailed groups", and added the following to my selection: Total population (code 001), Hispanic or Latino (of any race)(200-299) (code 400), White alone, not Hispanic or Latino (code 451), Black or African American alone, not Hispanic or Latino (code 453), Black or African American alone or in combination with one or more other races, not Hispanic or Latino (code 454), American Indian and Alaska Native alone, not Hispanic or Latino (code 455), Asian alone, not Hispanic or Latino (code 457), Native Hawaiian and Other Pacific Islander alone, not Hispanic or Latino (code 459), Some other race alone, not Hispanic or Latino (code 461), Two or more races, not Hispanic or Latino (code 463), Black or African American alone, Hispanic or Latino (code 466), and Black or African American alone or in combination with one or more other races, Hispanic or Latino (code 467). I selected the latter two to look at how many men identified as Hispanic and reported black race. From the available tables, I clicked "SEX BY AGE", table ID B01001, and downloaded it with the option to use the data, with both options selected.] For __age and race/ethnicity__, we assume that the true population distributions of MSM in each region mirror by the distributions for all males, again based on data from the 2011-2015 ACS. Because the WHPP was administered only to men who had never tested positive for HIV, we subtracted persons living with HIV from the population totals.^[2016 data on the number of persons living with diagnosed HIV/AIDS by age, race/ethnicity, and region were obtained from Jason Carr at the Washington State Department of Health in an email on 12/5/2017. These estimates were restricted to males whose infection was attributed to male-male sex (including those who also reported injection drug use). For this analysis, persons with no identified risk, such as male-male sex (approximately 10% of cases) were categorized using multiple imputation (procedure implemented by Jason Carr using a CDC-supplied MI program). Because there is differential missingness on exposure risk by county, using numbers for MSM that include imputed cases is recommended.] However, for some parameters, i.e. degree distribution, we do not have a corresonding data source for HIV-positive MSM, so we will use data from the WHPP survey to represent all MSM. For these parameters, we will reweight the sample to the population distribution _including HIV-positive men_.
+For the __expected regional distribution__, we use data from a 2016 analysis by @Grey2016 that estimated the sizes of the MSM population by state and county. County-level data were obtained from [Emory's Coalition for Applied Modeling for Prevention (CAMP) website](http://www.emorycamp.org/item.php?i=48) and aggregated to the regional level to estimate the proportion of males who are MSM by region. Population totals of MSM in each region were estimated by multiplying these proportions by the number of males aged 18 to 59 in the 2011-2015 American Community Survey (ACS) 5-year estimates [@WA-census].^[Data were downloaded from the American FactFinder using the Guided Search. I selected the option "I'm looking for information about people", then under topics I selected Age and Sex from the "Age & Sex" menu. For Geographies, I selected County as the geographic type, Washington as the state, clicked "All counties within Washington," and added my selection. For Race/Ethnic Groups, I clicked "Select from detailed groups", and added the following to my selection: Total population (code 001), Hispanic or Latino (of any race)(200-299) (code 400), White alone, not Hispanic or Latino (code 451), Black or African American alone, not Hispanic or Latino (code 453), Black or African American alone or in combination with one or more other races, not Hispanic or Latino (code 454), American Indian and Alaska Native alone, not Hispanic or Latino (code 455), Asian alone, not Hispanic or Latino (code 457), Native Hawaiian and Other Pacific Islander alone, not Hispanic or Latino (code 459), Some other race alone, not Hispanic or Latino (code 461), Two or more races, not Hispanic or Latino (code 463), Black or African American alone, Hispanic or Latino (code 466), and Black or African American alone or in combination with one or more other races, Hispanic or Latino (code 467). I selected the latter two to look at how many men identified as Hispanic and reported black race. From the available tables, I clicked "SEX BY AGE", table ID B01001, and downloaded it with the option to use the data, with both options selected.] For __age and race/ethnicity__, we assume that the true population distributions of MSM in each region mirror by the distributions for all males, again based on data from the 2011-2015 ACS. Because the WHPP was administered only to men who had never tested positive for HIV, we subtracted persons living with HIV from the population totals.^[2016 data on the number of persons living with diagnosed HIV/AIDS by age, race/ethnicity, and region were obtained from Jason Carr at the Washington State Department of Health in an email on 12/5/2017. These estimates were restricted to males whose infection was attributed to male-male sex (including those who also reported injection drug use). For this analysis, persons with no identified risk, such as male-male sex, (approximately 10% of cases) were categorized using multiple imputation (procedure implemented by Jason Carr using a CDC-supplied MI program). Because there is differential missingness on exposure risk by county, using numbers for MSM that include imputed cases is recommended.] To reweight the MMP and ART-Net samples, we use population totals for persons diagnosed with HIV.
 
 Descriptive analyses in section \@ref(demog_compare) show that, while the WHPP sample closely matches the expected distribution of MSM by region, it does not match the expected distributions of age or race/ethnicity. To adjust the composition of the sample to more closely match the estimated population composition, we would ideally adjust the sample to the full joint distributions of age, race/ethnicity, and region. However, this would stretch the data very thin, resulting in unstable estimates. We felt it was important to capture the joint distribution of race and region, as the racial/ethnic composition of each region differs, as illustrated in section \@ref(#race_compare). There are some differences in the age composition of each region (section \@ref(#age_compare)), but these differences are not quite as stark as for the racial/ethnic composition. Furthermore, trying to match the age distribution by region poses challenges in a dynamic model - to preserve the distribution by region, we would need to account for the patterns of migration that lead to that distribution. 
 
-Instead, __we decided to rake with partial joint distributions__. That is, we will rake to the joint distribution of race/ethnicity and region and simultaneously to the marginal distribution by age, which we categorized age into the following groups: 18-24, 25-29, 30-34, 35-39, 40-49, 50-59. We grouped ages above 40 into 10-year age groups to increase the stabiltiy of the estimates, as there are fewer respondents in these ages, and because the number of respondents aged 40-44 and 45-49 are roughly equal, as are the number of respondents aged 50-54 and 55-59. 
+Instead, __we decided to rake with partial joint distributions__. That is, we will rake to the joint distribution of race/ethnicity and region and simultaneously to the marginal distribution by age, which we categorized age into the following groups: 18-24, 25-29, 30-34, 35-39, 40-49, 50-59. We grouped ages above 40 into 10-year age groups to increase the stabiltiy of the estimates, as there are fewer respondents in these ages, and because the number of respondents aged 40-44 and 45-49 are roughly equal, as are the number of respondents aged 50-54 and 55-59. Because the MMP sample includes only 7 MSM in eastern WA and 15 in other western WA, we will rake it to the marginal distributions of race, region, and age. Because the ART-Net sample is nationwide (there are not enough respondents from Washington to support local analyses), we will rake it to the margins of race/ethnnicity and age only. 
 
-We used the `survey` package for the raking procedure. This package requires that you first specify a survey design. The package is not intended for working with convenience samples, so the most appropriate option seemed to be to specify the interet sample as a simple random sample, as we did not implement any stratified or cluster sampling. After creating a survey design object, we specify the population totals for each racial/ethnic group by region and for the margins of the age distribution. To correspond to the sampled population (for parameters specific to HIV-negative men), we subtracted the number of people living with HIV from the population totals. For parameters we will estimate from these data and apply to all MSM, we did not subtract people living with HIV from population totals. We then use the `rake` function to obtain adjusted sampling weights. To calculate target statistics, we will use the commands in the `survey` package to incorporate the weights from the raked survey objects (one specific to HIV-negative and one for all MSM).
+We used the `survey` package for the raking procedure. This package requires that you first specify a survey design. The package is not intended for working with convenience samples, so the most appropriate option for WHPP and ART-Net was to specify the internet samples as simple random samples, as they did not involve any stratified or cluster sampling. The MMP implemented a three-stage sampling design, so we will first define the survey object with MMP sampling weights, clusters and strata specified. After creating survey design objects, we specify the population totals for each racial/ethnic group by region (statewide for ART-Net) and for the margins of the age distribution. We then use the `rake` function to obtain adjusted sampling weights. To calculate target statistics, we will use the commands in the `survey` package to incorporate the weights from the raked survey objects.
 
 ```{r, include=FALSE}
 ####################################################################################
@@ -32,8 +32,14 @@ options(knitr.table.format = "html")
 #-----------------------------------------------------------------------------------
 # Load data
 #-----------------------------------------------------------------------------------
+
+# To load MMP data, need to mount windows to access the data because this server is on Linux. Open the Terminal in RStudio, and type "winmount" It will first ask for password to mount the U drive and H drive, which I don't need, so hit enter. Then it will prompt me for a password to mount the CSDE Project (R:) directory. Enter my UW netid password. Then type cd /homes/dpwhite/win/project/MMP_WADOH The mount will expire after ~24 hours, so will need to re-mount it periodically by typing "winmount"
+
+    load(file="/homes/dpwhite/win/project/MMP_WADOH/mmp_clean_msm.Rdata")
     load(file="Data/InternetSurveySample.Rdata")
     load(file="Data/InternetSurveySample_allages.Rdata")
+    load(file="Data/ARTNet_pos_wide.Rdata")
+    load(file="Data/ARTNet_pos_long.Rdata")
     load(file="Data/census_agebyregion.Rdata")
     load(file="Data/census_racebyregion.Rdata")
     load(file="Data/census_totalbyregion.Rdata")
@@ -42,7 +48,6 @@ options(knitr.table.format = "html")
     load(file="Data/prop_msmbyregion.Rdata")
     load(file="Data/plwha_age.Rdata")
     load(file="Data/plwha_hboXregion.Rdata")
-
     
 #-----------------------------------------------------------------------------------
 # set plot settings 
@@ -60,9 +65,12 @@ options(knitr.table.format = "html")
 ####################################################################################
 
 #-----------------------------------------------------------------------------------
-# Define survey object - set it up as though SRS
+# Define survey objects 
 #-----------------------------------------------------------------------------------
-    samplesvy <- svydesign(id=~1, data=sample)
+    
+    whpp_svy <- svydesign(id=~1, data=sample)
+    artnet_pos_svy <- svydesign(id=~1, data=artnet_pos_w)
+    #mmp_svy_msm already defined
 
 #-----------------------------------------------------------------------------------
 # Define "population" totals from census data and Jeremy Grey's analysis, and subtracting
@@ -124,43 +132,69 @@ options(knitr.table.format = "html")
     pop.age.neg <- cbind.data.frame(age_cat_alt = c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"), Freq = c(round(pop.age.all$Freq - pop.age.pos$Freq)))
 
 #-----------------------------------------------------------------------------------
-# Rake the survey sample using population totals for negatives only
+# Rake the survey samples using population totals
 #-----------------------------------------------------------------------------------
-    sample_rake_neg <- rake(samplesvy, list(~hbo+region, ~age_cat_alt), list(pop.raceregion.neg, pop.age.neg))
-    
-     save(sample_rake_neg, file="Data/InternetSurvey_reweighted_neg.Rdata")
+
+# Make sure factor vars are ordered the same way across surveys and match pop totals
+    mmp_svy_msm$variables$region <- factor(mmp_svy_msm$variables$region, levels = c("King County", "Western WA", "Eastern WA"))
+     mmp_svy_msm$variables$hbo <- factor(mmp_svy_msm$variables$hbo, levels = c("Hispanic", "Black", "Other"))
+     artnet_pos_svy$variables$hbo <- factor(artnet_pos_svy$variables$hbo, levels = c("Hispanic", "Black", "Other"))
+     mmp_svy_msm$variables$age_cat <- factor(mmp_svy_msm$variables$age_cat)
      
-#-----------------------------------------------------------------------------------
-# Rake the survey sample using population totals for all MSM
-#-----------------------------------------------------------------------------------
-    sample_rake_all <- rake(samplesvy, list(~hbo+region, ~age_cat_alt), list(pop.raceregion.all, pop.age.all))
+# Rename age_cat variable in pop.age.pos to match variable name in mmp and artnet
+     setnames(pop.age.pos, old = "age_groups", new = "age_cat")
+    setnames(pop.region.pos, old = "total", new = "Freq")
+
+# Rake
+    sample_rake_neg <- rake(whpp_svy, list(~hbo+region, ~age_cat_alt), list(pop.raceregion.neg, pop.age.neg))
+    sample_rake_all <- rake(whpp_svy, list(~hbo+region, ~age_cat_alt), list(pop.raceregion.all, pop.age.all))
+    mmp_rake <- mmp_rake <- rake(mmp_svy_msm, list(~hbo, ~region, ~age_cat), list(pop.hbo.pos, pop.region.pos, pop.age.pos))
+    artnet_pos_rake_w <- rake(artnet_pos_svy, list(~hbo, ~age_cat), list(pop.hbo.pos, pop.age.pos))
+
+# Merge weights from the raked wide ART-Net dataframe to the long dataframe
+    artnet_wts <- cbind.data.frame("AMIS_ID" = artnet_pos_rake_w$variables$AMIS_ID, "weight" = (1/artnet_pos_rake_w$prob))
+    artnet_pos_rake_l <- merge(artnet_pos_l, artnet_wts, by= "AMIS_ID")
+    artnet_pos_rake_l <- svydesign(id=~1, data=artnet_pos_rake_l, weights = ~weight)
+
     
+#Save
+     save(sample_rake_neg, file="Data/InternetSurvey_reweighted_neg.Rdata")
      save(sample_rake_all, file="Data/InternetSurvey_reweighted_all.Rdata")
+     save(mmp_rake, file="/homes/dpwhite/win/project/MMP_WADOH/mmp_reweighted.Rdata")
+     save(artnet_pos_rake_w, file="Data/artnet_reweighted_pos_w.Rdata")
+     save(artnet_pos_rake_l, file="Data/artnet_reweighted_pos_l.Rdata")
 
 ```
 
-## Population distributions
-In the tables below, we show the sample disitributions alongside the target population distributions for all and HIV-negative MSM.
+## Sample and population distributions
+In the tables below, we show the sample distributions alongside the target population distributions for HIV-negative and HIV-positive MSM. Distributions by region are shown only for the WHPP and MMP samples, as the ART-Net sample is national.
 ```{r age_dists}
-#Sample
-age_dist_sample <- as.vector(prop.table(table(sample$age_cat_alt)))
-
-#All MSM
-age_dist_pop_all <- as.vector(pop.age.all$Freq / sum(pop.age.all$Freq))
+#Samples
+age_dist_whpp <- as.vector(prop.table(table(sample$age_cat_alt)))
+age_dist_mmp <- as.vector(prop.table(svytable(~age_cat, mmp_svy_msm)))
+age_dist_artnet <- as.vector(prop.table(table(artnet_pos_w$age_cat)))
 
 #Negative MSM
 age_dist_pop_neg <- as.vector(pop.age.neg$Freq / sum(pop.age.neg$Freq))
 
+#Positive MSM
+age_dist_pop_pos <- as.vector(pop.age.pos$Freq / sum(pop.age.pos$Freq))
+
 #Combine columns
-age_dist <- cbind.data.frame("Age_group" = c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"), "WHPP" = age_dist_sample, "All_MSM" = age_dist_pop_all, "Neg_MSM" = age_dist_pop_neg)
+age_dist_neg <- cbind.data.frame("Age_group" = c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"), "WHPP" = age_dist_whpp, "Neg_MSM" = age_dist_pop_neg)
+age_dist_pos <- cbind.data.frame("Age_group" = c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"), "MMP" = age_dist_mmp, "ARTNet" = age_dist_artnet, "Pos_MSM" = age_dist_pop_pos)
 
 #Make table
-kable(age_dist, col.names=c("Age group", "WHPP sample", "All MSM", "HIV-negative MSM"), digits=c(0, 3, 3, 3), caption="Age distribution: sample and target population distributions") %>% kable_styling(full_width=F, position="center") %>% column_spec(1:4, width = "10em") 
+kable(age_dist_neg, col.names=c("Age group", "WHPP sample", "HIV-negative MSM"), digits=c(0, 3, 3), caption="Age distribution among HIV-negative MSM: WHPP sample and target population distribution") %>% kable_styling(full_width=F, position="center") %>% column_spec(1:3, width = "10em") 
+
+kable(age_dist_pos, col.names=c("Age group", "MMP sample", "ART-Net sample", "HIV-positive MSM"), digits=c(0, 3, 3, 3), caption="Age distribution among HIV-positive MSM: MMP and ART-Net samples and target population distribution") %>% kable_styling(full_width=F, position="center") %>% column_spec(1:4, width = "10em") 
+
 ```
 
 ```{r region_dists}
 #Sample
-region_dist_sample <- as.vector(prop.table(table(sample$region)))
+region_dist_whpp <- as.vector(prop.table(table(sample$region)))
+region_dist_mmp <- as.vector(prop.table(svytable(~region, mmp_svy_msm)))
 
 #All MSM
 region_dist_pop_all <- as.vector(pop.region.all$total / sum(pop.region.all$total))
@@ -168,36 +202,49 @@ region_dist_pop_all <- as.vector(pop.region.all$total / sum(pop.region.all$total
 #Negative MSM
 region_dist_pop_neg <- as.vector(pop.region.neg$total / sum(pop.region.neg$total))
 
+#Positive MSM
+region_dist_pop_pos <- as.vector(pop.region.pos$Freq / sum(pop.region.pos$Freq))
+
+
 #Combine columns
-region_dist <- cbind.data.frame("Region" = c("King County", "Other Western WA", "Eastern WA"), "WHPP" = region_dist_sample, "All_MSM" = region_dist_pop_all, "Neg_MSM" = region_dist_pop_neg)
+region_dist_neg <- cbind.data.frame("Region" = c("King County", "Other Western WA", "Eastern WA"), "WHPP" = region_dist_whpp, "Neg_MSM" = region_dist_pop_neg)
+
+region_dist_pos <- cbind.data.frame("Region" = c("King County", "Other Western WA", "Eastern WA"), "MMP" = region_dist_mmp, "Pos_MSM" = region_dist_pop_pos)
 
 #Make table
-kable(region_dist, col.names=c("Region", "WHPP sample", "All MSM", "HIV-negative MSM"), digits=c(0, 3, 3, 3), caption="Regional distribution: sample and target population distributions") %>% kable_styling(full_width=F, position="center") %>% column_spec(1:4, width = "10em") 
+kable(region_dist_neg, col.names=c("Region", "WHPP sample", "HIV-negative MSM"), digits=c(0, 3, 3), caption="Regional distribution: WHPP sample and target population distribution") %>% kable_styling(full_width=F, position="center") %>% column_spec(1:3, width = "10em") 
 
+kable(region_dist_pos, col.names=c("Region", "MMP sample", "HIV-positive MSM"), digits=c(0, 3, 3), caption="Regional distribution: MMP sample and target population distribution") %>% kable_styling(full_width=F, position="center") %>% column_spec(1:3, width = "10em") 
 ```
 
 ```{r race_dists}
-#Sample
-race_dist_sample <- as.vector(prop.table(table(sample$hbo)))
-    
-#All MSM
-race_dist_pop_all <- as.vector(pop.hbo.all$Freq / sum(pop.hbo.all$Freq))
+
+#Samples
+race_dist_whpp <- as.vector(prop.table(table(sample$hbo)))
+race_dist_mmp <- as.vector(prop.table(svytable(~hbo, mmp_svy_msm)))
+race_dist_artnet <- as.vector(prop.table(table(artnet_pos_w$hbo)))
 
 #Negative MSM
 race_dist_pop_neg <- as.vector(pop.hbo.neg$Freq / sum(pop.hbo.neg$Freq))
 
+#Positive MSM
+race_dist_pop_pos <- as.vector(pop.hbo.pos$Freq / sum(pop.hbo.pos$Freq))
+
 #Combine columns
-race_dist <- cbind.data.frame("Race" = c("Hispanic", "Black", "Other"), "WHPP" = race_dist_sample, "All_MSM" = race_dist_pop_all, "Neg_MSM" = race_dist_pop_neg)
+race_dist_neg <- cbind.data.frame("Race" = c("Hispanic", "Black", "Other"), "WHPP" = race_dist_whpp, "Neg_MSM" = race_dist_pop_neg)
+race_dist_pos <- cbind.data.frame("Race" = c("Hispanic", "Black", "Other"), "MMP" = race_dist_mmp, "ARTNet" = race_dist_artnet, "Pos_MSM" = race_dist_pop_pos)
 
 #Make table
-kable(race_dist, col.names=c("Race/ethnicity", "WHPP sample", "All MSM", "HIV-negative MSM"), digits=c(0, 3, 3, 3), caption="Racial/ethnic distribution: sample and target population distributions") %>% kable_styling(full_width=F, position="center") %>% column_spec(1:4, width = "10em") 
+kable(race_dist_neg, col.names=c("Race/ethnicity", "WHPP sample", "HIV-negative MSM"), digits=c(0, 3, 3), caption="Racial/ethnic distribution among HIV-negative MSM: WHPP sample and target population distribution") %>% kable_styling(full_width=F, position="center") %>% column_spec(1:3, width = "10em") 
+
+kable(race_dist_pos, col.names=c("Race/ethnicity", "MMP sample", "ART-Net sample", "HIV-positive MSM"), digits=c(0, 3, 3, 3), caption="Racial/ethnic distribution among HIV-positive MSM: MMP and ART-Net samples and target population distribution") %>% kable_styling(full_width=F, position="center") %>% column_spec(1:4, width = "10em") 
 
 ```
 
 ```{r raceXregion_dists}
 
 #Sample
-raceregion_dist_sample <- as.vector(prop.table(table(sample$hbo, sample$region), 2))
+raceregion_dist_whpp <- as.vector(prop.table(table(sample$hbo, sample$region), 2))
     
 #All MSM
 raceregion_dist_pop_all <- pop.raceregion.all %>% group_by(region) %>% mutate(percent = Freq/sum(Freq))
@@ -206,15 +253,15 @@ raceregion_dist_pop_all <- pop.raceregion.all %>% group_by(region) %>% mutate(pe
 raceregion_dist_pop_neg <- pop.raceregion.neg %>% group_by(region) %>% mutate(percent = Freq/sum(Freq))
 
 #Combine columns
-raceregion_dist <- cbind.data.frame("Race_ethnicity" = c(rep(c("Hispanic", "Black", "Other"), 3)), "WHPP" = raceregion_dist_sample, "All_MSM" =as.vector(raceregion_dist_pop_all$percent), "Neg_MSM" = as.vector(raceregion_dist_pop_neg$percent))
+raceregion_dist <- cbind.data.frame("Race_ethnicity" = c(rep(c("Hispanic", "Black", "Other"), 3)), "WHPP" = raceregion_dist_whpp, "Neg_MSM" = as.vector(raceregion_dist_pop_neg$percent), "All_MSM" =as.vector(raceregion_dist_pop_all$percent))
 
 #Make table
-kable(raceregion_dist, col.names=c("Race/ethnicity", "WHPP sample", "All MSM", "HIV-negative MSM"), digits=c(0, 3, 3, 3), caption="Racial/ethnic distribution by region: sample and target population distributions") %>% kable_styling(full_width=F, position="center") %>% group_rows("King County", 1, 3) %>% group_rows("Other Western WA", 4, 6) %>% group_rows("Eastern WA", 7, 9)  %>% column_spec(1:4, width = "10em") 
+kable(raceregion_dist, col.names=c("Race/ethnicity", "WHPP sample", "HIV-negative MSM", "All MSM"), digits=c(0, 3, 3, 3), caption="Racial/ethnic distribution by region: WHPP sample and target population distributions") %>% kable_styling(full_width=F, position="center") %>% group_rows("King County", 1, 3) %>% group_rows("Other Western WA", 4, 6) %>% group_rows("Eastern WA", 7, 9)  %>% column_spec(1:4, width = "10em") 
 
 ```
 
 ## Weights
-The weights resulting from raking to the joint distribution of race and region and the margins of age __among HIV-negative men__ are summarized below.
+The weights resulting from raking to the joint distribution of race and region and the margins of age among HIV-negative men in the WHPP sample are summarized below.
 ```{r ps_weights_neg}
 
     weights_neg <- weights(sample_rake_neg)
@@ -233,11 +280,15 @@ The weights resulting from raking to the joint distribution of race and region a
 
 ```
 
-The weights resulting from raking to the joint distribution of race and region and the margins of age __among all men__ are summarized below.
-```{r ps_weights_all}
+The weights resulting from raking to the marginal distribution of race, region, and age among HIV-positive men in the MMP sample and to the marginal distribution of race and age in the ART-Net surveys, respectively, are summarized below.
+```{r ps_weights_pos}
 
-    weights_all <- weights(sample_rake_all)
-    summary(weights_all)
+    weights_mmp <- weights(mmp_rake)
+    summary(weights_mmp)
+    
+    weights_artnet <- weights(artnet_pos_rake_w)
+    summary(weights_artnet)
+    
     
     #look at characteristics of those with highest weight
     # svytable(~hbo + age_cat_alt + region, sample_rake_all[sample_rake_all$prob %in% min(sample_rake_all$prob)], round = TRUE)
@@ -253,41 +304,76 @@ The weights resulting from raking to the joint distribution of race and region a
 ```
 
 ## Check reweighted distribution
-To check that this worked, the tables and graphs below show the distribution of the __re-weighted HIV-negative sample__ by age, race/ethnicity, and region compared to the target population distributions.
-```{r checkdists, fig.align="center"}
+To check that this worked, the tables and graphs below show the distribution of the __re-weighted WHPP sample__ by age, race/ethnicity, and region compared to the target population distributions.
+```{r checkdists_neg, fig.align="center"}
   
 #Make tables to compare margins and joint distributions
   #Age
     age_dist_reweighted <- as.vector(prop.table(svytable(~age_cat_alt, sample_rake_neg, round=TRUE)))
 
-    age_compare_graph <- cbind.data.frame("Age_group" = rep(c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"), 3), "Source" = (c(rep("Original sample", 6), rep("Reweighted sample", 6), rep("Population", 6))), "Percentage" = c(age_dist_sample, age_dist_reweighted, age_dist_pop_neg))
+    age_compare_graph <- cbind.data.frame("Age_group" = rep(c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"), 3), "Source" = (c(rep("Original sample", 6), rep("Reweighted sample", 6), rep("Population", 6))), "Percentage" = c(age_dist_whpp, age_dist_reweighted, age_dist_pop_neg))
 
     #Graph
-    ggplot(age_compare_graph) + geom_col(aes(x=Age_group, y=Percentage, fill=Source), position="dodge") + scale_fill_brewer(type="qual", palette=2) + plot_background_nogrid + theme_title + labs(x="Age group", y="Percentage", title="Age distribution")
+    ggplot(age_compare_graph) + geom_col(aes(x=Age_group, y=Percentage, fill=Source), position="dodge") + scale_fill_brewer(type="qual", palette=2) + plot_background_nogrid + theme_title + labs(x="Age group", y="Percentage", title="Age distribution among HIV-negative MSM")
 
   #Margins of region
     region_dist_reweighted <- as.vector(prop.table(svytable(~region, sample_rake_neg, round=TRUE)))
 
-    region_compare_graph <- cbind.data.frame("Region" = rep(c("King County", "Other Western WA", "Eastern WA"), 3), "Source" = (c(rep("Original sample", 3), rep("Reweighted sample", 3), rep("Population", 3))), "Percentage" = c(region_dist_sample, region_dist_reweighted, region_dist_pop_neg))
+    region_compare_graph <- cbind.data.frame("Region" = rep(c("King County", "Other Western WA", "Eastern WA"), 3), "Source" = (c(rep("Original sample", 3), rep("Reweighted sample", 3), rep("Population", 3))), "Percentage" = c(region_dist_whpp, region_dist_reweighted, region_dist_pop_neg))
 
     #Graph
-    ggplot(region_compare_graph) + geom_col(aes(x=Region, y=Percentage, fill=Source), position="dodge") + scale_fill_brewer(type="qual", palette=2) + plot_background_nogrid + theme_title + labs(x="Region", y="Percentage", title="Regional distribution")
+    ggplot(region_compare_graph) + geom_col(aes(x=Region, y=Percentage, fill=Source), position="dodge") + scale_fill_brewer(type="qual", palette=2) + plot_background_nogrid + theme_title + labs(x="Region", y="Percentage", title="Regional distribution among HIV-negative MSM")
 
   #Margins of race
     race_dist_reweighted <- as.vector(prop.table(svytable(~hbo, sample_rake_neg, round=TRUE)))
     
-    race_compare_graph <- cbind.data.frame("Race" = rep(c("Hispanic", "Black", "Other"), 3), "Source" = (c(rep("Original sample", 3), rep("Reweighted sample", 3), rep("Population", 3))), "Percentage" = c(race_dist_sample, race_dist_reweighted, race_dist_pop_neg))
+    race_compare_graph <- cbind.data.frame("Race" = rep(c("Hispanic", "Black", "Other"), 3), "Source" = (c(rep("Original sample", 3), rep("Reweighted sample", 3), rep("Population", 3))), "Percentage" = c(race_dist_whpp, race_dist_reweighted, race_dist_pop_neg))
 
     #Graph
-    ggplot(race_compare_graph) + geom_col(aes(x=Race, y=Percentage, fill=Source), position="dodge") + scale_fill_brewer(type="qual", palette=2) + plot_background_nogrid + theme_title + labs(x="Race/ethnicity", y="Percentage", title="Racial/ethnic distribution")
+    ggplot(race_compare_graph) + geom_col(aes(x=Race, y=Percentage, fill=Source), position="dodge") + scale_fill_brewer(type="qual", palette=2) + plot_background_nogrid + theme_title + labs(x="Race/ethnicity", y="Percentage", title="Racial/ethnic distribution among HIV-negative MSM")
 
   #Race by region
     raceregion_dist_reweighted <- as.vector(prop.table(svytable(~hbo + region, sample_rake_neg, round=TRUE), 2))
     
-    raceregion_compare_graph <- cbind.data.frame("Race" = rep(c(rep(c("Hispanic", "Black", "Other"), 3)), 3), "Region"=rep(c(rep("King County", 3), rep("Other Western WA", 3), rep("Eastern WA", 3)),3), "Source" = (c(rep("Original sample", 9), rep("Reweighted sample", 9), rep("Population", 9))), "Percentage" = c(raceregion_dist_sample, raceregion_dist_reweighted, as.vector(raceregion_dist_pop_neg$percent)))
+    raceregion_compare_graph <- cbind.data.frame("Race" = rep(c(rep(c("Hispanic", "Black", "Other"), 3)), 3), "Region"=rep(c(rep("King County", 3), rep("Other Western WA", 3), rep("Eastern WA", 3)),3), "Source" = (c(rep("Original sample", 9), rep("Reweighted sample", 9), rep("Population", 9))), "Percentage" = c(raceregion_dist_whpp, raceregion_dist_reweighted, as.vector(raceregion_dist_pop_neg$percent)))
     
     #Graph
-    ggplot(raceregion_compare_graph) + geom_col(aes(x=Race, y=Percentage, fill=Source), position="dodge") + facet_grid(.~Region) +  scale_fill_brewer(type="qual", palette=2) + plot_background_nogrid + theme_title + labs(x="Race/ethnicity", y="Percentage", title="Racial/ethnic distribution")
+    ggplot(raceregion_compare_graph) + geom_col(aes(x=Race, y=Percentage, fill=Source), position="dodge") + facet_grid(.~Region) +  scale_fill_brewer(type="qual", palette=2) + plot_background_nogrid + theme_title + labs(x="Race/ethnicity", y="Percentage", title="Racial/ethnic distribution by region among HIV-negative MSM")
 
     ```
-The reweighting procedure appears to have worked as expected, adjusting the sample to reproduce the joint distriubtion of race/ethnicity and region and the marginal distribution of age.
+    
+The tables and graphs below show the distribution of the __re-weighted MMP and ART-Net samples__ by age, race/ethnicity, and region (for MMP) compared to the target population distributions.
+```{r checkdists_pos, fig.align="center"}
+  
+#Make tables to compare marginal distributions
+  #Age
+    mmp_age_dist_reweighted <- as.vector(prop.table(svytable(~age_cat, mmp_rake, round=TRUE)))
+    artnet_age_dist_reweighted <- as.vector(prop.table(svytable(~age_cat, artnet_pos_rake_w, round=TRUE))) 
+    
+    age_compare_graph_pos <- cbind.data.frame("Age_group" = rep(c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"), 5), "Source" = (c(rep("MMP sample", 6), rep("Reweighted MMP sample", 6), rep("ART-Net sample", 6), rep("Reweighted ART-NET sample", 6), rep("Population", 6))), "Percentage" = c(age_dist_mmp, mmp_age_dist_reweighted, age_dist_artnet, artnet_age_dist_reweighted, age_dist_pop_pos))
+    age_compare_graph_pos$Source <- factor(age_compare_graph_pos$Source, levels = c("MMP sample", "ART-Net sample", "Reweighted MMP sample",  "Reweighted ART-NET sample", "Population"))
+
+    #Graph
+    ggplot(age_compare_graph_pos) + geom_col(aes(x=Age_group, y=Percentage, fill=Source), position="dodge") + scale_fill_brewer(type="qual", palette=2) + plot_background_nogrid + theme_title + labs(x="Age group", y="Percentage", title="Age distribution among HIV-positive MSM")
+
+    
+  #Margins of race
+     mmp_race_dist_reweighted <- as.vector(prop.table(svytable(~hbo, mmp_rake, round=TRUE)))
+    artnet_race_dist_reweighted <- as.vector(prop.table(svytable(~hbo, artnet_pos_rake_w, round=TRUE))) 
+
+    race_compare_graph_pos <- cbind.data.frame("Race" = rep(c("Hispanic", "Black", "Other"), 5), "Source" = (c(rep("MMP sample", 3), rep("Reweighted MMP sample", 3), rep("ART-Net sample", 3), rep("Reweighted ART-NET sample", 3), rep("Population", 3))), "Percentage" = c(race_dist_mmp, mmp_race_dist_reweighted, race_dist_artnet, artnet_race_dist_reweighted, race_dist_pop_pos))
+    race_compare_graph_pos$Source <- factor(race_compare_graph_pos$Source, levels = c("MMP sample", "ART-Net sample", "Reweighted MMP sample",  "Reweighted ART-NET sample", "Population"))
+    
+    #Graph
+    ggplot(race_compare_graph_pos) + geom_col(aes(x=Race, y=Percentage, fill=Source), position="dodge") + scale_fill_brewer(type="qual", palette=2) + plot_background_nogrid + theme_title + labs(x="Race/ethnicity", y="Percentage", title="Racial/ethnic distribution among HIV-positive MSM")
+
+  #Region
+    mmp_region_dist_reweighted <- as.vector(prop.table(svytable(~region, mmp_rake, round=TRUE)))
+    
+    region_compare_graph_pos <- cbind.data.frame("Region"=rep(c("King County", "Other Western WA", "Eastern WA"), 3), "Source" = (c(rep("MMP sample", 3), rep("Reweighted MMP sample", 3), rep("Population", 3))), "Percentage" = c(region_dist_mmp, mmp_region_dist_reweighted, region_dist_pop_pos))
+    
+    #Graph
+    ggplot(region_compare_graph_pos) + geom_col(aes(x=Region, y=Percentage, fill=Source), position="dodge") +  scale_fill_brewer(type="qual", palette=2) + plot_background_nogrid + theme_title + labs(x="Region", y="Percentage", title="Regional distribution among HIV-positive MSM")
+    
+```
+The reweighting procedure appears to have worked as expected, adjusting the samples to reproduce the population distributions of race/ethnicity, region, age.
