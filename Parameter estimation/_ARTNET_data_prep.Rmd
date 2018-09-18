@@ -25,10 +25,9 @@ d$age <- as.numeric(d$age)
 ## Hispanic, black, other race/ethnicity
    #-- Note here we include people of multiple races in other because we do not know the individual race groups for partners, which are needed to identify persons who selected black race in combination with another race.
 
-d$hbo <- ifelse(d$race.cat %in% "white", "other", d$race.cat)
-
-# Reweight to match ------------------------------------------------------
-
+d$hbo <- ifelse(d$race.cat %in% c("white", "other"), "Other", 
+                ifelse(d$race.cat %in% "hispanic", "Hispanic",
+                       ifelse(d$race.cat %in% "black", "Black", NA)))
 
 # Reformat data to long ------------------------------------------------------
 
@@ -79,9 +78,9 @@ long$p_OFENDMM[which(long$p_OFENDMM %in% c(88, 99))] <- NA
 # Define new vars------------------------------------------------------
 
 ## Partner race/ethnicity as H, B, O
-long$p_hbo <- ifelse(long$p_HISP %in% 1, "hispanic",
-                ifelse(long$p_RACE %in% 2, "black",
-                       ifelse(long$p_RACE %in% c(1, 3, 4, 5, 6, 7), "other",
+long$p_hbo <- ifelse(long$p_HISP %in% 1, "Hispanic",
+                ifelse(long$p_RACE %in% 2, "Black",
+                       ifelse(long$p_RACE %in% c(1, 3, 4, 5, 6, 7), "Other",
                               NA)))
 ## Make age numeric
 long$age <- as.numeric(long$age)
@@ -711,6 +710,10 @@ long <- select(long, -endmm, -SUB_DATE.day, -SUB_DATE.month, -SUB_DATE.year, -p_
     artnet_w <- d %>% filter(age>17 & age<60)
     artnet_l <- long %>% filter(age>17 & age<60)
 
+## Define age categorization for reweighting
+    artnet_w$age_cat <- cut(artnet_w$age, c(17, 24, 29, 34, 39, 49, 59), labels=c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"))
+    artnet_l$age_cat <- cut(artnet_l$age, c(17, 24, 29, 34, 39, 49, 59), labels=c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"))
+    
 ## Set partner-specific variables to missing if partner age <18 or >59
     artnet_l <- artnet_l %>% filter(p_ageinyrs %in% c(18:59))
 
