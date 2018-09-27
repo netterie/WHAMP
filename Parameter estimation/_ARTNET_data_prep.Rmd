@@ -111,6 +111,9 @@ long <- within(long, {
                       ifelse(long$p_HIV %in% c(2, 3, 4, 88), 0,
                              NA))
  
+## Partner location
+ long$p_GEOG <- factor(long$p_GEOG, levels = c(1, 2, 3, 88, 99), labels = c("Same neighborhood", "Same city", "Different city", "Don't know", "Prefer not to answer"))
+ 
 ## Dates of first and last sex----
 
     ## SUB_DATE to date-type variable
@@ -750,6 +753,10 @@ long <- select(long, -endmm, -SUB_DATE.day, -SUB_DATE.month, -SUB_DATE.year, -p_
 ## Restrict to HIV-positive
     artnet_pos_w <- artnet_w %>% filter(hiv %in% 1)
     artnet_pos_l <- artnet_l %>% filter(hiv %in% 1)
+    
+## For comparison, define a sample restricted to HIV-negative/undiagnosed
+    artnet_neg_w <- artnet_w %>% filter(hiv %in% 0)
+    artnet_neg_l <- artnet_l %>% filter(hiv %in% 0)
 
 #--Save datasets ------------------------------------------------------
 
@@ -758,6 +765,9 @@ save(artnet_l, file = "Data/ARTNet_long.Rdata")
 
 save(artnet_pos_l, file="Data/ARTNet_pos_long.Rdata")
 save(artnet_pos_w, file="Data/ARTNet_pos_wide.Rdata")
+
+save(artnet_neg_l, file="Data/ARTNet_neg_long.Rdata")
+save(artnet_neg_w, file="Data/ARTNet_neg_wide.Rdata")
 
 #---------
 # # EXPLORE HETEROGENEITY BY REGION AMONG POS
