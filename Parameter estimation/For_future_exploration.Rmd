@@ -5,6 +5,44 @@ This section documents issues that we decided to flag for future consideration, 
 ## Age distribution
 We decided to weight the sample to match the age distribution reported for males in the census. The issue is that this may not correspond to the age distribution of MSM, particularly if there is differential migration for MSM and non-MSM. We could eventually try to tackle this, perhaps using Susie Cassel's data on migration patterns from the Mobile study. We could represent internal migration as changes in the regional attribute by age. However, incorporating this would require weighting the sample to the joint distriubtion of age and region, which stretch the current data quite thin. 
 
+## Partnership types
+In comparing the WHPP data with the ART-Net data reweighted to Washington demographics, we observe that main and instantaneous degree are pretty similar, but persistent degree is much lower in the WHPP sample. This could be due to how the questions were asked (WHPP asked a global question about how many parters are ongoing, whereas the degree estimates from ART-Net are based on reports for the past 5 partners). But it highlights a need for further research to understand partnership typologies, how men respond to the question of whether it's ongoing, and how they classify partners. The tables below show the main and persistent momentary degree distributions (with margins added), for the WHPP sample, HIV-negative/undiagnosed respondents in ART-Net, and diagnosed HIV-positive respondents in ART-Net. All are re-weighted to Washington demographics, and degree has been truncated at 1 for main and 2 for persistent in both samples.
+```{r, echo=FALSE}
+    load(file="Data/InternetSurvey_reweighted_neg.Rdata")
+    load(file="Data/artnet_reweighted_all_w.Rdata")
+    
+    # WHPP sample (all HIV-negative or undiagnosed)
+    deg.mp.WHPP <- addmargins(svytable(~degree_main + degreecat_cas, sample_rake_neg, Ntotal = 1), margin = c(1,2), sum, quiet = TRUE)
+    row.names(deg.mp.WHPP) <- c("No main", "Main", "Total")
+    kable(deg.mp.WHPP, col.names=c("0 pers", "1 pers", "2+ pers", "Total"), digits = c(4,4,4,4), caption="Main and persistent degree distribution: WHPP - neg/undx") %>% kable_styling(full_width=F, position="center") %>% row_spec(3, color="#1C91D7")  %>% column_spec(1, bold=T, color="black", width="2cm") %>% column_spec(2:5, width = "2cm") %>% column_spec(5, color="#1C91D7")
+
+    # ART-Net sample, HIV-negative or undiagnosed
+    deg.mp.artnet.neg <- addmargins(svytable(~deg.main_cat + deg.pers_cat, artnet_full_rake_w[artnet_full_rake_w$variables$hiv %in% 0], Ntotal = 1), margin = c(1,2), sum, quiet = TRUE)
+    row.names(deg.mp.artnet.neg) <- c("No main", "Main", "Total")
+    kable(deg.mp.artnet.neg, col.names=c("0 pers", "1 pers", "2+ pers", "Total"), digits = c(4,4,4,4), caption="Main and persistent degree distribution: ART-Net - neg/undx") %>% kable_styling(full_width=F, position="center") %>% row_spec(3, color="#1C91D7")  %>% column_spec(1, bold=T, color="black", width="2cm") %>% column_spec(2:5, width = "2cm") %>% column_spec(5, color="#1C91D7")
+
+    # ART-Net sample, diagnosed HIV-positive
+    deg.mp.artnet.pos <- addmargins(svytable(~deg.main_cat + deg.pers_cat, artnet_full_rake_w[artnet_full_rake_w$variables$hiv %in% 1], Ntotal = 1), margin = c(1,2), sum, quiet = TRUE)
+    row.names(deg.mp.artnet.pos) <- c("No main", "Main", "Total")
+    kable(deg.mp.artnet.pos, col.names=c("0 pers", "1 pers", "2+ pers", "Total"), digits = c(4,4,4,4), caption="Main and persistent degree distribution: ART-Net - diagnosed positive") %>% kable_styling(full_width=F, position="center") %>% row_spec(3, color="#1C91D7")  %>% column_spec(1, bold=T, color="black", width="2cm") %>% column_spec(2:5, width = "2cm") %>% column_spec(5, color="#1C91D7")
+
+
+```
+
+Below we see the mean rate of instantaneous partnerships for the three samples, also re-weighted to Washington demographics.
+```{r, echo=TRUE}
+
+# WHPP sample (all HIV-negative or undiagnosed)
+svymean(~rate_inst, sample_rake_neg, na.rm=TRUE)
+
+# ART-Net sample, HIV-negative or undiagnosed
+svymean(~rate_inst, artnet_full_rake_w[artnet_full_rake_w$variables$hiv %in% 0], na.rm=TRUE)
+
+# ART-Net sample, diagnosed HIV-positive
+svymean(~rate_inst, artnet_full_rake_w[artnet_full_rake_w$variables$hiv %in% 1], na.rm=TRUE)
+
+```
+
 ## Partnership formation by age
 In exploratory analyses with the WHPP data, the probabilities of having any persistent partners, concurrent persistent partners, and having a persistent partner concurrent with a main partner were all higher for men aged 40-49. However, examination of mixing matrices by age group (40-49 vs other) revealed imbalances wherein men aged 40-49 reported more partnerships with men of other ages than these men reported with men aged 40-49. When taking the mean of off-diagonal elements to account for this imbalance, the difference in persistent degree by age attenuated. Patterns of partnership formation across the life course would be valuable to investigate further with more (and more appropriate) data.
 
