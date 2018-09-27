@@ -7,7 +7,13 @@ We decided to weight the sample to match the age distribution reported for males
 
 ## Partnership types
 In comparing the WHPP data with the ART-Net data reweighted to Washington demographics, we observe that main and instantaneous degree are pretty similar, but persistent degree is much lower in the WHPP sample. This could be due to how the questions were asked (WHPP asked a global question about how many parters are ongoing, whereas the degree estimates from ART-Net are based on reports for the past 5 partners). But it highlights a need for further research to understand partnership typologies, how men respond to the question of whether it's ongoing, and how they classify partners. The tables below show the main and persistent momentary degree distributions (with margins added), for the WHPP sample, HIV-negative/undiagnosed respondents in ART-Net, and diagnosed HIV-positive respondents in ART-Net. All are re-weighted to Washington demographics, and degree has been truncated at 1 for main and 2 for persistent in both samples.
-```{r, echo=FALSE}
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+    library("tidyverse")
+    library("knitr")
+    library("data.table")
+    library("survey")
+    library("kableExtra")
+
     load(file="Data/InternetSurvey_reweighted_neg.Rdata")
     load(file="Data/artnet_reweighted_all_w.Rdata")
     
