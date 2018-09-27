@@ -1,0 +1,372 @@
+# Momentary degree and concurrency {#degree}
+```{r, echo=FALSE, include=FALSE}
+####################################################################################
+# Setup
+####################################################################################
+#-----------------------------------------------------------------------------------
+# Load packages
+#-----------------------------------------------------------------------------------
+
+    library("tidyverse")
+    library("ggplot2")
+    library("survey")
+    library("knitr")
+    library("xtable")
+    library("kableExtra")
+
+#-----------------------------------------------------------------------------------
+# Load data
+#-----------------------------------------------------------------------------------
+    load(file="Data/InternetSurveySample.Rdata")
+    load(file="Data/InternetSurvey_reweighted_all.Rdata")
+    load(file="Data/InternetSurvey_reweighted_neg.Rdata")
+
+# Set options
+    opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
+    options(knitr.table.format = "html") 
+  
+#-----------------------------------------------------------------------------------
+# Data manipulation
+#-----------------------------------------------------------------------------------
+
+# Change degree_main variable to factor and add labels have character labels
+sample_rake_all$variables$degree_main <- factor(sample_rake_all$variables$degree_main, levels = c(0, 1), labels = c("No main", "Main"))
+    
+#Define indicator of age 40-49 and MRP age 40-49
+sample_rake_all$variables$age40to49 <- ifelse(sample_rake_all$variables$age %in% c(40:49), 1,
+                                              ifelse(!is.na(sample_rake_all$variables$age), 0,
+                                                     NA))
+
+sample_rake_all$variables$mrp_age40to49 <- ifelse(sample_rake_all$variables$mrp_ageinyears_approx %in% c(40:49), 1,
+                                              ifelse(!is.na(sample_rake_all$variables$mrp_ageinyears_approx), 0,
+                                                     NA))
+
+```
+
+Several model inputs are calculated from data on the distribution of active main and persistent partnerships and instantaneous partnerships in the past year. These include patterns of race and age mixing, cross-network degree distributions, and rates of instantaneous partnerships. Adjustments made to balance the mixing matrices modify group-specific degrees, so additional adjustments are required to the cross-network degree distributions and rates of instantaneous partnerships to ensure that the implied number of partnerships for each group and the total network are consistent.
+
+Because of uncertainty about the causes of imbalances in the mixing matrices and the implications of adjusting for them, we calculate these inputs in two ways (see section \@ref(racemixing)):  
+ 
+1) We will use the observed egocentric data on momentary degree and the unbalanced mixing matrices. To calculate the observed momentary degree distribution, we use data from the re-weighted WHPP survey, as we do not have data specific to HIV-positive men. To account for differential missingness on questions relating to current main and casual partnership counts, we impute values for respondents with missing data as the mean value among men who match on race/ethnicity, region, and age (40-49 vs other ages). This assumes that there is non-differential missingness, but it ensures that degree distributions by subgroup are consistent and imply the same total number of partnerships (see [issue 39](https://github.com/statnet/WHAMP/issues/39)).  
+2) We will balance the race/ethnicity mixing matrices as described in section \@ref(racemixing) and obtain the racial/ethnic group-specific mean degrees from these balanced matrices. We will then adjust the cross-network momentary degree distribution to bump the margins up or down to match these mean degrees by increasing/decreasing each cell proportionately. To adjust this matrix to match persistent degree, we will make adjustments to the "0 persistent" and "1 persistent" columns and leave the "2 persistent" column unchanged. 
+
+We will fit the model using target statistics calculated both ways and evaluate which results in networks with the features we expect, and/or how much of a difference on our outcomes the two parameter sets make (see [issue #44](https://github.com/statnet/WHAMP/issues/44)).
+
+```{r data_manipulation_for_deg_and_mixing, include=FALSE}
+
+####################################################
+# Impute main/persistent momentary degree
+####################################################
+
+# Define numeric versions  of race/ethnicity and region to use in the `for` loops
+sample_rake_all$variables$hbo.num <- as.numeric(sample_rake_all$variables$hbo)
+sample_rake_all$variables$region.num <- as.numeric(sample_rake_all$variables$region)
+
+# Define empty vectors for the imputed variables
+sample_rake_all$variables$main0pers0 <- rep(NA, dim(sample_rake_all)[1])
+sample_rake_all$variables$main1pers0 <- rep(NA, dim(sample_rake_all)[1])
+sample_rake_all$variables$main0pers1 <- rep(NA, dim(sample_rake_all)[1])
+sample_rake_all$variables$main1pers1 <- rep(NA, dim(sample_rake_all)[1])
+sample_rake_all$variables$main0pers2 <- rep(NA, dim(sample_rake_all)[1])
+sample_rake_all$variables$main1pers2 <- rep(NA, dim(sample_rake_all)[1])
+
+# Deterministic imputation - set to the mean value among men of the same race/ethnicity, region, and age group
+for(race in 1:3){
+    for(region in 1:3){
+        for(age in 0:1){
+            sample_rake_all$variables$main0pers0[sample_rake_all$variables$hbo.num %in% race & sample_rake_all$variables$region.num %in% region & sample_rake_all$variables$age40to49 %in% age] <- prop.table(svytable(~degree_main + degreecat_cas, sample_rake_all[sample_rake_all$variables$hbo.num %in% race & sample_rake_all$variables$region.num %in% region & sample_rake_all$variables$age40to49 %in% age], round=FALSE))[1]
+            sample_rake_all$variables$main1pers0[sample_rake_all$variables$hbo.num %in% race & sample_rake_all$variables$region.num %in% region & sample_rake_all$variables$age40to49 %in% age] <- prop.table(svytable(~degree_main + degreecat_cas, sample_rake_all[sample_rake_all$variables$hbo.num %in% race & sample_rake_all$variables$region.num %in% region & sample_rake_all$variables$age40to49 %in% age], round=FALSE))[2]
+            sample_rake_all$variables$main0pers1[sample_rake_all$variables$hbo.num %in% race & sample_rake_all$variables$region.num %in% region & sample_rake_all$variables$age40to49 %in% age] <- prop.table(svytable(~degree_main + degreecat_cas, sample_rake_all[sample_rake_all$variables$hbo.num %in% race & sample_rake_all$variables$region.num %in% region & sample_rake_all$variables$age40to49 %in% age], round=FALSE))[3]
+            sample_rake_all$variables$main1pers1[sample_rake_all$variables$hbo.num %in% race & sample_rake_all$variables$region.num %in% region & sample_rake_all$variables$age40to49 %in% age] <- prop.table(svytable(~degree_main + degreecat_cas, sample_rake_all[sample_rake_all$variables$hbo.num %in% race & sample_rake_all$variables$region.num %in% region & sample_rake_all$variables$age40to49 %in% age], round=FALSE))[4]
+            sample_rake_all$variables$main0pers2[sample_rake_all$variables$hbo.num %in% race & sample_rake_all$variables$region.num %in% region & sample_rake_all$variables$age40to49 %in% age] <- prop.table(svytable(~degree_main + degreecat_cas, sample_rake_all[sample_rake_all$variables$hbo.num %in% race & sample_rake_all$variables$region.num %in% region & sample_rake_all$variables$age40to49 %in% age], round=FALSE))[5]
+            sample_rake_all$variables$main1pers2[sample_rake_all$variables$hbo.num %in% race & sample_rake_all$variables$region.num %in% region & sample_rake_all$variables$age40to49 %in% age] <- prop.table(svytable(~degree_main + degreecat_cas, sample_rake_all[sample_rake_all$variables$hbo.num %in% race & sample_rake_all$variables$region.num %in% region & sample_rake_all$variables$age40to49 %in% age], round=FALSE))[6]
+        }
+    }
+}
+
+# Degree matrices using imputed data
+deg.mp.H <- matrix(c(svymean(~main0pers0, sample_rake_all[sample_rake_all$variables$hbo %in% "Hispanic"]), svymean(~main0pers1, sample_rake_all[sample_rake_all$variables$hbo %in% "Hispanic"]), svymean(~main0pers2, sample_rake_all[sample_rake_all$variables$hbo %in% "Hispanic"]), svymean(~main1pers0, sample_rake_all[sample_rake_all$variables$hbo %in% "Hispanic"]), svymean(~main1pers1, sample_rake_all[sample_rake_all$variables$hbo %in% "Hispanic"]), svymean(~main1pers2, sample_rake_all[sample_rake_all$variables$hbo %in% "Hispanic"])), byrow=TRUE, nrow=2)
+
+deg.mp.B <- matrix(c(svymean(~main0pers0, sample_rake_all[sample_rake_all$variables$hbo %in% "Black"]), svymean(~main0pers1, sample_rake_all[sample_rake_all$variables$hbo %in% "Black"]), svymean(~main0pers2, sample_rake_all[sample_rake_all$variables$hbo %in% "Black"]), svymean(~main1pers0, sample_rake_all[sample_rake_all$variables$hbo %in% "Black"]), svymean(~main1pers1, sample_rake_all[sample_rake_all$variables$hbo %in% "Black"]), svymean(~main1pers2, sample_rake_all[sample_rake_all$variables$hbo %in% "Black"])), byrow=TRUE, nrow=2)
+
+deg.mp.O <- matrix(c(svymean(~main0pers0, sample_rake_all[sample_rake_all$variables$hbo %in% "Other"]), svymean(~main0pers1, sample_rake_all[sample_rake_all$variables$hbo %in% "Other"]), svymean(~main0pers2, sample_rake_all[sample_rake_all$variables$hbo %in% "Other"]), svymean(~main1pers0, sample_rake_all[sample_rake_all$variables$hbo %in% "Other"]), svymean(~main1pers1, sample_rake_all[sample_rake_all$variables$hbo %in% "Other"]), svymean(~main1pers2, sample_rake_all[sample_rake_all$variables$hbo %in% "Other"])), byrow=TRUE, nrow=2)
+
+deg.mp.KC <- matrix(c(svymean(~main0pers0, sample_rake_all[sample_rake_all$variables$region %in% "King County"]), svymean(~main0pers1, sample_rake_all[sample_rake_all$variables$region %in% "King County"]), svymean(~main0pers2, sample_rake_all[sample_rake_all$variables$region %in% "King County"]), svymean(~main1pers0, sample_rake_all[sample_rake_all$variables$region %in% "King County"]), svymean(~main1pers1, sample_rake_all[sample_rake_all$variables$region %in% "King County"]), svymean(~main1pers2, sample_rake_all[sample_rake_all$variables$region %in% "King County"])), byrow=TRUE, nrow=2)
+    
+deg.mp.OW <- matrix(c(svymean(~main0pers0, sample_rake_all[sample_rake_all$variables$region %in% "Western WA"]), svymean(~main0pers1, sample_rake_all[sample_rake_all$variables$region %in% "Western WA"]), svymean(~main0pers2, sample_rake_all[sample_rake_all$variables$region %in% "Western WA"]), svymean(~main1pers0, sample_rake_all[sample_rake_all$variables$region %in% "Western WA"]), svymean(~main1pers1, sample_rake_all[sample_rake_all$variables$region %in% "Western WA"]), svymean(~main1pers2, sample_rake_all[sample_rake_all$variables$region %in% "Western WA"])), byrow=TRUE, nrow=2)
+    
+deg.mp.EW <- matrix(c(svymean(~main0pers0, sample_rake_all[sample_rake_all$variables$region %in% "Eastern WA"]), svymean(~main0pers1, sample_rake_all[sample_rake_all$variables$region %in% "Eastern WA"]), svymean(~main0pers2, sample_rake_all[sample_rake_all$variables$region %in% "Eastern WA"]), svymean(~main1pers0, sample_rake_all[sample_rake_all$variables$region %in% "Eastern WA"]), svymean(~main1pers1, sample_rake_all[sample_rake_all$variables$region %in% "Eastern WA"]), svymean(~main1pers2, sample_rake_all[sample_rake_all$variables$region %in% "Eastern WA"])), byrow=TRUE, nrow=2)
+
+deg.mp.40to49 <- matrix(c(svymean(~main0pers0, sample_rake_all[sample_rake_all$variables$age40to49 %in% 1]), svymean(~main0pers1, sample_rake_all[sample_rake_all$variables$age40to49 %in% 1]), svymean(~main0pers2, sample_rake_all[sample_rake_all$variables$age40to49 %in% 1]), svymean(~main1pers0, sample_rake_all[sample_rake_all$variables$age40to49 %in% 1]), svymean(~main1pers1, sample_rake_all[sample_rake_all$variables$age40to49 %in% 1]), svymean(~main1pers2, sample_rake_all[sample_rake_all$variables$age40to49 %in% 1])), byrow=TRUE, nrow=2)
+
+deg.mp.otherages <- matrix(c(svymean(~main0pers0, sample_rake_all[sample_rake_all$variables$age40to49 %in% 0]), svymean(~main0pers1, sample_rake_all[sample_rake_all$variables$age40to49 %in% 0]), svymean(~main0pers2, sample_rake_all[sample_rake_all$variables$age40to49 %in% 0]), svymean(~main1pers0, sample_rake_all[sample_rake_all$variables$age40to49 %in% 0]), svymean(~main1pers1, sample_rake_all[sample_rake_all$variables$age40to49 %in% 0]), svymean(~main1pers2, sample_rake_all[sample_rake_all$variables$age40to49 %in% 0])), byrow=TRUE, nrow=2)
+
+deg.mp <- matrix(c(svymean(~main0pers0, sample_rake_all), svymean(~main0pers1, sample_rake_all), svymean(~main0pers2, sample_rake_all), svymean(~main1pers0, sample_rake_all), svymean(~main1pers1, sample_rake_all), svymean(~main1pers2, sample_rake_all)), byrow=TRUE, nrow=2)
+
+#CHECK TO MAKE SURE THIS WORKED----
+# ## Compare estimates of overall degree distribution from averages of distributions by race, region, and age----
+# deg.mp1 <- round(deg.mp.H*prop.table(svytable(~hbo, sample_rake_all, round=FALSE))[1] + deg.mp.B*prop.table(svytable(~hbo, sample_rake_all, round=FALSE))[2] + deg.mp.O*prop.table(svytable(~hbo, sample_rake_all, round=FALSE))[3], 4)  
+# deg.mp2 <- round(deg.mp.KC*prop.table(svytable(~region, sample_rake_all, round=FALSE))[1] + deg.mp.OW*prop.table(svytable(~region, sample_rake_all, round=FALSE))[2] + deg.mp.EW*prop.table(svytable(~region, sample_rake_all, round=FALSE))[3], 4)
+# deg.mp3 <- round(deg.mp.40to49*prop.table(svytable(~age40to49, sample_rake_all, round=FALSE))[2] + deg.mp.otherages*prop.table(svytable(~age40to49, sample_rake_all, round=FALSE))[1], 4)
+# deg.mp1 == deg.mp2 
+# deg.mp1 == deg.mp3
+# 
+# ## Implied number of partnerships----
+# num.edges.H <- deg.mp.H*svytable(~hbo, sample_rake_all, round=FALSE)[1]
+# num.edges.B <- deg.mp.B*svytable(~hbo, sample_rake_all, round=FALSE)[2]
+# num.edges.O <- deg.mp.O*svytable(~hbo, sample_rake_all, round=FALSE)[3]
+# num.edges1 <- (deg.mp.H*prop.table(svytable(~hbo, sample_rake_all, round=FALSE))[1] + deg.mp.B*prop.table(svytable(~hbo, sample_rake_all, round=FALSE))[2] + deg.mp.O*prop.table(svytable(~hbo, sample_rake_all, round=FALSE))[3])*sum(weights(sample_rake_all))
+# ### Main edges
+# sum(num.edges.H[2,], num.edges.B[2,], num.edges.O[2,])
+# sum(num.edges1[2,])
+# ### Pers edges
+# sum(num.edges.H[,2:3], num.edges.B[,2:3], num.edges.O[,2:3])
+# sum(num.edges1[,2:3])
+# 
+# num.edges.KC <- deg.mp.KC*svytable(~region, sample_rake_all, round=FALSE)[1]
+# num.edges.OW <- deg.mp.OW*svytable(~region, sample_rake_all, round=FALSE)[2]
+# num.edges.EW <- deg.mp.EW*svytable(~region, sample_rake_all, round=FALSE)[3]
+# num.edges2 <- (deg.mp.KC*prop.table(svytable(~region, sample_rake_all, round=FALSE))[1] + deg.mp.OW*prop.table(svytable(~region, sample_rake_all, round=FALSE))[2] + deg.mp.EW*prop.table(svytable(~region, sample_rake_all, round=FALSE))[3])*sum(weights(sample_rake_all))
+# ### Main edges
+# sum(num.edges.KC[2,], num.edges.OW[2,], num.edges.EW[2,])
+# sum(num.edges2[2,])
+# ### Pers edges
+# sum(num.edges.KC[,2:3], num.edges.OW[,2:3], num.edges.EW[,2:3])
+# sum(num.edges2[,2:3])
+# 
+# num.edges.40to49 <- deg.mp.40to49*svytable(~age40to49, sample_rake_all, round=FALSE)[2]
+# num.edges.otherages <- deg.mp.otherages*svytable(~age40to49, sample_rake_all, round=FALSE)[1]
+# num.edges3 <- (deg.mp.40to49*prop.table(svytable(~age40to49, sample_rake_all, round=FALSE))[2] + deg.mp.otherages*prop.table(svytable(~age40to49, sample_rake_all, round=FALSE))[1])*sum(weights(sample_rake_all))
+# ### Main edges
+# sum(num.edges.40to49[2,], num.edges.otherages[2,])
+# sum(num.edges3[2,])
+# ### Pers edges
+# sum(num.edges.40to49[,2:3], num.edges.otherages[,2:3])
+# sum(num.edges3[,2:3])
+# 
+# round(sum(num.edges1[2,]),4) == round(sum(num.edges2[2,]),4)
+# round(sum(num.edges1[,2:3]),4) == round(sum(num.edges2[,2:3]),4)
+# 
+# round(sum(num.edges1[2,]),4) == round(sum(num.edges3[2,]),4)
+# round(sum(num.edges1[,2:3]),4) == round(sum(num.edges3[,2:3]),4)
+
+
+####################################################
+# Define race mixing matrices for main and pers partnerships and balance them
+####################################################
+
+##MAIN PARTNERSHIPS##
+#Conditional row probabilities
+  racemix_main <- prop.table(svytable(~hbo + mrp_hbo, sample_rake_all[sample_rake_all$variables$mrp_type_ongoing %in% "Main"], round=FALSE),1)
+
+  #Mean degree by race 
+    meandegm.H <- sum(deg.mp.H[2,]) 
+    meandegm.B <- sum(deg.mp.B[2,])
+    meandegm.O <- sum(deg.mp.O[2,])
+    
+  #N by race in reweighted sample (scaled back to the size of the original sample) -- scaling to the total N assumes that those with missing data on degree or who didn't provide the age of their most recent partner are msising at random
+    nXrace <- svytable(~hbo, sample_rake_all, Ntotal=dim(sample)[1], round=FALSE)
+
+  #Reweighted mixing matrix, accounting for mean degree
+  racemix_main_rwt <- matrix(c(racemix_main[1,]*meandegm.H*nXrace[1], racemix_main[2,]*meandegm.B*nXrace[2], racemix_main[3,]*meandegm.O*nXrace[3]), byrow=TRUE, nrow=3)
+  racemix_main_rwt <- as.data.frame(racemix_main_rwt, row.names=c("Hispanic", "Black", "Other"))
+  names(racemix_main_rwt) <- c("Hispanic", "Black", "Other")
+  
+  #Take average of off-diagonals to balance
+  racemix_main_bal <- as.data.frame(matrix(c("HH"=racemix_main_rwt[1,1], "HB" = mean(c(racemix_main_rwt[1,2], racemix_main_rwt[2,1])), "HO" = mean(c(racemix_main_rwt[1,3], racemix_main_rwt[3,1])), "BH" = mean(c(racemix_main_rwt[1,2], racemix_main_rwt[2,1])), "BB" = racemix_main_rwt[2,2], "BO" = mean(c(racemix_main_rwt[2,3], racemix_main_rwt[3,2])), "OH" = mean(c(racemix_main_rwt[1,3], racemix_main_rwt[3,1])), "OB" = mean(c(racemix_main_rwt[2,3], racemix_main_rwt[3,2])), "OO" = racemix_main_rwt[3,3]), nrow=3, ncol=3, byrow=TRUE, dimnames=list(c("Hispanic", "Black", "Other"), c("Hispanic", "Black", "Other"))))
+  
+ ##PERS PARTNERSHIPS##
+  #Conditional row probabilities - using data from both ongoing persistent and most recent one-time partners
+  racemix_pers <- prop.table(svytable(~hbo + mrp_hbo, sample_rake_all[sample_rake_all$variables$mrp_type_ongoing %in% "Persistent" | sample_rake_all$variables$mrp_type_r %in% "One time"], round=FALSE),1)
+
+#Mean degree by race/ethnicity
+    meandegp.H <- sum(deg.mp.H[,2]) + 2*sum(deg.mp.H[,3])   
+    meandegp.B <- sum(deg.mp.B[,2]) + 2*sum(deg.mp.B[,3]) 
+    meandegp.O <- sum(deg.mp.O[,2]) + 2*sum(deg.mp.O[,3]) 
+
+  #N by race in reweighted sample (scaled back to the size of the original sample)
+  nXrace <- svytable(~hbo, sample_rake_all, Ntotal=dim(sample)[1], round=FALSE)
+
+  #Reweighted mixing matrix, accounting for mean degree
+  racemix_pers_rwt <- matrix(c(racemix_pers[1,]*meandegp.H*nXrace[1], racemix_pers[2,]*meandegp.B*nXrace[2], racemix_pers[3,]*meandegp.O*nXrace[3]), byrow=TRUE, nrow=3)
+  racemix_pers_rwt <- as.data.frame(racemix_pers_rwt, row.names=c("Hispanic", "Black", "Other"))
+  names(racemix_pers_rwt) <- c("Hispanic", "Black", "Other")
+  
+ #Take average of off-diagonals to balance
+  racemix_pers_bal <- as.data.frame(matrix(c("HH"=racemix_pers_rwt[1,1], "HB" = mean(c(racemix_pers_rwt[1,2], racemix_pers_rwt[2,1])), "HO" = mean(c(racemix_pers_rwt[1,3], racemix_pers_rwt[3,1])), "BH" = mean(c(racemix_pers_rwt[1,2], racemix_pers_rwt[2,1])), "BB" = racemix_pers_rwt[2,2], "BO" = mean(c(racemix_pers_rwt[2,3], racemix_pers_rwt[3,2])), "OH" = mean(c(racemix_pers_rwt[1,3], racemix_pers_rwt[3,1])), "OB" = mean(c(racemix_pers_rwt[2,3], racemix_pers_rwt[3,2])), "OO" = racemix_pers_rwt[3,3]), nrow=3, ncol=3, byrow=TRUE, dimnames=list(c("Hispanic", "Black", "Other"), c("Hispanic", "Black", "Other"))))
+  
+race_mixing <- list("racemix_main_rwt" = racemix_main_rwt, "racemix_main_bal" = racemix_main_bal, "racemix_pers_rwt" = racemix_pers_rwt, "racemix_pers_bal" = racemix_pers_bal)
+  
+save(race_mixing, file="Data/race_mixing.Rdata")
+
+####################################################
+# Obtain mean degree from balanced matrices
+####################################################
+
+#Main mean degree by race/ethnicity
+  bal.degm <- c(sum(racemix_main_bal[1,])/nXrace[1], sum(racemix_main_bal[2,])/nXrace[2], sum(racemix_main_bal[3,])/nXrace[3])
+
+#Persistent mean degree by race/ethnicity
+    bal.degp <- c(sum(racemix_pers_bal[1,])/nXrace[1], sum(racemix_pers_bal[2,])/nXrace[2], sum(racemix_pers_bal[3,])/nXrace[3])
+    
+####################################################
+# Adjust momentary degree distribution to match mean degree implied from balanced matrices
+####################################################
+
+# Hispanic
+  ## Define difference beteween balanced and observed mean degree
+    main.adj.H <- bal.degm[1] - meandegm.H
+    pers.adj.H <- bal.degp[1] - meandegp.H
+    
+  ## Adjust degree matrix - distribute main difference across cells in proportion to number in that column; distribute pers difference across cells in proportion to number in that row. Absorb difference in pers partnerships into 0 and 1 pers columns (do not change 2 pers column)
+    deg.mp.H.adj <- matrix(c((deg.mp.H[1,1] - main.adj.H*sum(deg.mp.H[,1])), (deg.mp.H[1,2] - main.adj.H*sum(deg.mp.H[,2])), (deg.mp.H[1,3] - main.adj.H*sum(deg.mp.H[,3])), (deg.mp.H[2,1] + main.adj.H*sum(deg.mp.H[,1])), (deg.mp.H[2,2] + main.adj.H*sum(deg.mp.H[,2])), (deg.mp.H[2,3] + main.adj.H*sum(deg.mp.H[,3]))), byrow=TRUE, nrow=2)
+    deg.mp.H.adj <- matrix(c((deg.mp.H.adj[1,1] - pers.adj.H*sum(deg.mp.H.adj[1,])), (deg.mp.H.adj[1,2] + pers.adj.H*sum(deg.mp.H.adj[1,])), deg.mp.H.adj[1,3], (deg.mp.H.adj[2,1] - pers.adj.H*sum(deg.mp.H.adj[2,])), (deg.mp.H.adj[2,2] + pers.adj.H*sum(deg.mp.H.adj[2,])), deg.mp.H.adj[2,3]), byrow=TRUE, nrow=2)
+    
+# Black
+  ## Define difference beteween balanced and observed mean degree
+    main.adj.B <- bal.degm[2] - meandegm.B
+    pers.adj.B <- bal.degp[2] - meandegp.B
+    
+  ## Adjust degree matrix - distribute main difference across cells in proportion to number in that column; distribute pers difference across cells in proportion to number in that row. Absorb difference in pers partnerships into 0 and 1 pers columns (do not change 2 pers column)
+    deg.mp.B.adj <- matrix(c((deg.mp.B[1,1] - main.adj.B*sum(deg.mp.B[,1])), (deg.mp.B[1,2] - main.adj.B*sum(deg.mp.B[,2])), (deg.mp.B[1,3] - main.adj.B*sum(deg.mp.B[,3])), (deg.mp.B[2,1] + main.adj.B*sum(deg.mp.B[,1])), (deg.mp.B[2,2] + main.adj.B*sum(deg.mp.B[,2])), (deg.mp.B[2,3] + main.adj.B*sum(deg.mp.B[,3]))), byrow=TRUE, nrow=2)
+    deg.mp.B.adj <- matrix(c((deg.mp.B.adj[1,1] - pers.adj.B*sum(deg.mp.B.adj[1,])), (deg.mp.B.adj[1,2] + pers.adj.B*sum(deg.mp.B.adj[1,])), deg.mp.B.adj[1,3], (deg.mp.B.adj[2,1] - pers.adj.B*sum(deg.mp.B.adj[2,])), (deg.mp.B.adj[2,2] + pers.adj.B*sum(deg.mp.B.adj[2,])), deg.mp.B.adj[2,3]), byrow=TRUE, nrow=2)
+    
+# Other
+  ## Define difference beteween balanced and observed mean degree
+    main.adj.O <- bal.degm[3] - meandegm.O
+    pers.adj.O <- bal.degp[3] - meandegp.O
+    
+  ## Adjust degree matrix - distribute main difference across cells in proportion to number in that column; distribute pers difference across cells in proportion to number in that row. Absorb difference in pers partnerships into 0 and 1 pers columns (do not change 2 pers column)
+    deg.mp.O.adj <- matrix(c((deg.mp.O[1,1] - main.adj.O*sum(deg.mp.O[,1])), (deg.mp.O[1,2] - main.adj.O*sum(deg.mp.O[,2])), (deg.mp.O[1,3] - main.adj.O*sum(deg.mp.O[,3])), (deg.mp.O[2,1] + main.adj.O*sum(deg.mp.O[,1])), (deg.mp.O[2,2] + main.adj.O*sum(deg.mp.O[,2])), (deg.mp.O[2,3] + main.adj.O*sum(deg.mp.O[,3]))), byrow=TRUE, nrow=2)
+    deg.mp.O.adj <- matrix(c((deg.mp.O.adj[1,1] - pers.adj.O*sum(deg.mp.O.adj[1,])), (deg.mp.O.adj[1,2] + pers.adj.O*sum(deg.mp.O.adj[1,])), deg.mp.O.adj[1,3], (deg.mp.O.adj[2,1] - pers.adj.O*sum(deg.mp.O.adj[2,])), (deg.mp.O.adj[2,2] + pers.adj.O*sum(deg.mp.O.adj[2,])), deg.mp.O.adj[2,3]), byrow=TRUE, nrow=2)
+    
+# Check that it worked
+    # round(sum(deg.mp.H.adj),10) == 1
+    # sum(deg.mp.H.adj[2,]) == bal.degm[1]
+    # sum(deg.mp.H.adj[,2]) + 2*sum(deg.mp.H.adj[,3]) == bal.degp[1]
+    # 
+    # round(sum(deg.mp.B.adj),10) == 1
+    # sum(deg.mp.B.adj[2,]) == bal.degm[2]
+    # sum(deg.mp.B.adj[,2]) + 2*sum(deg.mp.B.adj[,3]) == bal.degp[2]
+    # 
+    # round(sum(deg.mp.O.adj),10) == 1
+    # sum(deg.mp.O.adj[2,]) == bal.degm[3]
+    # round(sum(deg.mp.O.adj[,2]) + 2*sum(deg.mp.O.adj[,3]), 10) == round(bal.degp[3], 10)
+
+# Define overall adjusted degree distribution as weighted avg of balanced degrees
+deg.mp.adj <- deg.mp.H.adj*prop.table(svytable(~hbo, sample_rake_all, round=FALSE))[1] + deg.mp.B.adj*prop.table(svytable(~hbo, sample_rake_all, round=FALSE))[2] + deg.mp.O.adj*prop.table(svytable(~hbo, sample_rake_all, round=FALSE))[3] 
+    
+```
+
+## Momentary degree distribution
+
+### Overall
+Tables \@ref(tab:degmatrix) and \@ref(tab:degmatrix_adj), below, present the overall momentary degree distribution based on the data reported by egos and based on the weighted average of the race-specific matrices adjusted to correspond to the balanced mixing matrices, respectively. Note that the margins are the same for these.
+```{r degmatrix}
+# Add margins to degree distribution table
+deg.mp <- addmargins(deg.mp, margin=c(1,2), sum, quiet = TRUE)
+row.names(deg.mp) <- c("No main", "Main", "Total")
+
+kable(deg.mp, col.names=c("0 pers", "1 pers", "2+ pers", "Total"), caption="Observed main and persistent degree distribution", digits = c(4,4,4,4)) %>% kable_styling(full_width=F, position="center") %>% row_spec(3, color="#1C91D7")  %>% column_spec(1, bold=T, color="black", width="2cm") %>% column_spec(2:5, width = "2cm") %>% column_spec(5, color="#1C91D7")
+
+```
+```{r degmatrix_adj}
+# Add margins to degree distribution table
+deg.mp.adj <- addmargins(deg.mp.adj, margin=c(1,2), sum, quiet = TRUE)
+row.names(deg.mp.adj) <- c("No main", "Main", "Total")
+
+kable(deg.mp.adj, col.names=c("0 pers", "1 pers", "2+ pers", "Total"), caption="Adjusted main and persistent degree distribution", digits = c(4,4,4,4)) %>% kable_styling(full_width=F, position="center") %>% row_spec(3, color="#1C91D7")  %>% column_spec(1, bold=T, color="black", width="2cm") %>% column_spec(2:5, width = "2cm") %>% column_spec(5, color="#1C91D7")
+
+```
+### By race/ethnicity
+To assign main and persistent degree as a nodal attribute according to race/ethnicity, region, and age, we will also need the degree distributions by these characteristics. 
+
+Tables \@ref(tab:degmatrix_hisp)-\@ref(tab:degmatrix_other), below, present the momentary degree distributions by racial/ethnic group based on the data reported by egos (i.e. without adjusting for inconsistencies with the mean degrees implied by balanced mixing matrices).
+```{r degmatrix_hisp}
+# Add margins to degree distribution table
+deg.mp.H <- addmargins(deg.mp.H, margin=c(1,2), sum, quiet = TRUE)
+row.names(deg.mp.H) <- c("No main", "Main", "Total")
+
+kable(deg.mp.H, col.names=c("0 pers", "1 pers", "2+ pers", "Total"), digits = c(4,4,4,4), caption="Main and persistent degree distribution: Hispanic men") %>% kable_styling(full_width=F, position="center") %>% row_spec(3, color="#1C91D7")  %>% column_spec(1, bold=T, color="black", width="2cm") %>% column_spec(2:5, width = "2cm") %>% column_spec(5, color="#1C91D7")
+
+```
+```{r degmatrix_black}
+# Add margins to degree distribution table
+deg.mp.B <- addmargins(deg.mp.B, margin=c(1,2), sum, quiet = TRUE)
+row.names(deg.mp.B) <- c("No main", "Main", "Total")
+
+kable(deg.mp.B, col.names=c("0 pers", "1 pers", "2+ pers", "Total"), digits = c(4,4,4,4), caption="Main and persistent degree distribution: Black men") %>% kable_styling(full_width=F, position="center") %>% row_spec(3, color="#1C91D7")  %>% column_spec(1, bold=T, color="black", width="2cm") %>% column_spec(2:5, width = "2cm") %>% column_spec(5, color="#1C91D7")
+
+```
+```{r degmatrix_other}
+# Add margins to degree distribution table
+deg.mp.O <- addmargins(deg.mp.O, margin=c(1,2), sum, quiet = TRUE)
+row.names(deg.mp.O) <- c("No main", "Main", "Total")
+
+kable(deg.mp.O, col.names=c("0 pers", "1 pers", "2+ pers", "Total"),  digits = c(4,4,4,4), caption="Main and persistent degree distribution: Other race/ethnicity men") %>% kable_styling(full_width=F, position="center") %>% row_spec(3, color="#1C91D7")  %>% column_spec(1, bold=T, color="black", width="2cm") %>% column_spec(2:5, width = "2cm") %>% column_spec(5, color="#1C91D7")
+
+```
+
+Tables \@ref(tab:degmatrix_hisp_adj)-\@ref(tab:degmatrix_other_adj), below, present the momentary degree distributions by racial/ethnic group adjusted to the mean degrees implied by the balanced mixing matrices.
+```{r degmatrix_hisp_adj}
+# Add margins to degree distribution table
+deg.mp.H.adj <- addmargins(deg.mp.H.adj, margin=c(1,2), sum, quiet = TRUE)
+row.names(deg.mp.H.adj) <- c("No main", "Main", "Total")
+
+kable(deg.mp.H.adj, col.names=c("0 pers", "1 pers", "2+ pers", "Total"), digits = c(4,4,4,4), caption="Main and persistent degree distribution: Hispanic men, adjusted to align with balanced mixing matrices") %>% kable_styling(full_width=F, position="center") %>% row_spec(3, color="#1C91D7")  %>% column_spec(1, bold=T, color="black", width="2cm") %>% column_spec(2:5, width = "2cm") %>% column_spec(5, color="#1C91D7")
+
+```
+```{r degmatrix_black_adj}
+# Add margins to degree distribution table
+deg.mp.B.adj <- addmargins(deg.mp.B.adj, margin=c(1,2), sum, quiet = TRUE)
+row.names(deg.mp.B.adj) <- c("No main", "Main", "Total")
+
+kable(deg.mp.B.adj, col.names=c("0 pers", "1 pers", "2+ pers", "Total"), digits = c(4,4,4,4), caption="Main and persistent degree distribution: Black men, adjusted to align with balanced mixing matrices") %>% kable_styling(full_width=F, position="center") %>% row_spec(3, color="#1C91D7")  %>% column_spec(1, bold=T, color="black", width="2cm") %>% column_spec(2:5, width = "2cm") %>% column_spec(5, color="#1C91D7")
+
+```
+```{r degmatrix_other_adj}
+# Add margins to degree distribution table
+deg.mp.O.adj <- addmargins(deg.mp.O.adj, margin=c(1,2), sum, quiet = TRUE)
+row.names(deg.mp.O.adj) <- c("No main", "Main", "Total")
+
+kable(deg.mp.O.adj, col.names=c("0 pers", "1 pers", "2+ pers", "Total"),  digits = c(4,4,4,4), caption="Main and persistent degree distribution: Other race/ethnicity men, adjusted to align with balanced mixing matrices") %>% kable_styling(full_width=F, position="center") %>% row_spec(3, color="#1C91D7")  %>% column_spec(1, bold=T, color="black", width="2cm") %>% column_spec(2:5, width = "2cm") %>% column_spec(5, color="#1C91D7")
+
+```
+
+### By region
+```{r degmatrix_KC}
+# Add margins to degree distribution table
+deg.mp.KC <- addmargins(deg.mp.KC, margin=c(1,2), sum, quiet = TRUE)
+row.names(deg.mp.KC) <- c("No main", "Main", "Total")
+
+kable(deg.mp.KC, col.names=c("0 pers", "1 pers", "2+ pers", "Total"),  digits = c(4,4,4,4), caption="Main and persistent degree distribution: King County") %>% kable_styling(full_width=F, position="center") %>% row_spec(3, color="#1C91D7")  %>% column_spec(1, bold=T, color="black", width="2cm") %>% column_spec(2:5, width = "2cm") %>% column_spec(5, color="#1C91D7")
+
+```
+```{r degmatrix_OW}
+# Add margins to degree distribution table
+deg.mp.OW <- addmargins(deg.mp.OW, margin=c(1,2), sum, quiet = TRUE)
+row.names(deg.mp.OW) <- c("No main", "Main", "Total")
+
+kable(deg.mp.OW, col.names=c("0 pers", "1 pers", "2+ pers", "Total"),  digits = c(4,4,4,4), caption="Main and persistent degree distribution: Other western WA") %>% kable_styling(full_width=F, position="center") %>% row_spec(3, color="#1C91D7")  %>% column_spec(1, bold=T, color="black", width="2cm") %>% column_spec(2:5, width = "2cm") %>% column_spec(5, color="#1C91D7")
+
+```
+```{r degmatrix_EW}
+# Add margins to degree distribution table
+deg.mp.EW <- addmargins(deg.mp.EW, margin=c(1,2), sum, quiet = TRUE)
+row.names(deg.mp.EW) <- c("No main", "Main", "Total")
+
+kable(deg.mp.EW, col.names=c("0 pers", "1 pers", "2+ pers", "Total"),  digits = c(4,4,4,4), caption="Main and persistent degree distribution: Eastern WA") %>% kable_styling(full_width=F, position="center") %>% row_spec(3, color="#1C91D7")  %>% column_spec(1, bold=T, color="black", width="2cm") %>% column_spec(2:5, width = "2cm") %>% column_spec(5, color="#1C91D7")
+
+```
+
+## Nodes in main partnerships by race/ethnicity and region (target statistics for nodefactor terms)
+Descriptive analyses (section \@ref(explore_heterogeneity)) indicated that main partnership status varies by race/ethnicity and region, so we will include `nodefactor` terms in the main partnership network model to account for this heterogeneity. To calculate target statistics for these terms, we count the number of times nodes of each attribute value appear in a main edge by multiplying group-specific mean degree by the size of each group in the network. By race/ethnicity, we do this using both the reported mean degrees and the mean degrees adjusted to be consistent with the balanced mixing matrices.
+
+
+## Concurrency
+Overall, `r round(100*sum(deg.mp[1,3], deg.mp[2,2], deg.mp[2,3]), 2)`% of the re-weighted sample reported one or more concurrent partners. `r round(100*sum(deg.mp[1,3], deg.mp[2,3]), 2)`% reported concurrent persistent partners, and `r round(100*sum(deg.mp[2,2], deg.mp[2,3]), 2)`% reported concurrent main and persistent partnerships.
+
+```{r include=FALSE}
+# Save parameters
+degree <- list(deg.mp = deg.mp, deg.mp.H = deg.mp.H, deg.mp.B = deg.mp.B, deg.mp.O = deg.mp.O, deg.mp.adj = deg.mp.adj, deg.mp.H.adj = deg.mp.H.adj, deg.mp.B.adj = deg.mp.B.adj, deg.mp.O.adj = deg.mp.O.adj, deg.mp.KC = deg.mp.KC, deg.mp.OW = deg.mp.OW, deg.mp.EW = deg.mp.EW)
+save(degree, file="Data/degreedists.Rdata")
