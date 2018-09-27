@@ -23,6 +23,8 @@
     #install.packages(mice) # To look at patterns of missing data with md.pattern function
     library("mice")
 
+    library("data.table")
+
     #install.packages("kableExtra")
     library("knitr")
     library("kableExtra")
@@ -64,11 +66,11 @@ mmp2014$SEXORI8 <- factor(mmp2014$SEXORI8,
 
 colnames(mmp2014)[colnames(mmp2014)=="ANTIRE_9"] <- "art_ever"
 colnames(mmp2014)[colnames(mmp2014)=="CURME_9"] <- "art_curr"
-colnames(mmp2014)[colnames(mmp2014)=="SX_TMPN4"] <- "num_male"
+colnames(mmp2014)[colnames(mmp2014)=="SX_TMPN4"] <- "num_anal"
 
-# Any male sex partners
-mmp2014$any_male <- ifelse(mmp2014$num_male >=1, 1, 
-                           ifelse(mmp2014$num_male == 0, 0,
+# Any male anal sex partners
+mmp2014$any_anal <- ifelse(mmp2014$num_anal >=1, 1, 
+                           ifelse(mmp2014$num_anal == 0, 0,
                                   NA))
 
 # Partner gender - if all sex partners were male (SXMLONN4 %in% 1), then partner gender is male
@@ -99,7 +101,6 @@ mmp2014 <- within(mmp2014, {
 mmp2014$named_p <- rowSums(select(mmp2014, p1male, p2male, p3male, p4male, p5male), na.rm=TRUE)
 
 # Partner age - set to 3 different values: low = set to lower bound of range, mid = set to midpiont of range, high = set to upper bound of range
-  ## Only recode for most recent partner b/c for now this is all we will use
 mmp2014$p1age_low <- ifelse(mmp2014$SXPAG1N4 %in% 1, 18, #set <=24 cat to 18 in low scenario
                             ifelse(mmp2014$SXPAG1N4 %in% 2, 25,
                                    ifelse(mmp2014$SXPAG1N4 %in% 3, 30,
@@ -108,6 +109,38 @@ mmp2014$p1age_low <- ifelse(mmp2014$SXPAG1N4 %in% 1, 18, #set <=24 cat to 18 in 
                                                         ifelse(mmp2014$SXPAG1N4 %in% 6, 45,
                                                                ifelse(mmp2014$SXPAG1N4 %in% 7, 50, 
                                                                       NA)))))))
+mmp2014$p2age_low <- ifelse(mmp2014$SXPAG2N4 %in% 1, 18, #set <=24 cat to 18 in low scenario
+                            ifelse(mmp2014$SXPAG2N4 %in% 2, 25,
+                                   ifelse(mmp2014$SXPAG2N4 %in% 3, 30,
+                                          ifelse(mmp2014$SXPAG2N4 %in% 4, 35,
+                                                 ifelse(mmp2014$SXPAG2N4 %in% 5, 40,
+                                                        ifelse(mmp2014$SXPAG2N4 %in% 6, 45,
+                                                               ifelse(mmp2014$SXPAG2N4 %in% 7, 50, 
+                                                                      NA)))))))
+mmp2014$p3age_low <- ifelse(mmp2014$SXPAG3N4 %in% 1, 18, #set <=24 cat to 18 in low scenario
+                            ifelse(mmp2014$SXPAG3N4 %in% 2, 25,
+                                   ifelse(mmp2014$SXPAG3N4 %in% 3, 30,
+                                          ifelse(mmp2014$SXPAG3N4 %in% 4, 35,
+                                                 ifelse(mmp2014$SXPAG3N4 %in% 5, 40,
+                                                        ifelse(mmp2014$SXPAG3N4 %in% 6, 45,
+                                                               ifelse(mmp2014$SXPAG3N4 %in% 7, 50, 
+                                                                      NA)))))))
+mmp2014$p4age_low <- ifelse(mmp2014$SXPAG4N4 %in% 1, 18, #set <=24 cat to 18 in low scenario
+                            ifelse(mmp2014$SXPAG4N4 %in% 2, 25,
+                                   ifelse(mmp2014$SXPAG4N4 %in% 3, 30,
+                                          ifelse(mmp2014$SXPAG4N4 %in% 4, 35,
+                                                 ifelse(mmp2014$SXPAG4N4 %in% 5, 40,
+                                                        ifelse(mmp2014$SXPAG4N4 %in% 6, 45,
+                                                               ifelse(mmp2014$SXPAG4N4 %in% 7, 50, 
+                                                                      NA)))))))
+mmp2014$p5age_low <- ifelse(mmp2014$SXPAG5N4 %in% 1, 18, #set <=24 cat to 18 in low scenario
+                            ifelse(mmp2014$SXPAG5N4 %in% 2, 25,
+                                   ifelse(mmp2014$SXPAG5N4 %in% 3, 30,
+                                          ifelse(mmp2014$SXPAG5N4 %in% 4, 35,
+                                                 ifelse(mmp2014$SXPAG5N4 %in% 5, 40,
+                                                        ifelse(mmp2014$SXPAG5N4 %in% 6, 45,
+                                                               ifelse(mmp2014$SXPAG5N4 %in% 7, 50, 
+                                                                      NA)))))))
 mmp2014$p1age_mid <- ifelse(mmp2014$SXPAG1N4 %in% 1, 21, 
                             ifelse(mmp2014$SXPAG1N4 %in% 2, 27,
                                    ifelse(mmp2014$SXPAG1N4 %in% 3, 32,
@@ -115,6 +148,38 @@ mmp2014$p1age_mid <- ifelse(mmp2014$SXPAG1N4 %in% 1, 21,
                                                  ifelse(mmp2014$SXPAG1N4 %in% 5, 42,
                                                         ifelse(mmp2014$SXPAG1N4 %in% 6, 47,
                                                                ifelse(mmp2014$SXPAG1N4 %in% 7, 55, #set to median age of egos over 50
+                                                                      NA)))))))
+mmp2014$p2age_mid <- ifelse(mmp2014$SXPAG2N4 %in% 1, 21, 
+                            ifelse(mmp2014$SXPAG2N4 %in% 2, 27,
+                                   ifelse(mmp2014$SXPAG2N4 %in% 3, 32,
+                                          ifelse(mmp2014$SXPAG2N4 %in% 4, 37,
+                                                 ifelse(mmp2014$SXPAG2N4 %in% 5, 42,
+                                                        ifelse(mmp2014$SXPAG2N4 %in% 6, 47,
+                                                               ifelse(mmp2014$SXPAG2N4 %in% 7, 55, #set to median age of egos over 50
+                                                                      NA)))))))
+mmp2014$p3age_mid <- ifelse(mmp2014$SXPAG3N4 %in% 1, 21, 
+                            ifelse(mmp2014$SXPAG3N4 %in% 2, 27,
+                                   ifelse(mmp2014$SXPAG3N4 %in% 3, 32,
+                                          ifelse(mmp2014$SXPAG3N4 %in% 4, 37,
+                                                 ifelse(mmp2014$SXPAG3N4 %in% 5, 42,
+                                                        ifelse(mmp2014$SXPAG3N4 %in% 6, 47,
+                                                               ifelse(mmp2014$SXPAG3N4 %in% 7, 55, #set to median age of egos over 50
+                                                                      NA)))))))
+mmp2014$p4age_mid <- ifelse(mmp2014$SXPAG4N4 %in% 1, 21, 
+                            ifelse(mmp2014$SXPAG4N4 %in% 2, 27,
+                                   ifelse(mmp2014$SXPAG4N4 %in% 3, 32,
+                                          ifelse(mmp2014$SXPAG4N4 %in% 4, 37,
+                                                 ifelse(mmp2014$SXPAG4N4 %in% 5, 42,
+                                                        ifelse(mmp2014$SXPAG4N4 %in% 6, 47,
+                                                               ifelse(mmp2014$SXPAG4N4 %in% 7, 55, #set to median age of egos over 50
+                                                                      NA)))))))
+mmp2014$p5age_mid <- ifelse(mmp2014$SXPAG5N4 %in% 1, 21, 
+                            ifelse(mmp2014$SXPAG5N4 %in% 2, 27,
+                                   ifelse(mmp2014$SXPAG5N4 %in% 3, 32,
+                                          ifelse(mmp2014$SXPAG5N4 %in% 4, 37,
+                                                 ifelse(mmp2014$SXPAG5N4 %in% 5, 42,
+                                                        ifelse(mmp2014$SXPAG5N4 %in% 6, 47,
+                                                               ifelse(mmp2014$SXPAG5N4 %in% 7, 55, #set to median age of egos over 50
                                                                       NA)))))))
 
 mmp2014$p1age_high <- ifelse(mmp2014$SXPAG1N4 %in% 1, 24, 
@@ -125,13 +190,61 @@ mmp2014$p1age_high <- ifelse(mmp2014$SXPAG1N4 %in% 1, 24,
                                                         ifelse(mmp2014$SXPAG1N4 %in% 6, 49,
                                                                ifelse(mmp2014$SXPAG1N4 %in% 7, 59, #set to 75th percentile of age of egos over 50
                                                                       NA)))))))
+mmp2014$p2age_high <- ifelse(mmp2014$SXPAG2N4 %in% 1, 24, 
+                            ifelse(mmp2014$SXPAG2N4 %in% 2, 29,
+                                   ifelse(mmp2014$SXPAG2N4 %in% 3, 34,
+                                          ifelse(mmp2014$SXPAG2N4 %in% 4, 39,
+                                                 ifelse(mmp2014$SXPAG2N4 %in% 5, 44,
+                                                        ifelse(mmp2014$SXPAG2N4 %in% 6, 49,
+                                                               ifelse(mmp2014$SXPAG2N4 %in% 7, 59, #set to 75th percentile of age of egos over 50
+                                                                      NA)))))))
+mmp2014$p3age_high <- ifelse(mmp2014$SXPAG3N4 %in% 1, 24, 
+                            ifelse(mmp2014$SXPAG3N4 %in% 2, 29,
+                                   ifelse(mmp2014$SXPAG3N4 %in% 3, 34,
+                                          ifelse(mmp2014$SXPAG3N4 %in% 4, 39,
+                                                 ifelse(mmp2014$SXPAG3N4 %in% 5, 44,
+                                                        ifelse(mmp2014$SXPAG3N4 %in% 6, 49,
+                                                               ifelse(mmp2014$SXPAG3N4 %in% 7, 59, #set to 75th percentile of age of egos over 50
+                                                                      NA)))))))
+mmp2014$p4age_high <- ifelse(mmp2014$SXPAG4N4 %in% 1, 24, 
+                            ifelse(mmp2014$SXPAG4N4 %in% 2, 29,
+                                   ifelse(mmp2014$SXPAG4N4 %in% 3, 34,
+                                          ifelse(mmp2014$SXPAG4N4 %in% 4, 39,
+                                                 ifelse(mmp2014$SXPAG4N4 %in% 5, 44,
+                                                        ifelse(mmp2014$SXPAG4N4 %in% 6, 49,
+                                                               ifelse(mmp2014$SXPAG4N4 %in% 7, 59, #set to 75th percentile of age of egos over 50
+                                                                      NA)))))))
+mmp2014$p5age_high <- ifelse(mmp2014$SXPAG5N4 %in% 1, 24, 
+                            ifelse(mmp2014$SXPAG5N4 %in% 2, 29,
+                                   ifelse(mmp2014$SXPAG5N4 %in% 3, 34,
+                                          ifelse(mmp2014$SXPAG5N4 %in% 4, 39,
+                                                 ifelse(mmp2014$SXPAG5N4 %in% 5, 44,
+                                                        ifelse(mmp2014$SXPAG5N4 %in% 6, 49,
+                                                               ifelse(mmp2014$SXPAG5N4 %in% 7, 59, #set to 75th percentile of age of egos over 50
+                                                                      NA)))))))
 
 # Partner race/ethnicity
-  ## Only recode for most recent partner b/c for now this is all we will use
+  ## Only recode for most recent 2 partners b/c for now this is all we will use
 mmp2014 <- within(mmp2014, {
                     p1hbo <- ifelse(SXPEN1N4 %in% 1, "Hispanic",
                                     ifelse(SXPR1N4C %in% 1, "Black",
                                            ifelse((SXPR1N4A %in% 1 | SXPR1N4B %in% 1 | SXPR1N4D %in% 1 | SXPR1N4E %in% 1), "Other",
+                                                  NA)))
+                    p2hbo <- ifelse(SXPEN2N4 %in% 1, "Hispanic",
+                                    ifelse(SXPR2N4C %in% 1, "Black",
+                                           ifelse((SXPR2N4A %in% 1 | SXPR2N4B %in% 1 | SXPR2N4D %in% 1 | SXPR2N4E %in% 1), "Other",
+                                                  NA)))
+                    p3hbo <- ifelse(SXPEN3N4 %in% 1, "Hispanic",
+                                    ifelse(SXPR3N4C %in% 1, "Black",
+                                           ifelse((SXPR3N4A %in% 1 | SXPR3N4B %in% 1 | SXPR3N4D %in% 1 | SXPR3N4E %in% 1), "Other",
+                                                  NA)))
+                    p4hbo <- ifelse(SXPEN4N4 %in% 1, "Hispanic",
+                                    ifelse(SXPR4N4C %in% 1, "Black",
+                                           ifelse((SXPR4N4A %in% 1 | SXPR4N4B %in% 1 | SXPR4N4D %in% 1 | SXPR4N4E %in% 1), "Other",
+                                                  NA)))
+                    p5hbo <- ifelse(SXPEN5N4 %in% 1, "Hispanic",
+                                    ifelse(SXPR5N4C %in% 1, "Black",
+                                           ifelse((SXPR5N4A %in% 1 | SXPR5N4B %in% 1 | SXPR5N4D %in% 1 | SXPR5N4E %in% 1), "Other",
                                                   NA)))
 })
 
@@ -163,14 +276,32 @@ mmp2014$p5type <- ifelse(!(mmp2014$p5male %in% 1) | !(mmp2014$SXANL5N4 %in% 1), 
                         ifelse(mmp2014$SXAEN5N4 %in% 1, "Instantaneous",
                                ifelse(mmp2014$SXANL5N4 %in% 1, "Persistent",
                                       NA))))
-
 # AI times
 mmp2014$p1aitimes <- ifelse(!(mmp2014$p1male %in% 1), NA,
                             ifelse(mmp2014$SXANL1N4 %in% 0, 0,
                           ifelse(mmp2014$SA10_1N4 %in% 0, mmp2014$SXAEN1N4[!(mmp2014$SXAEN1N4 %in% c(77, 88))],
                                  ifelse(mmp2014$SA10_1N4 %in% 1, (mmp2014$SXANA1N4[!(mmp2014$SXANA1N4 %in% c(777, 888))]*mmp2014$SXMAN1N4[!(mmp2014$SXMAN1N4 %in% c(77, 88))]), 
                                                                   NA))))
-
+mmp2014$p2aitimes <- ifelse(!(mmp2014$p2male %in% 1), NA,
+                            ifelse(mmp2014$SXANL2N4 %in% 0, 0,
+                          ifelse(mmp2014$SA10_2N4 %in% 0, mmp2014$SXAEN2N4[!(mmp2014$SXAEN2N4 %in% c(77, 88))],
+                                 ifelse(mmp2014$SA10_2N4 %in% 1, (mmp2014$SXANA2N4[!(mmp2014$SXANA2N4 %in% c(777, 888))]*mmp2014$SXMAN2N4[!(mmp2014$SXMAN2N4 %in% c(77, 88))]), 
+                                                                  NA))))
+mmp2014$p3aitimes <- ifelse(!(mmp2014$p3male %in% 1), NA,
+                            ifelse(mmp2014$SXANL3N4 %in% 0, 0,
+                          ifelse(mmp2014$SA10_3N4 %in% 0, mmp2014$SXAEN3N4[!(mmp2014$SXAEN3N4 %in% c(77, 88))],
+                                 ifelse(mmp2014$SA10_3N4 %in% 1, (mmp2014$SXANA3N4[!(mmp2014$SXANA3N4 %in% c(777, 888))]*mmp2014$SXMAN3N4[!(mmp2014$SXMAN3N4 %in% c(77, 88))]), 
+                                                                  NA))))
+mmp2014$p4aitimes <- ifelse(!(mmp2014$p4male %in% 1), NA,
+                            ifelse(mmp2014$SXANL4N4 %in% 0, 0,
+                          ifelse(mmp2014$SA10_4N4 %in% 0, mmp2014$SXAEN4N4[!(mmp2014$SXAEN4N4 %in% c(77, 88))],
+                                 ifelse(mmp2014$SA10_4N4 %in% 1, (mmp2014$SXANA4N4[!(mmp2014$SXANA4N4 %in% c(777, 888))]*mmp2014$SXMAN4N4[!(mmp2014$SXMAN4N4 %in% c(77, 88))]), 
+                                                                  NA))))
+mmp2014$p5aitimes <- ifelse(!(mmp2014$p5male %in% 1), NA,
+                            ifelse(mmp2014$SXANL5N4 %in% 0, 0,
+                          ifelse(mmp2014$SA10_5N4 %in% 0, mmp2014$SXAEN5N4[!(mmp2014$SXAEN5N4 %in% c(77, 88))],
+                                 ifelse(mmp2014$SA10_5N4 %in% 1, (mmp2014$SXANA5N4[!(mmp2014$SXANA5N4 %in% c(777, 888))]*mmp2014$SXMAN5N4[!(mmp2014$SXMAN5N4 %in% c(77, 88))]), 
+                                                                  NA))))
 
 # Sex role
 mmp2014$p1anybottom <- ifelse((mmp2014$ABTM1AN4 %in% 1) | (mmp2014$ABTM1BN4 %in% c(2, 3)) , 1,
@@ -319,17 +450,88 @@ mmp2014$p5prep <- ifelse(!(mmp2014$p5male %in% 1) | !(mmp2014$SXANL5N4 %in% 1), 
                                        NA)))
 
 #-----------------------------------------------------------------------------------
-# Define indicator variables to use to identify WA males who had anal sex with males
+# Define indicator variable to use to identify WA males who had anal sex with males or who identify as gay or bisexual
 #-----------------------------------------------------------------------------------
 # Males who had anal sex with males and have residence in WA State
-mmp2014$msm <- ifelse(mmp2014$SX_GEN %in% 1 & mmp2014$any_male %in% 1 & !is.na(mmp2014$region), 1,
+mmp2014$msm <- ifelse(mmp2014$SX_GEN %in% 1 & (mmp2014$any_anal %in% 1 | mmp2014$SEXORI8 %in% c("Homosexual", "Bisexual")) & !is.na(mmp2014$region), 1,
                       0)
+
+#-----------------------------------------------------------------------------------
+# MRP variables
+#-----------------------------------------------------------------------------------
+# Indicator of most recent AI male partner (b/c P1 may not be male or not an AI partner, so most recent male partner may be p2...)
+mmp2014$mrp_male <- ifelse(mmp2014$msm %in% 1 & mmp2014$p1male %in% 1 & mmp2014$SXANL1N4 %in% 1, "P1",
+                           ifelse(mmp2014$msm %in% 1 & mmp2014$p2male %in% 1 & mmp2014$SXANL2N4 %in% 1, "P2",
+                                  ifelse(mmp2014$msm %in% 1 & mmp2014$p3male %in% 1 & mmp2014$SXANL3N4 %in% 1, "P3",
+                                         ifelse(mmp2014$msm %in% 1 & mmp2014$p4male %in% 1 & mmp2014$SXANL4N4 %in% 1, "P4",
+                                                ifelse(mmp2014$msm %in% 1 & mmp2014$p5male %in% 1 & mmp2014$SXANL5N4 %in% 1, "P5",
+                                                       NA)))))
+
+mmp2014$mrp_hbo <- ifelse(mmp2014$mrp_male %in% "P1", mmp2014$p1hbo,
+                          ifelse(mmp2014$mrp_male %in% "P2", mmp2014$p2hbo,
+                                 NA))
+mmp2014$mrp_age_low <- ifelse(mmp2014$mrp_male %in% "P1", mmp2014$p1age_low,
+                          ifelse(mmp2014$mrp_male %in% "P2", mmp2014$p2age_low,
+                                 NA))
+mmp2014$mrp_age_mid <- ifelse(mmp2014$mrp_male %in% "P1", mmp2014$p1age_mid,
+                          ifelse(mmp2014$mrp_male %in% "P2", mmp2014$p2age_mid,
+                                 NA))
+mmp2014$mrp_age_high <- ifelse(mmp2014$mrp_male %in% "P1", mmp2014$p1age_high,
+                          ifelse(mmp2014$mrp_male %in% "P2", mmp2014$p2age_high,
+                                 NA))
+mmp2014$mrp_type <- ifelse(mmp2014$mrp_male %in% "P1", mmp2014$p1type,
+                          ifelse(mmp2014$mrp_male %in% "P2", mmp2014$p2type,
+                                 NA))
+mmp2014$mrp_status <- ifelse(mmp2014$mrp_male %in% "P1", mmp2014$p1status,
+                          ifelse(mmp2014$mrp_male %in% "P2", mmp2014$p2status,
+                                 NA))
+mmp2014$mrp_prep <- ifelse(mmp2014$mrp_male %in% "P1", mmp2014$p1prep,
+                          ifelse(mmp2014$mrp_male %in% "P2", mmp2014$p2prep,
+                                 NA))
+
 
 #-----------------------------------------------------------------------------------
 # Select variables of interest
 #-----------------------------------------------------------------------------------
 
-mmp2014 <- mmp2014 %>% select(msm, AGE, age_cat, hbo, region, named_p, p1male, p2male, p3male, p4male, p5male, p1age_low, p1age_mid, p1age_high, p1hbo, p1type, p2type, p3type, p4type, p5type, position_cat, p1condoms, p2condoms, p3condoms, p4condoms, p5condoms, p1disclosure, p2disclosure, p3disclosure, p4disclosure, p5disclosure, p1status, p2status, p3status, p4status, p5status, p1prep, p2prep,p3prep, p4prep, p5prep, pa_wgt_over, pa_clust, pa_strat)
+#rename indicator of any anal sex with partner
+setnames(mmp2014, old = c("SXANL1N4", "SXANL2N4", "SXANL3N4", "SXANL4N4", "SXANL5N4"), new = c("p1anal", "p2anal", "p3anal", "p4anal", "p5anal"))
+
+mmp2014 <- mmp2014 %>% select(msm, AGE, SX_GEN, age_cat, hbo, region, any_anal, num_anal, SEXORI8, named_p, mrp_male, p1male, p2male, p3male, p4male, p5male, p1age_low, p2age_low, p3age_low, p4age_low, p5age_low, p1age_mid, p2age_mid, p3age_mid, p4age_mid, p5age_mid, p1age_high, p2age_high, p3age_high, p4age_high, p5age_high, p1hbo, p2hbo, p3hbo, p4hbo, p5hbo, p1type, p2type, p3type, p4type, p5type, position_cat, p1anal, p2anal, p3anal, p4anal, p5anal, p1aitimes, p2aitimes, p3aitimes, p4aitimes, p5aitimes, p1condoms, p2condoms, p3condoms, p4condoms, p5condoms, p1disclosure, p2disclosure, p3disclosure, p4disclosure, p5disclosure, p1status, p2status, p3status, p4status, p5status, p1prep, p2prep,p3prep, p4prep, p5prep, mrp_hbo, mrp_age_low, mrp_age_mid, mrp_age_high, mrp_type, mrp_status, mrp_prep, pa_wgt_over, pa_clust, pa_strat)
+
+#-----------------------------------------------------------------------------------
+# Define a long version of the sample of MSM
+#-----------------------------------------------------------------------------------
+
+mmp_msm <- mmp2014 %>% filter(msm %in% 1)
+
+## Define ID variable
+mmp_msm$pid <- rownames(mmp_msm)
+
+## Define variables to keep
+index.vars <- c("pid", "AGE", "age_cat", "hbo", "region", "position_cat", "any_anal", "num_anal", "named_p", "SEXORI8")
+part.vars <- c("male", "age_low", "age_mid", "age_high", "hbo", "type", "anal", "aitimes", "condoms", "disclosure", "status",
+               "prep")
+
+## Define subset with the variables of interest
+mmp_msm <- mmp_msm %>% select(index.vars, paste0("p1", part.vars), paste0("p2", part.vars), paste0("p3", part.vars), paste0("p4", part.vars), paste0("p5", part.vars))
+
+## Melt data
+mmp_msm[] <- lapply(mmp_msm, as.character)
+mmp_msm.melt <- melt(mmp_msm, id.vars = index.vars)
+
+## separate partner number from variable name
+mmp_msm.melt <- mmp_msm.melt %>% separate(variable, c("pnum", "variable"), sep="(?<=^.[[:digit:]])")
+mmp_msm.melt$variable <- paste0("p_", mmp_msm.melt$variable)
+
+## Cast data
+mmp_msm_l <- dcast(mmp_msm.melt, pid + AGE + age_cat + hbo + region + position_cat + any_anal + num_anal + named_p + SEXORI8 + pnum ~ variable, value.var = "value")
+mmp_msm_l <- mmp_msm_l %>% arrange(pid)
+rm(mmp_msm.melt)
+rm(mmp_msm)
+
+## Delete all partnerships that were not with males or involve anal sex
+mmp_msm_l <- mmp_msm_l %>% filter(p_anal %in% 1 & p_male %in% 1)
 
 #-----------------------------------------------------------------------------------
 # Define survey object and save it
@@ -339,6 +541,7 @@ mmp_svy <- svydesign(ids = ~pa_clust, strata = ~pa_strat, weights = ~pa_wgt_over
 mmp_svy_msm <- mmp_svy[mmp_svy$variables$msm %in% 1 & mmp_svy$variables$AGE %in% c(18:59),]
 
 save(mmp_svy_msm, file="/homes/dpwhite/win/project/MMP_WADOH/mmp_clean_msm.Rdata")
+save(mmp_msm_l, file="/homes/dpwhite/win/project/MMP_WADOH/mmp_msm_l.Rdata")
 
 ```
 
