@@ -40,6 +40,8 @@ options(knitr.table.format = "html")
     load(file="Data/InternetSurveySample_allages.Rdata")
     load(file="Data/ARTNet_pos_wide.Rdata")
     load(file="Data/ARTNet_pos_long.Rdata")
+    load(file="Data/ARTNet_neg_wide.Rdata")
+    load(file="Data/ARTNet_neg_long.Rdata")
     load(file="Data/census_agebyregion.Rdata")
     load(file="Data/census_racebyregion.Rdata")
     load(file="Data/census_totalbyregion.Rdata")
@@ -70,6 +72,7 @@ options(knitr.table.format = "html")
     
     whpp_svy <- svydesign(id=~1, data=sample)
     artnet_pos_svy <- svydesign(id=~1, data=artnet_pos_w)
+    artnet_neg_svy <- svydesign(id=~1, data=artnet_neg_w) # Also rake negative/unknown respondents in ART-Net sample for comparison
     #mmp_svy_msm already defined
 
 #-----------------------------------------------------------------------------------
@@ -137,25 +140,37 @@ options(knitr.table.format = "html")
 
 # Make sure factor vars are ordered the same way across surveys and match pop totals
     mmp_svy_msm$variables$region <- factor(mmp_svy_msm$variables$region, levels = c("King County", "Western WA", "Eastern WA"))
-     mmp_svy_msm$variables$hbo <- factor(mmp_svy_msm$variables$hbo, levels = c("Hispanic", "Black", "Other"))
-     artnet_pos_svy$variables$hbo <- factor(artnet_pos_svy$variables$hbo, levels = c("Hispanic", "Black", "Other"))
-     mmp_svy_msm$variables$age_cat <- factor(mmp_svy_msm$variables$age_cat)
+    mmp_svy_msm$variables$hbo <- factor(mmp_svy_msm$variables$hbo, levels = c("Hispanic", "Black", "Other"))
+    artnet_pos_svy$variables$hbo <- factor(artnet_pos_svy$variables$hbo, levels = c("Hispanic", "Black", "Other"))
+    artnet_neg_svy$variables$hbo <- factor(artnet_neg_svy$variables$hbo, levels = c("Hispanic", "Black", "Other"))
+    mmp_svy_msm$variables$age_cat <- factor(mmp_svy_msm$variables$age_cat)
      
 # Rename age_cat variable in pop.age.pos to match variable name in mmp and artnet
-     setnames(pop.age.pos, old = "age_groups", new = "age_cat")
+    setnames(pop.age.pos, old = "age_groups", new = "age_cat")
     setnames(pop.region.pos, old = "total", new = "Freq")
+    pop.age.neg2 <- cbind.data.frame("age_cat" = pop.age.neg$age_cat_alt, "Freq" = pop.age.neg$Freq)
 
 # Rake
     sample_rake_neg <- rake(whpp_svy, list(~hbo+region, ~age_cat_alt), list(pop.raceregion.neg, pop.age.neg))
     sample_rake_all <- rake(whpp_svy, list(~hbo+region, ~age_cat_alt), list(pop.raceregion.all, pop.age.all))
     mmp_rake <- mmp_rake <- rake(mmp_svy_msm, list(~hbo, ~region, ~age_cat), list(pop.hbo.pos, pop.region.pos, pop.age.pos))
     artnet_pos_rake_w <- rake(artnet_pos_svy, list(~hbo, ~age_cat), list(pop.hbo.pos, pop.age.pos))
+    artnet_neg_rake_w <- rake(artnet_neg_svy, list(~hbo, ~age_cat), list(pop.hbo.neg, pop.age.neg2)) # For comparison only
 
 # Merge weights from the raked wide ART-Net dataframe to the long dataframe
-    artnet_wts <- cbind.data.frame("AMIS_ID" = artnet_pos_rake_w$variables$AMIS_ID, "weight" = (1/artnet_pos_rake_w$prob))
-    artnet_pos_rake_l <- merge(artnet_pos_l, artnet_wts, by= "AMIS_ID")
-    artnet_pos_rake_l <- svydesign(id=~1, data=artnet_pos_rake_l, weights = ~weight)
+    artnet_pos_wts <- cbind.data.frame("AMIS_ID" = artnet_pos_rake_w$variables$AMIS_ID, "weight" = (1/artnet_pos_rake_w$prob))
+    artnet_pos_w_wts <- merge(artnet_pos_w, artnet_pos_wts, by= "AMIS_ID")
+    artnet_pos_l_wts <- merge(artnet_pos_l, artnet_pos_wts, by= "AMIS_ID")
+    artnet_pos_rake_l <- svydesign(id=~1, data=artnet_pos_l_wts, weights = ~weight)
 
+    #Define full raked version of ART-Net (combine pos and neg)
+    artnet_neg_wts <- cbind.data.frame("AMIS_ID" = artnet_neg_rake_w$variables$AMIS_ID, "weight" = (1/artnet_neg_rake_w$prob))
+    artnet_neg_w_wts <- merge(artnet_neg_w, artnet_neg_wts, by= "AMIS_ID")
+    artnet_neg_l_wts <- merge(artnet_neg_l, artnet_neg_wts, by= "AMIS_ID")
+    artnet_full_w <- rbind.data.frame(artnet_pos_w_wts, artnet_neg_w_wts)
+    artnet_full_l <- rbind.data.frame(artnet_pos_l_wts, artnet_neg_l_wts)
+    artnet_full_rake_w <- svydesign(id=~1, data=artnet_full_w, weights = ~weight)
+    artnet_full_rake_l <- svydesign(id=~1, data=artnet_full_l, weights = ~weight)
     
 #Save
      save(sample_rake_neg, file="Data/InternetSurvey_reweighted_neg.Rdata")
@@ -163,6 +178,8 @@ options(knitr.table.format = "html")
      save(mmp_rake, file="/homes/dpwhite/win/project/MMP_WADOH/mmp_reweighted.Rdata")
      save(artnet_pos_rake_w, file="Data/artnet_reweighted_pos_w.Rdata")
      save(artnet_pos_rake_l, file="Data/artnet_reweighted_pos_l.Rdata")
+     save(artnet_full_rake_w, file="Data/artnet_reweighted_all_w.Rdata")
+     save(artnet_full_rake_l, file="Data/artnet_reweighted_all_l.Rdata")
 
 ```
 
