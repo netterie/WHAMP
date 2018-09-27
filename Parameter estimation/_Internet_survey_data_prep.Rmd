@@ -82,6 +82,9 @@
 # Generate new variables / modify variables for this analysis
 #-----------------------------------------------------------------------------------
 
+# Define rownames ID variable
+    sample_allages$pid <- rownames(sample_allages)
+
 #redefine age_cat
     sample_allages$age_cat <- cut(sample_allages$age, c(17, 24, 29, 34, 39, 44, 49, 54, 59), labels=c("18-24", "25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59"))     
 
