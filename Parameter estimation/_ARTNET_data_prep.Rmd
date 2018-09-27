@@ -1,6 +1,8 @@
 #ARTNET data preparation and manipulation
 
 In this file, I changed a few things from Sam's code. Chiefly, I did not recode partners as ongoing if p_MAIN_ONG = 1 (this change assumes that if they initially said they don't know if it's ongoing or prefer not to answer but said it was main that it is ongoing), I defined partner type slightly differently (i.e. persistent includes those who had anal sex only once but say it's ongoing, recoded to instantaneous if they reported anal or oral sex more than once but the relationship started in the past 12 months and they reported anal sex only once, it is not ongoing, and not main), defined partner age as in the WHPP study if they didn't know the age but knew a range. I also defined the number of one-time partners as the minimum of the number of total anal sex partners that remain after subtracting the number of main or casual anal partners named in the partner module and the total number of oral or anal sex partners that were not ongoing.
+
+To define the sample for analysis, I restricted to egos and alters aged 18-59, and dropped observations from egos who did not report oral or anal sex with men in the past 12 months to be consistent with the WHPP sample inclusion criteria.
 ```{r, include=FALSE}
 
 ## Load packages ## 
@@ -569,6 +571,7 @@ long$p_iaitimes[long$p_iaitimes %in% 0.5] <- 1
 long$p_aitimes <- long$p_iaitimes + long$p_raitimes
 long$p_aitimes[is.na(long$p_iaitimes) & !is.na(long$p_raitimes)] <- long$p_raitimes[is.na(long$p_iaitimes) & !is.na(long$p_raitimes)]
 long$p_aitimes[!is.na(long$p_iaitimes) & is.na(long$p_raitimes)] <- long$p_iaitimes[!is.na(long$p_iaitimes) & is.na(long$p_raitimes)]
+long$p_aitimes <- floor(long$p_aitimes)
 
 ### Define indicator of AI only once in the past 12 months
 long$p_aitimes.cat <- ifelse(long$p_aitimes %in% 1, "Once",
@@ -617,6 +620,7 @@ insertonly <- setdiff(insert, vers)
 d$position_cat[receptonly] <- "Exclusively bottom"
 d$position_cat[insertonly] <- "Exclusively top"
 d$position_cat[vers] <- "Versatile"
+
 
 ## Instantaneous partner count and rate/year
 
@@ -700,29 +704,58 @@ d$deg.main_cat <- ifelse(!is.na(d$deg.main) & d$deg.main > 1, 1, d$deg.main)
 
 table(d$deg.main_cat, d$deg.pers_cat)
 round(prop.table(table(d$deg.main_cat, d$deg.pers_cat)), 3)
+    
+## Set partner-specific variables to missing if partner age <18 or >59
+long <- long %>% filter(p_ageinyrs %in% c(18:59))
+
+## Set partner-specific variables to missing if partnership did not involve anal sex
+long <- long %>% filter(p_IAI %in% 1 | p_RAI %in% 1)
+
+## Define most recent partner attribute variables
+
+# Identify which partner number is the most recent anal sex partner (since dropped partners where didn't have AI)
+long <- long %>% arrange(AMIS_ID, pnum) %>%
+    group_by(AMIS_ID) %>%
+    mutate(index = row_number())
+
+d <- long %>%
+    filter(index %in% 1) %>%
+    rename(mrp_ageinyrs = p_ageinyrs) %>%
+    rename(mrp_hivpos = p_hivpos) %>%
+    rename(mrp_hbo = p_hbo) %>%
+    rename(mrp_pship_age = pship_age) %>%
+    rename(mrp_type = p_type) %>%
+    rename(mrp_ongoing = p_ONGOING) %>%
+    select(AMIS_ID, mrp_pship_age, mrp_ageinyrs, mrp_hbo, mrp_hivpos, mrp_type, mrp_ongoing) %>%
+    right_join(d, by = "AMIS_ID")
 
 ## Remove unneeded variables
 long <- select(long, -endmm, -SUB_DATE.day, -SUB_DATE.month, -SUB_DATE.year, -p_STARTMM, -p_STARTYYYY, -p_STARTYYYYDK, -p_MAINCASENDMM, -p_OFENDMM, -p_MAIN_ONG, -day_s, -day_e, -year_e, -duration.given, - month_e, -endmm, -dt_yrago, -start_mtyrago, -duration_p12, -p_raitimes, -p_iaitimes, -p_aitimes.cat, -mp_ai, -p_ongoing.bin, -main_ong, -pers_ong, -infer_year_s, -infer_startmm, -p_MAIN_END, -p_NAME, -p_RACE, -p_UNITRAI, -p_UNITIAI)
+
 
 #--Define sample ------------------------------------------------------
 
 ## Define sample age limit for model
     artnet_w <- d %>% filter(age>17 & age<60)
     artnet_l <- long %>% filter(age>17 & age<60)
-
+    
+## Restrict to those who had anal or oral sex with a man in the past 12 months
+    artnet_w <- artnet_w %>% filter(cuml.pnum >0 & !is.na(cuml.pnum))
+    artnet_l <- artnet_l %>% filter(cuml.pnum >0 & !is.na(cuml.pnum))
+    
 ## Define age categorization for reweighting
     artnet_w$age_cat <- cut(artnet_w$age, c(17, 24, 29, 34, 39, 49, 59), labels=c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"))
     artnet_l$age_cat <- cut(artnet_l$age, c(17, 24, 29, 34, 39, 49, 59), labels=c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"))
     
-## Set partner-specific variables to missing if partner age <18 or >59
-    artnet_l <- artnet_l %>% filter(p_ageinyrs %in% c(18:59))
-
 ## Restrict to HIV-positive
     artnet_pos_w <- artnet_w %>% filter(hiv %in% 1)
     artnet_pos_l <- artnet_l %>% filter(hiv %in% 1)
 
 #--Save datasets ------------------------------------------------------
-    
+
+save(artnet_w, file = "Data/ARTNet_wide.Rdata")
+save(artnet_l, file = "Data/ARTNet_long.Rdata")
+
 save(artnet_pos_l, file="Data/ARTNet_pos_long.Rdata")
 save(artnet_pos_w, file="Data/ARTNet_pos_wide.Rdata")
 
@@ -740,6 +773,7 @@ save(artnet_pos_w, file="Data/ARTNet_pos_wide.Rdata")
 # ratei <- lm(rate_inst ~ region,
 #            data = artnet_pos_w)
 # summary(ratei)
+
 
 
 
