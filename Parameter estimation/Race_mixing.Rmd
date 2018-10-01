@@ -24,12 +24,13 @@ options(knitr.table.format = "html")
 # Load data
 #-----------------------------------------------------------------------------------
     load(file="Data/InternetSurveySample.Rdata")
-    load(file="Data/InternetSurvey_reweighted_neg.Rdata")
-    load(file="Data/InternetSurvey_reweighted_all.Rdata")
-    load(file="Data/sample_rake_rate.inst.Rdata")
+    load(file="Data/rate.inst.fullpop.Rdata")
     load(file="Data/degreedists.Rdata")
     load(file="Data/race_mixing.Rdata")
-        
+    load(file="/homes/dpwhite/win/project/MMP_WADOH/mmp_reweighted.Rdata")
+    load(file = "Data/whpp_artnet.Rdata")
+    load(file = "/homes/dpwhite/win/project/MMP_WADOH/whpp_mmp.Rdata")
+    
 #-----------------------------------------------------------------------------------
 # Plot settings
 #-----------------------------------------------------------------------------------
@@ -39,23 +40,23 @@ theme_title <- theme(plot.title = element_text(hjust = 0.5, size=12))
 
 ```
 
-To obtain estimates of the pattern of selective mixing by race/ethnicity, we will take the following approach (see [issue #32](https://github.com/statnet/WHAMP/issues/32)):  
+Data on patterns of racial/ethnic mixing are from the WHPP and the 2014 Washington Medical Monitoring Project (MMP). To align with how mixing is measured in WHPP, we restrict MMP data to the most recent partnership. The MMP sample is re-weighted to Washington demographics for men living with diagnosed with HIV who are categorized as having had male-male sex, and the WHPP sample is re-weighted to the demographic profile of Washington males after subtracting these diagnosed cases (see section \@ref(reweight)). Using these data, we take the following approach to obtain estimates of the pattern of selective mixing by race/ethnicity (see [issue #32](https://github.com/statnet/WHAMP/issues/32)):  
 
-  1. obtain the row percentages for mixing from the ego's perspective, 
-  2. multiply these row percentages by the mean degree (or the mean rate of instantaneous partnerships) for egos of a given race/ethnicity, 
+  1. obtain the row percentages for mixing from the ego's perspective using a combination of data from the WHPP and MMP, 
+  2. multiply these row percentages by the mean degree (or the mean rate of instantaneous partnerships) for egos of a given race/ethnicity (from combined WHPP and ART-Net data), 
   3. multiply this product by the target population size in each group. This will produce a weighted mixing matrix. 
   4. Balance the matrix by taking the mean of the off-diagonal elements.
-  5. Calculate target statistics by multiplying the proportion of total degree for each group that is homophilous on race/ethnicity by the number of nodes in partnerships in each group. We focus on the proportion homophilous instead of describing the full distribution because the small number of black men who reported on ongoing partnerships in the survey limits our ability to make inference about the distribution of mixed-race partnerships (see section \@ref(decisions)).
+  5. Calculate target statistics by multiplying the total degree for each racial/ethnic group by the proportion of total degree that is homophilous on race/ethnicity for that group. We focus on the proportion homophilous instead of describing the full distribution because the small number of black men who reported on ongoing partnerships in the survey limits our ability to make inference about the distribution of mixed-race partnerships (see section \@ref(decisions)).
 
-An issue with this is that it affects estimates of homophily in perhaps undesirable ways. For Hispanics, for example, we see lower reported ties with black and other race/ethnicity men than black and other men report with Hispanics across all three partner types. There are several potential explanations for this mismatch.^[The mismatch in mixed-race/ethnicity partnerhip counts as reported by Hispanics and as reported by black and other race/ethnicity men could reflect the following: Hispanic men under-report all partnerships, black and other men misclassify partners as Hispanic who aren't, or Hispanic men misclassify partners who aren't Hispanic as Hispanic, though this latter explanation seems unlikely. Another possiblity is that there are differential selection biases by race/ethnicity that result in incompatible reporting of partnership counts.] In any case, balancing by taking the mean of the off-diagonal elements bumps up the mixed-race partnership count for Hispanic men but does not change the on-diagonal partnership count, such that the implied log-odds of a same-race/ethnicity tie is lower than in the observed egocentric data. The balanced matrix also implies a higher mean degree for Hispanic men than they reported. Because we don't have data on the source of bias and the best way to handle it, __we will try two approaches for defining mixing parameters__: 1) We will take the approach above and adjust the race/ethnicity-specific momentary degree distributions to align with the group-specific mean degrees from the balanced mixing matrices, and 2) we will use observed data on degree and the unbalanced mixing matrices in calculating target statistics. We will fit the model using target statistics calculated both ways and evaluate which results in networks with the features we expect, and/or how much of a difference on our outcomes the two parameter sets make (see [issue #44](https://github.com/statnet/WHAMP/issues/44)).
+An issue with this balancing approach is that it affects estimates of homophily in perhaps undesirable ways. For Hispanics, for example, we see lower reported ties with black and other race/ethnicity men than black and other men report with Hispanics across all three partner types. There are several potential explanations for this mismatch.^[The mismatch in mixed-race/ethnicity partnerhip counts as reported by Hispanics and as reported by black and other race/ethnicity men could reflect the following: Hispanic men under-report all partnerships, black and other men misclassify partners as Hispanic who aren't, or Hispanic men misclassify partners who aren't Hispanic as Hispanic, though this latter explanation seems unlikely. Another possiblity is that there are differential selection biases by race/ethnicity that result in incompatible reporting of partnership counts.] In any case, balancing by taking the mean of the off-diagonal elements bumps up the mixed-race partnership count for Hispanic men but does not change the on-diagonal partnership count, such that the implied log-odds of a same-race/ethnicity tie is lower than in the observed egocentric data. The balanced matrix also implies a higher mean degree for Hispanic men than they reported. Because we don't have data on the source of bias and the best way to handle it, __we will try two approaches for defining mixing parameters__: 1) We will take the approach above and adjust the race/ethnicity-specific momentary degree distributions to align with the group-specific mean degrees from the balanced mixing matrices, and 2) we will use observed data on degree and the unbalanced mixing matrices in calculating target statistics. We will fit the model using target statistics calculated both ways and evaluate which results in networks with the features we expect, and/or how much of a difference on our outcomes the two parameter sets make (see [issue #44](https://github.com/statnet/WHAMP/issues/44)).
 
 Both approaches assume that mixing with the unobserved ties follows the same pattern as mixing with the observed ties, and that men who did not report on their main/persistent/instantaneous partner have the same mixing propensities as those of the same racial/ethnic group who did report on their main/persistent/instantaneous partner. Since we did not observe racial/ethic mixing to vary by age or region, there is not an indication that we need to account for heterogeneity on these characteristics, such that this approach seems reasonable. Additionally, in section \@ref(mrp_limitations), we did not observe any differences in main partnerships reported by those with 0 compared to those with 1+ persistent partnerships, suggesting that we can use data on the most recent partnership to represent all partnerships of that type.
 
 ## Main partnerships
-The table below shows the unbalanced mixing matrix by race/ethnicity from the WHPP survey reweighted to the population totals for all men and scaled back to the total sample size from the WHPP survey. Scaling back down to the original sample size facilitates interpretation of the magnitude of the imbalances. Note these counts are not integers because they are from the re-weighted sample. <span style=color:red>_When I get data from MMP on positives, use the WHPP sample reweighted to population totals for negative/unknown men, but may need to use the overall degree from the WHPP sample reweighted to the population totals for HIV-neg/unknown and HIV+ samples since MMP doesn't measure momentary degree._</span>
+The table below shows the unbalanced mixing matrix by race/ethnicity from the WHPP survey reweighted to the population totals for all men and scaled back to the total sample size from the WHPP and MMP surveys. Scaling back down to the original sample sizes facilitates interpretation of the magnitude of the imbalances. Note these counts are not integers because they are from the re-weighted sample.
 
 ```{r}
-#See degree.Rmd file for code defining these mixign matrices!
+#See degree.Rmd file for code defining these mixing matrices!
 
 kable(race_mixing$racemix_main_rwt, align=c("c", "c", "c"), digits=c(1, 1, 1)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, bold=T, color="black", width="2cm") %>% column_spec(2:4, width = "2cm")
 
@@ -79,7 +80,7 @@ kable(prop.hom.main, align=c("l", "c", "c", "c"), digits=c(4, 4, 4)) %>% kable_s
 ## Persistent partnerships
 In exploratory analyses (section \@ref(notes_mixing)), we decided to collapse the mixing matrices for persistent and instantaneous partnerships due to the small number of black men with ongoing persistent partners. As such, the approach to obtaining the target statistics for mixing in persistent partnerships will be similar to that taken with main partnerships, except that, in the first step, the row conditional probabilities for mixing will be based on data from egos reporting on both persistent and instantaneous most recent partners.  
 
-The table below shows the unbalanced mixing matrix by race/ethnicity in persistent partnerships from the WHPP survey reweighted to the population totals for all men and scaled back to the total sample size from the WHPP survey. Note these counts are not integers because they are from the re-weighted sample. <span style=color:red>_When I get data from MMP on positives, use the WHPP sample reweighted to population totals for negative/unknown men, but may need to use the overall degree from the WHPP sample reweighted to the population totals for HIV-neg/unknown and HIV+ samples since MMP doesn't measure momentary degree._</span>
+The table below shows the unbalanced mixing matrix by race/ethnicity in persistent partnerships from the WHPP survey reweighted to the population totals for all men and scaled back to the total sample size from the WHPP survey. Note these counts are not integers because they are from the re-weighted sample.
 
 ```{r}
 
@@ -105,18 +106,18 @@ kable(prop.hom.pers, align=c("l", "c", "c", "c"), digits=c(4, 4, 4)) %>% kable_s
 ## Instantaneous partnerships
 As with persistent partnerships, we will obtain the row conditional probabilities for mixing from the ego's perspective using data from both ongoing persistent and most recent instantaneous partnerships (see section \@ref(notes_mixing)). Instead of weighting by mean degree, we will weight these probabilities by the daily probability of having an instantaneous partner (i.e. number of instantaneous partnerships in the past 12 months / 365.25).  
 
-The table below shows the unbalanced mixing matrix by race/ethnicity in instantaneous partnerships from the WHPP survey reweighted to the population totals for all men and scaled back to the total sample size from the WHPP survey. Note these counts are not integers because they are from the re-weighted sample. <span style=color:red>_When I get data from MMP on positives, use the WHPP sample reweighted to population totals for negative/unknown men, but may need to use the overall degree from the WHPP sample reweighted to the population totals for HIV-neg/unknown and HIV+ samples since MMP doesn't measure momentary degree._</span>
+The table below shows the unbalanced mixing matrix by race/ethnicity in instantaneous partnerships reweighted to Washington demographics and scaled back to the total sample size from the WHPP and MMP surveys. Note these counts are not integers because they are from the re-weighted sample.
 
 ```{r}
 #Conditional row probabilities - using data from both ongoing persistent and most recent one-time partners
-  racemix_inst <- prop.table(svytable(~hbo + mrp_hbo, sample_rake_all[sample_rake_all$variables$mrp_type_ongoing %in% "Persistent" | sample_rake_all$variables$mrp_type_r %in% "One time"], Ntotal=dim(sample[sample$mrp_type_ongoing %in% "Persistent" | sample$mrp_type_r %in% "One time",])[1], round=FALSE),1)
+  racemix_inst <- prop.table(svytable(~hbo + mrp_hbo, whpp_mmp[whpp_mmp$variables$mrp_type_mix %in% c("Persistent", "Instantaneous")], round=FALSE),1)
 
 #Rate of instantaneous partnerships by race from the dataset defined in "Rate_of_instantaneous_pships.Rmd"
-  rateinstXrace <- svyby(~rate_inst, ~hbo, sample_rake_rate.inst, svymean, na.rm=TRUE)[2]
+  rateinstXrace <- svyby(~rate_inst, ~hbo, inst.full, svymean, na.rm=TRUE)[2]
   
   #N by race in reweighted sample (scaled back to the size of the original sample)
-  nXrace <- svytable(~hbo, sample_rake_all, Ntotal=dim(sample)[1], round=FALSE)
-
+  nXrace <- svytable(~hbo, whpp_artnet, Ntotal=(dim(sample)[1] + dim(mmp_rake$variables)[1]), round=FALSE)
+  
   #Reweighted mixing matrix, accounting for mean degree
   racemix_inst_rwt <- matrix(c(racemix_inst[1,]*rateinstXrace[1,1]*nXrace[1], racemix_inst[2,]*rateinstXrace[2,1]*nXrace[2], racemix_inst[3,]*rateinstXrace[3,1]*nXrace[3]), byrow=TRUE, nrow=3)
   racemix_inst_rwt <- as.data.frame(racemix_inst_rwt, row.names=c("Hispanic", "Black", "Other"))
