@@ -13,6 +13,7 @@
     library("knitr")
     library("xtable")
     library("kableExtra")
+    library("data.table")
 
 #-----------------------------------------------------------------------------------
 # Load data
@@ -40,7 +41,7 @@ The statistics in this file are based on the total number of reported instantane
 
 To account for differential missingness in data on the number of one-time partners in the past 12 months in the WHPP survey (the ART-Net sample was defined to include only complete entries), we impute values for respondents with missing data using data from respondents of the same race/ethnicity, region, and age group. We do this by defining a restricted sample of people who had complete data on the number of one-time partners and main and persistent momentary degree.^[Because we define the rate of one-time partners stratified by main/persistent degree, we need to define the sample as those with non-missing data on all three variables. Only `r sum(!is.na(sample$deg_matrix) & is.na(sample$rate_inst))` people had missing data on the rate of one-time partners who did not have missing data on main/persistent degree, and `r sum(is.na(sample$deg_matrix) & !is.na(sample$rate_inst))` had missing data on main/pers degree who did not have missing data on the number of one-time partners.] We then rake this restricted sample to the joint distribution of race/ethnicity and region and simultaneously to the marginal distribution by age among Washington males without diagnosed HIV (see section \@ref(reweight) for details on this approach). This approach assumes that there is non-differential missingness. It ensures that the rate of instantaneous partnerships defined by main/persistent degree and age are consistent and imply the same total number of partnerships (see [issue 39](https://github.com/statnet/WHAMP/issues/39)). 
 
-We will define the rate of instantaneous partnerships by main/persistent degree, age, and HIV status. We also define stratified rates by race/ethnicity and region for use in calculating mixing (`nodematch`) target statistics and for `nodefactor` target statistics (which are needed for interpretation of the mixing terms).
+We will define the rate of instantaneous partnerships by main/persistent degree and age. We also define stratified rates by race/ethnicity and region for use in calculating mixing (`nodematch`) target statistics and for `nodefactor` target statistics (which are needed for interpretation of the mixing terms).
 
 ```{r, impute}
 #-----------------------------------------------------------------------------------
@@ -133,7 +134,7 @@ We will define the rate of instantaneous partnerships by main/persistent degree,
                                                 NA))
     neg$mrp_type <- ifelse(neg$mrp_type_r %in% "Main", "Main", ifelse(neg$mrp_type_r %in% "Casual", "Pers", ifelse(neg$mrp_type_r %in% "One time", "Inst", NA)))
     setnames(neg, old = "mrp_ageinyears_approx", new = "mrp_ageinyrs")
-    neg.rateinst <- neg %>% select(pid, rate_inst, degree_main, degreecat_cas, region, hbo, age, hiv, mrp_hbo, mrp_type_ongoing, mrp_type, mrp_ageinyrs, mrp_hivpos, weight)
+    neg.rateinst <- neg %>% select(pid, rate_inst, degree_main, degreecat_cas, region, hbo, age, hiv, mrp_type_ongoing, mrp_type, mrp_ageinyrs, mrp_hivpos, weight)
 
     
     pos_wts <- cbind.data.frame("AMIS_ID" = artnet_pos_rake_w$variables$AMIS_ID, "weight" = (1/artnet_pos_rake_w$prob))
@@ -146,36 +147,41 @@ We will define the rate of instantaneous partnerships by main/persistent degree,
     pos$mrp_type_ongoing <- as.factor(pos$mrp_type_ongoing)
     pos$deg.pers_cat <- factor(pos$deg.pers_cat, levels = c(0, 1, 2), labels = c("None", "One", "Two or more"))
     setnames(pos, old = c("deg.main_cat", "deg.pers_cat", "AMIS_ID"), new = c("degree_main", "degreecat_cas", "pid"))
-    pos.rateinst <- pos %>% select(pid, rate_inst, degree_main, degreecat_cas, region, hbo, age, hiv, mrp_hbo, mrp_type_ongoing, mrp_type, mrp_ageinyrs, mrp_hivpos, weight)
+    pos.rateinst <- pos %>% select(pid, rate_inst, degree_main, degreecat_cas, region, hbo, age, hiv, mrp_type_ongoing, mrp_type, mrp_ageinyrs, mrp_hivpos, weight)
 
-    tot.inst.unweighted <- rbind.data.frame(pos.rateinst, neg.rateinst)
-    tot.inst <- svydesign(id=~1, data=tot.inst.unweighted, weights = ~weight) # Note this doesn't get the variance correct, but it gets the sample composition
+    inst.full.unweighted <- rbind.data.frame(pos.rateinst, neg.rateinst)
+    inst.full <- svydesign(id=~1, data=inst.full.unweighted, weights = ~weight) # Note this doesn't get the variance correct, but it gets the sample composition
     
-    rm(pos_wts, pos, pos.rateinst, neg_wts, neg, neg.rateinst, artnet_pos_rake_w, sample_rake_neg_r)
+    rm(pos_wts, pos, pos.rateinst, neg_wts, neg, neg.rateinst, samplesvy_r)
   
 #-----------------------------------------------------------------------------------
 # Data manipulation
 #-----------------------------------------------------------------------------------
 
 # Change degree variables to factor and add labels
-tot.inst$variables$degree_main <- factor(tot.inst$variables$degree_main, levels = c(0, 1), labels = c("No main", "Main"))
+inst.full$variables$degree_main <- factor(inst.full$variables$degree_main, levels = c(0, 1), labels = c("No main", "Main"))
     
 # Re-order race and region variables
-tot.inst$variables$hbo <- factor(tot.inst$variables$hbo, levels = c("Hispanic", "Black", "Other"), labels = c("Hispanic", "Black", "Other"))
-tot.inst$variables$mrp_hbo <- factor(tot.inst$variables$mrp_hbo, levels = c("Hispanic", "Black", "Other"), labels = c("Hispanic", "Black", "Other"))
-tot.inst$variables$region <- factor(tot.inst$variables$region, levels = c("King County", "Western WA", "Eastern WA"), labels = c("King County", "Western WA", "Eastern WA"))
+inst.full$variables$hbo <- factor(inst.full$variables$hbo, levels = c("Hispanic", "Black", "Other"), labels = c("Hispanic", "Black", "Other"))
+inst.full$variables$region <- factor(inst.full$variables$region, levels = c("King County", "Western WA", "Eastern WA"), labels = c("King County", "Western WA", "Eastern WA"))
 
 # Define indicator of age 50+
-tot.inst$variables$age50plus <- cut(tot.inst$variables$age, c(17, 49, 59), labels=c("18-49", "50-59")) 
+inst.full$variables$age50plus <- cut(inst.full$variables$age, c(17, 49, 59), labels=c("18-49", "50-59")) 
+
+#-----------------------------------------------------------------------------------
+# Save
+#-----------------------------------------------------------------------------------
+
+save(inst.full, file = "Data/rate.inst.fullpop.Rdata")
 
 ```
 
-Overall, the mean rate of instantaneous partnerships was `r round(svymean(~rate_inst, tot.inst, na.rm=TRUE)[[1]], 4)` per day. Among men under 50, the mean was `r round(svymean(~rate_inst, tot.inst[tot.inst$variables$age50plus %in% "18-49"], na.rm=TRUE)[[1]], 4)` per day, and among men 50 and older, the mean was `r round(svymean(~rate_inst, tot.inst[tot.inst$variables$age50plus %in% "50-59"], na.rm=TRUE)[[1]], 4)` per day.
+Overall, the mean rate of instantaneous partnerships was `r round(svymean(~rate_inst, inst.full, na.rm=TRUE)[[1]], 4)` per day. Among men under 50, the mean was `r round(svymean(~rate_inst, inst.full[inst.full$variables$age50plus %in% "18-49"], na.rm=TRUE)[[1]], 4)` per day, and among men 50 and older, the mean was `r round(svymean(~rate_inst, inst.full[inst.full$variables$age50plus %in% "50-59"], na.rm=TRUE)[[1]], 4)` per day.
 
 ## Instantaneous partnerships by momentary degree
 Based on exploratory analyses in section \@ref(explore_heterogeneity), we decided to stratify the rate of instantaneous partnerships by the joint distribution of main and persistent partnership status.
 ```{r rate_instXdeg}
-means <- svyby(~rate_inst, ~degree_main + degreecat_cas, tot.inst, svymean, na.rm=TRUE)
+means <- svyby(~rate_inst, ~degree_main + degreecat_cas, inst.full, svymean, na.rm=TRUE)
 means$rate_inst <- round(means$rate_inst, 6)
 meansXdegmatrix <- as.data.frame(matrix(as.vector(means$rate_inst), nrow=2, ncol=3, byrow=FALSE))
 names(meansXdegmatrix) <- c("0 pers", "1 pers", "2+ pers")
@@ -191,53 +197,53 @@ save(meansXdegmatrix, file="Data/rate_inst_mdeg.Rdata")
 To capture heterogeneity in the rate of instantaneous partnerships by age, we decided to calculate the means within quartiles of the distribution for men aged 18 to 49 and for men aged 50 to 59 (section \@ref(decisions). The table below shows the mean rate of instantaneous partnerships within each quartile of the distribution by age group.
 
 ```{r rate_instXquart}
-  #Apply the weights from tot.inst to the un dataframe to construct a new dataframe with the appropriate composition that can be manipulated and analyzed without using the 'survey' package commands. Need to do this b/c I can't divide the sample into even quartiles and take mean within each group using the survey package commands.) Note that it does not work to replicate each row according to the sample weights (i.e. `sample[rep(row.names(sample), sample$wts), ]`) b/c the weights are not integers, so it rounds down in deciding how many times to replicate.
+  #Apply the weights from inst.full to the unweighted dataframe to construct a new dataframe with the appropriate composition that can be manipulated and analyzed without using the 'survey' package commands. Need to do this b/c I can't divide the sample into even quartiles and take mean within each group using the survey package commands.) Note that it does not work to replicate each row according to the sample weights (i.e. `sample[rep(row.names(sample), sample$wts), ]`) b/c the weights are not integers, so it rounds down in deciding how many times to replicate.
 
 # # Comment out so does not re-sample each time I run the file
 #    #Resample from the original survey dataframe 20 times using the raked weights
-  #   qrtmeans_18to49 <- list()
-  #   qrtmeans_50to59 <- list()
-  # 
-  #   for(i in 1:20){
-  #       tot.inst_rwt <- tot.inst.unweighted %>% sample_n(1000000, replace=TRUE, weight=weight)
-  # 
-  #       #Age 18 to 49
-  #       tot.inst_rwt_18to49 <- tot.inst_rwt %>% filter(age %in% c(18:49))
-  #       tot.inst_rwt_18to49$rate_inst <- sort(tot.inst_rwt_18to49$rate_inst, na.last = TRUE)
-  #       qsize.18to49=floor(sum(!is.na(tot.inst_rwt_18to49$rate_inst))/4)
-  #       qrtmeans_18to49_i <- mean(tot.inst_rwt_18to49$rate_inst[1:qsize.18to49])
-  #       qrtmeans_18to49_i[2] <- mean(tot.inst_rwt_18to49$rate_inst[(1*qsize.18to49+1):(2*qsize.18to49)])
-  #       qrtmeans_18to49_i[3] <- mean(tot.inst_rwt_18to49$rate_inst[(2*qsize.18to49+1):(3*qsize.18to49)])
-  #       qrtmeans_18to49_i[4] <- mean(tot.inst_rwt_18to49$rate_inst[(3*qsize.18to49+1):(sum(!is.na(tot.inst_rwt_18to49$rate_inst)))])
-  # 
-  #       qrtmeans_18to49[[i]] <- qrtmeans_18to49_i
-  # 
-  #       #Age 50-59
-  #       tot.inst_rwt_50to59 <- tot.inst_rwt %>% filter(age %in% c(50:59))
-  #       tot.inst_rwt_50to59$rate_inst <- sort(tot.inst_rwt_50to59$rate_inst, na.last = TRUE)
-  #       qsize.50to59=floor(sum(!is.na(tot.inst_rwt_50to59$rate_inst))/4)
-  #       qrtmeans_50to59_i <- mean(tot.inst_rwt_50to59$rate_inst[1:qsize.50to59])
-  #       qrtmeans_50to59_i[2] <- mean(tot.inst_rwt_50to59$rate_inst[(1*qsize.50to59+1):(2*qsize.50to59)])
-  #       qrtmeans_50to59_i[3] <- mean(tot.inst_rwt_50to59$rate_inst[(2*qsize.50to59+1):(3*qsize.50to59)])
-  #       qrtmeans_50to59_i[4] <- mean(tot.inst_rwt_50to59$rate_inst[(3*qsize.50to59+1):(sum(!is.na(tot.inst_rwt_50to59$rate_inst)))])
-  # 
-  #       qrtmeans_50to59[[i]] <- qrtmeans_50to59_i
-  #   }
-  # 
-  #   #Take average of the 20 samples
-  #   avg.qrtmeans.18to49 <- mean(sapply(qrtmeans_18to49, `[[`, 1))
-  #   avg.qrtmeans.18to49[2] <- mean(sapply(qrtmeans_18to49, `[[`, 2))
-  #   avg.qrtmeans.18to49[3] <- mean(sapply(qrtmeans_18to49, `[[`, 3))
-  #   avg.qrtmeans.18to49[4] <- mean(sapply(qrtmeans_18to49, `[[`, 4))
-  # 
-  #   avg.qrtmeans.50to59 <- mean(sapply(qrtmeans_50to59, `[[`, 1))
-  #   avg.qrtmeans.50to59[2] <- mean(sapply(qrtmeans_50to59, `[[`, 2))
-  #   avg.qrtmeans.50to59[3] <- mean(sapply(qrtmeans_50to59, `[[`, 3))
-  #   avg.qrtmeans.50to59[4] <- mean(sapply(qrtmeans_50to59, `[[`, 4))
-  # 
-  # #Save means
-  #   save(avg.qrtmeans.18to49, file="Data/rate_inst_qrtmeans_18to49.Rdata")
-  #   save(avg.qrtmeans.50to59, file="Data/rate_inst_qrtmeans_50to59.Rdata")
+#   qrtmeans_18to49 <- list()
+#   qrtmeans_50to59 <- list()
+# 
+#   for(i in 1:20){
+#       inst.full_rwt <- inst.full.unweighted %>% sample_n(1000000, replace=TRUE, weight=weight)
+# 
+#       #Age 18 to 49
+#       inst.full_rwt_18to49 <- inst.full_rwt %>% filter(age %in% c(18:49))
+#       inst.full_rwt_18to49$rate_inst <- sort(inst.full_rwt_18to49$rate_inst, na.last = TRUE)
+#       qsize.18to49=floor(sum(!is.na(inst.full_rwt_18to49$rate_inst))/4)
+#       qrtmeans_18to49_i <- mean(inst.full_rwt_18to49$rate_inst[1:qsize.18to49])
+#       qrtmeans_18to49_i[2] <- mean(inst.full_rwt_18to49$rate_inst[(1*qsize.18to49+1):(2*qsize.18to49)])
+#       qrtmeans_18to49_i[3] <- mean(inst.full_rwt_18to49$rate_inst[(2*qsize.18to49+1):(3*qsize.18to49)])
+#       qrtmeans_18to49_i[4] <- mean(inst.full_rwt_18to49$rate_inst[(3*qsize.18to49+1):(sum(!is.na(inst.full_rwt_18to49$rate_inst)))])
+# 
+#       qrtmeans_18to49[[i]] <- qrtmeans_18to49_i
+# 
+#       #Age 50-59
+#       inst.full_rwt_50to59 <- inst.full_rwt %>% filter(age %in% c(50:59))
+#       inst.full_rwt_50to59$rate_inst <- sort(inst.full_rwt_50to59$rate_inst, na.last = TRUE)
+#       qsize.50to59=floor(sum(!is.na(inst.full_rwt_50to59$rate_inst))/4)
+#       qrtmeans_50to59_i <- mean(inst.full_rwt_50to59$rate_inst[1:qsize.50to59])
+#       qrtmeans_50to59_i[2] <- mean(inst.full_rwt_50to59$rate_inst[(1*qsize.50to59+1):(2*qsize.50to59)])
+#       qrtmeans_50to59_i[3] <- mean(inst.full_rwt_50to59$rate_inst[(2*qsize.50to59+1):(3*qsize.50to59)])
+#       qrtmeans_50to59_i[4] <- mean(inst.full_rwt_50to59$rate_inst[(3*qsize.50to59+1):(sum(!is.na(inst.full_rwt_50to59$rate_inst)))])
+# 
+#       qrtmeans_50to59[[i]] <- qrtmeans_50to59_i
+#   }
+# 
+#   #Take average of the 20 samples
+#   avg.qrtmeans.18to49 <- mean(sapply(qrtmeans_18to49, `[[`, 1))
+#   avg.qrtmeans.18to49[2] <- mean(sapply(qrtmeans_18to49, `[[`, 2))
+#   avg.qrtmeans.18to49[3] <- mean(sapply(qrtmeans_18to49, `[[`, 3))
+#   avg.qrtmeans.18to49[4] <- mean(sapply(qrtmeans_18to49, `[[`, 4))
+# 
+#   avg.qrtmeans.50to59 <- mean(sapply(qrtmeans_50to59, `[[`, 1))
+#   avg.qrtmeans.50to59[2] <- mean(sapply(qrtmeans_50to59, `[[`, 2))
+#   avg.qrtmeans.50to59[3] <- mean(sapply(qrtmeans_50to59, `[[`, 3))
+#   avg.qrtmeans.50to59[4] <- mean(sapply(qrtmeans_50to59, `[[`, 4))
+# 
+# #Save means
+#   save(avg.qrtmeans.18to49, file="Data/rate_inst_qrtmeans_18to49.Rdata")
+#   save(avg.qrtmeans.50to59, file="Data/rate_inst_qrtmeans_50to59.Rdata")
 
   #Load means within quartiles
     load(file="Data/rate_inst_qrtmeans_18to49.Rdata")
@@ -248,24 +254,10 @@ To capture heterogeneity in the rate of instantaneous partnerships by age, we de
 
   kable(meansXqrt, col.names = c("Age group", "Q1", "Q2", "Q3", "Q4"), caption="Mean rate of instantaneous partnerships per day by quartile within age groups", digits=c(0, 6, 6, 6, 6)) %>% kable_styling(full_width=F, position="center") %>% column_spec(2:5, width = "2cm") %>% add_header_above(c(" ", "Mean rates"=4))
 ```
-## Instantaneous partnerships by HIV status
-```{r rate_instXhbo}
-means.hiv <- svyby(~rate_inst, ~hiv, tot.inst, svymean, na.rm=TRUE)
-meansXhiv <- cbind.data.frame("status" = means.hiv$hiv, "Mean" = round(means.hiv$rate_inst, 6))
-
-#Reorder race var to alphabetical order
-meansXhiv$status <- factor(meansXhiv$status, levels = c("0", "1"), labels = c("HIV-negative", "HIV-positive"))
-
-#Make kable
-kable(meansXhiv, caption="Mean rate of instantaneous partnerships per day by HIV status", digits=c(6)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1:2, width = "4cm")
-
-#save means
-save(meansXhiv, file="Data/rate_inst_hiv.Rdata")
-```
 
 ## Instantaneous partnerships by race/ethnicity
 ```{r rate_instXhbo}
-means.hbo <- svyby(~rate_inst, ~hbo, tot.inst, svymean, na.rm=TRUE)
+means.hbo <- svyby(~rate_inst, ~hbo, inst.full, svymean, na.rm=TRUE)
 meansXhbo <- cbind.data.frame("Race" = means.hbo$hbo, "Mean" = round(means.hbo$rate_inst, 6))
 
 #Reorder race var to alphabetical order
@@ -284,7 +276,7 @@ Since the data on HIV-positive men are from a national sample (ART-Net), we don'
 
 First we will look at the rates of instantaneous partnerships by region among HIV-negative men.
 ```{r rate_instXregion}
-means.region <- svyby(~rate_inst, ~region, tot.inst, svymean, na.rm=TRUE)
+means.region <- svyby(~rate_inst, ~region, inst.full, svymean, na.rm=TRUE)
 meansXregion <- cbind.data.frame("Region" = means.region$region, "Mean" = round(means.region$rate_inst, 6))
 
 #Reorder region var to alphabetical order
@@ -299,10 +291,10 @@ kable(meansXregion, caption="Mean rate of instantaneous partnerships per day by 
 Next we will calculate the distribution of instantaneous degree by region.
 
 ```{r}
-num.inst.EW <- meansXregion$Mean[1]*svytable(~region, tot.inst, round=FALSE)[3]
-num.inst.KC <- meansXregion$Mean[2]*svytable(~region, tot.inst, round=FALSE)[1]
-num.inst.OW <- meansXregion$Mean[3]*svytable(~region, tot.inst, round=FALSE)[2]
-num.inst.neg <- svymean(~rate_inst, tot.inst[tot.inst$variables$hiv %in% 0], na.rm=TRUE)[[1]]*svytable(~hiv, tot.inst, round=FALSE)[1]
+num.inst.EW <- meansXregion$Mean[1]*svytable(~region, inst.full, round=FALSE)[3]
+num.inst.KC <- meansXregion$Mean[2]*svytable(~region, inst.full, round=FALSE)[1]
+num.inst.OW <- meansXregion$Mean[3]*svytable(~region, inst.full, round=FALSE)[2]
+num.inst.neg <- svymean(~rate_inst, inst.full[inst.full$variables$hiv %in% 0], na.rm=TRUE)[[1]]*svytable(~hiv, inst.full, round=FALSE)[1]
 
 inst.dist.region <- cbind.data.frame(proportion = c(num.inst.EW/num.inst.neg, num.inst.KC/num.inst.neg, num.inst.OW/num.inst.neg))
 
