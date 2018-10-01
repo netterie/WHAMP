@@ -42,6 +42,9 @@
 # Rename and code new variables 
 #-----------------------------------------------------------------------------------
 
+# Define ID variable
+ mmp2014$pid <- rownames(mmp2014)
+
 # Age group
  mmp2014$age_cat <- cut(mmp2014$AGE, c(17, 24, 29, 34, 39, 49, 59, 100), labels=c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59", "60 and up"))
 
@@ -100,7 +103,7 @@ mmp2014 <- within(mmp2014, {
 # Number of named male sex partners
 mmp2014$named_p <- rowSums(select(mmp2014, p1male, p2male, p3male, p4male, p5male), na.rm=TRUE)
 
-# Partner age - set to 3 different values: low = set to lower bound of range, mid = set to midpiont of range, high = set to upper bound of range
+# Partner age - set to 4 different values: low = set to lower bound of range, mid = set to midpiont of range, high = set to upper bound of range, rand = sampled within range)
 mmp2014$p1age_low <- ifelse(mmp2014$SXPAG1N4 %in% 1, 18, #set <=24 cat to 18 in low scenario
                             ifelse(mmp2014$SXPAG1N4 %in% 2, 25,
                                    ifelse(mmp2014$SXPAG1N4 %in% 3, 30,
@@ -222,6 +225,7 @@ mmp2014$p5age_high <- ifelse(mmp2014$SXPAG5N4 %in% 1, 24,
                                                         ifelse(mmp2014$SXPAG5N4 %in% 6, 49,
                                                                ifelse(mmp2014$SXPAG5N4 %in% 7, 59, #set to 75th percentile of age of egos over 50
                                                                       NA)))))))
+
 
 # Partner race/ethnicity
   ## Only recode for most recent 2 partners b/c for now this is all we will use
@@ -497,16 +501,13 @@ mmp2014$mrp_prep <- ifelse(mmp2014$mrp_male %in% "P1", mmp2014$p1prep,
 #rename indicator of any anal sex with partner
 setnames(mmp2014, old = c("SXANL1N4", "SXANL2N4", "SXANL3N4", "SXANL4N4", "SXANL5N4"), new = c("p1anal", "p2anal", "p3anal", "p4anal", "p5anal"))
 
-mmp2014 <- mmp2014 %>% select(msm, AGE, SX_GEN, age_cat, hbo, region, any_anal, num_anal, SEXORI8, named_p, mrp_male, p1male, p2male, p3male, p4male, p5male, p1age_low, p2age_low, p3age_low, p4age_low, p5age_low, p1age_mid, p2age_mid, p3age_mid, p4age_mid, p5age_mid, p1age_high, p2age_high, p3age_high, p4age_high, p5age_high, p1hbo, p2hbo, p3hbo, p4hbo, p5hbo, p1type, p2type, p3type, p4type, p5type, position_cat, p1anal, p2anal, p3anal, p4anal, p5anal, p1aitimes, p2aitimes, p3aitimes, p4aitimes, p5aitimes, p1condoms, p2condoms, p3condoms, p4condoms, p5condoms, p1disclosure, p2disclosure, p3disclosure, p4disclosure, p5disclosure, p1status, p2status, p3status, p4status, p5status, p1prep, p2prep,p3prep, p4prep, p5prep, mrp_hbo, mrp_age_low, mrp_age_mid, mrp_age_high, mrp_type, mrp_status, mrp_prep, pa_wgt_over, pa_clust, pa_strat)
+mmp2014 <- mmp2014 %>% select(pid, msm, AGE, SX_GEN, age_cat, hbo, region, any_anal, num_anal, SEXORI8, named_p, mrp_male, p1male, p2male, p3male, p4male, p5male, p1age_low, p2age_low, p3age_low, p4age_low, p5age_low, p1age_mid, p2age_mid, p3age_mid, p4age_mid, p5age_mid, p1age_high, p2age_high, p3age_high, p4age_high, p5age_high, p1hbo, p2hbo, p3hbo, p4hbo, p5hbo, p1type, p2type, p3type, p4type, p5type, position_cat, p1anal, p2anal, p3anal, p4anal, p5anal, p1aitimes, p2aitimes, p3aitimes, p4aitimes, p5aitimes, p1condoms, p2condoms, p3condoms, p4condoms, p5condoms, p1disclosure, p2disclosure, p3disclosure, p4disclosure, p5disclosure, p1status, p2status, p3status, p4status, p5status, p1prep, p2prep,p3prep, p4prep, p5prep, mrp_hbo, mrp_age_low, mrp_age_mid, mrp_age_high, mrp_type, mrp_status, mrp_prep, pa_wgt_over, pa_clust, pa_strat)
 
 #-----------------------------------------------------------------------------------
 # Define a long version of the sample of MSM
 #-----------------------------------------------------------------------------------
 
 mmp_msm <- mmp2014 %>% filter(msm %in% 1)
-
-## Define ID variable
-mmp_msm$pid <- rownames(mmp_msm)
 
 ## Define variables to keep
 index.vars <- c("pid", "AGE", "age_cat", "hbo", "region", "position_cat", "any_anal", "num_anal", "named_p", "SEXORI8")
@@ -526,6 +527,7 @@ mmp_msm.melt$variable <- paste0("p_", mmp_msm.melt$variable)
 
 ## Cast data
 mmp_msm_l <- dcast(mmp_msm.melt, pid + AGE + age_cat + hbo + region + position_cat + any_anal + num_anal + named_p + SEXORI8 + pnum ~ variable, value.var = "value")
+mmp_msm_l$pid <- factor(mmp_msm_l$pid)
 mmp_msm_l <- mmp_msm_l %>% arrange(pid)
 rm(mmp_msm.melt)
 rm(mmp_msm)
@@ -533,8 +535,11 @@ rm(mmp_msm)
 ## Delete all partnerships that were not with males or involve anal sex
 mmp_msm_l <- mmp_msm_l %>% filter(p_anal %in% 1 & p_male %in% 1)
 
+## Restrict to ages 18:59
+mmp_msm_l <- mmp_msm_l %>% filter(AGE %in% c(18:59))
+
 #-----------------------------------------------------------------------------------
-# Define survey object and save it
+# Define survey objects and save
 #-----------------------------------------------------------------------------------
 
 mmp_svy <- svydesign(ids = ~pa_clust, strata = ~pa_strat, weights = ~pa_wgt_over, data = mmp2014, nest = TRUE)
@@ -545,10 +550,3 @@ save(mmp_msm_l, file="/homes/dpwhite/win/project/MMP_WADOH/mmp_msm_l.Rdata")
 
 ```
 
-Look at disclosure for each of the last 5 partners among discordant pships by ptype
-- use mmp2014_msm dataset and use only partners that are male gender and HIV-
-
-Can look at condom use by disclosure status just to see
-Could also tabulate PrEP use and compare condom use if neg partner is/is not on PrEP
-
-AGe and race mixing - restrict to p1gender %in% 1 and SXANL1N4 %in% 1
