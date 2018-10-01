@@ -1,0 +1,147 @@
+# Exploratory analysis to look at full ART-Net sample (including HIV-negative/unknown) reweighted to Washington race/ethnicity and age distributions
+
+```{r, include=FALSE}
+####################################################################################
+# Setup
+####################################################################################
+#-----------------------------------------------------------------------------------
+# Load packages
+#-----------------------------------------------------------------------------------
+
+    library("tidyverse")
+    library("knitr")
+    library("data.table")
+    library("survey")
+    library("kableExtra")
+
+#-----------------------------------------------------------------------------------
+# Knitr options
+#-----------------------------------------------------------------------------------
+opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
+options(knitr.table.format = "html") 
+
+#-----------------------------------------------------------------------------------
+# Load data
+#-----------------------------------------------------------------------------------
+    load(file="Data/ARTNet_wide.Rdata")
+    load(file="Data/ARTNet_long.Rdata")
+    load(file="Data/ARTNet_pos_wide.Rdata")
+    load(file="Data/ARTNet_pos_long.Rdata")
+    load(file="Data/census_agebyregion.Rdata")
+    load(file="Data/census_racebyregion.Rdata")
+    load(file="Data/census_totalbyregion.Rdata")
+    load(file="Data/wa_msm_est2013.Rdata")
+    load(file="Data/msmbyregion.Rdata")
+    load(file="Data/prop_msmbyregion.Rdata")
+    load(file="Data/plwha_age.Rdata")
+    load(file="Data/plwha_hboXregion.Rdata")
+    
+#-----------------------------------------------------------------------------------
+# set plot settings 
+#-----------------------------------------------------------------------------------
+    
+    #White background and light grey lines
+    plot_background_nogrid <- theme(panel.background = element_rect(fill="white", colour = "black")) 
+    #Darken colors
+    darken_color <- scale_colour_hue(l=50)
+    #Title size to 12 and center it 
+    theme_title <- theme(plot.title = element_text(hjust = 0.5, size=12)) 
+    
+####################################################################################
+# Reweighting
+####################################################################################
+
+#-----------------------------------------------------------------------------------
+# Define survey objects 
+#-----------------------------------------------------------------------------------
+    artnet_neg_w <- artnet_w %>% filter(artnet_w$hiv %in% 0)
+    
+    artnet_neg_svy <- svydesign(id=~1, data=artnet_neg_w)
+    artnet_pos_svy <- svydesign(id=~1, data=artnet_pos_w)
+
+#-----------------------------------------------------------------------------------
+# Define "population" totals from census data and Jeremy Grey's analysis, and subtracting
+# HIV-positives   
+#-----------------------------------------------------------------------------------
+
+#Region
+    pop.region.all <- MSMbyregion %>% select(region, numMSM) %>% mutate(total = round(numMSM)) %>% select(-numMSM)
+    levels(pop.region.all$region)[levels(pop.region.all$region)=="Other Western WA"] <- "Western WA"
+    
+    #HIV-positive only
+    pop.region.pos <- plwha_hboXregion %>% group_by(region) %>% summarise("total" = sum(Freq))
+    pop.region.pos$region <- factor(pop.region.pos$region, levels = c("King County", "Western WA", "Eastern WA"))
+    pop.region.pos <- pop.region.pos %>% arrange(region)
+
+    #HIV-negative only
+    pop.region.neg <- cbind.data.frame(region = c("King County", "Western WA", "Eastern WA"), total = c(round(pop.region.all$total[pop.region.all$region %in% "King County"] - pop.region.pos$total[pop.region.pos$region %in% "King County"]), round(pop.region.all$total[pop.region.all$region %in% "Western WA"] - pop.region.pos$total[pop.region.pos$region %in% "Western WA"]), round(pop.region.all$total[pop.region.all$region %in% "Eastern WA"] - pop.region.pos$total[pop.region.pos$region %in% "Eastern WA"])))
+    pop.region.neg$region <- factor(pop.region.neg$region, levels = c("King County", "Western WA", "Eastern WA"))
+    pop.region.neg <- pop.region.neg %>% arrange(region)
+    
+#Race and region
+    pop.raceregion.all <- cbind.data.frame(region=c(rep("King County", 3), rep("Western WA", 3), rep("Eastern WA", 3)), hbo=c(rep(c("Hispanic", "Black", "Other"), 3)), Freq=c(wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "King County"]*pop.region.all$total[pop.region.all$region %in% "King County"], wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "King County"]*pop.region.all$total[pop.region.all$region %in% "King County"], wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "King County"]*pop.region.all$total[pop.region.all$region %in% "King County"], wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "Other Western"]*pop.region.all$total[pop.region.all$region %in% "Western WA"], wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "Other Western"]*pop.region.all$total[pop.region.all$region %in% "Western WA"], wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "Other Western"]*pop.region.all$total[pop.region.all$region %in% "Western WA"], wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "Eastern"]*pop.region.all$total[pop.region.all$region %in% "Eastern WA"], wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "Eastern"]*pop.region.all$total[pop.region.all$region %in% "Eastern WA"], wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "Eastern"]*pop.region.all$total[pop.region.all$region %in% "Eastern WA"]))
+    #Specify order of factors
+    pop.raceregion.all$hbo <- factor(pop.raceregion.all$hbo, levels = c("Hispanic", "Black", "Other"))
+    pop.raceregion.all$region <- factor(pop.raceregion.all$region, levels = c("King County", "Western WA", "Eastern WA"))
+    pop.raceregion.all <- pop.raceregion.all %>% arrange(region, hbo)
+
+    #HIV-positive only
+    pop.raceregion.pos <- plwha_hboXregion
+        #Specify order of factors
+        pop.raceregion.pos$hbo <- factor(pop.raceregion.pos$hbo, levels = c("Hispanic", "Black", "Other"))
+        pop.raceregion.pos$region <- factor(pop.raceregion.pos$region, levels = c("King County", "Western WA", "Eastern WA"))
+        pop.raceregion.pos <- pop.raceregion.pos %>% arrange(region, hbo)
+
+    #HIV-negative only
+    pop.raceregion.neg <- cbind.data.frame(region=c(rep("King County", 3), rep("Western WA", 3), rep("Eastern WA", 3)), hbo=c(rep(c("Hispanic", "Black", "Other"), 3)), Freq=c(round(pop.raceregion.all[1:3, 3] - pop.raceregion.pos[1:3, 3]), round(pop.raceregion.all[4:6, 3] - pop.raceregion.pos[4:6, 3]), round(pop.raceregion.all[7:9, 3] - pop.raceregion.pos[7:9, 3])))
+    
+#Race
+    pop.hbo.all <- pop.raceregion.all %>% group_by(hbo) %>% summarise(Freq=sum(Freq))
+    pop.hbo.pos <- pop.raceregion.pos %>% group_by(hbo) %>% summarise(Freq=sum(Freq))
+    pop.hbo.neg <- pop.raceregion.neg %>% group_by(hbo) %>% summarise(Freq=sum(Freq))
+         #Specify order of factors
+        pop.hbo.neg$hbo <- factor(pop.hbo.neg$hbo, levels = c("Hispanic", "Black", "Other"))
+        pop.hbo.neg <- pop.hbo.neg %>% arrange(hbo)
+
+#Age
+    #All MSM
+    wa_acs_agebyregion$age_cat_alt <- ifelse(wa_acs_agebyregion$Age_group %in% c("males.40to44", "males.45to49"), "40-49", ifelse(wa_acs_agebyregion$Age_group %in% c("males.50to54", "males.55to59"), "50-59", ifelse(wa_acs_agebyregion$Age_group %in% "males.18to24", "18-24", ifelse(wa_acs_agebyregion$Age_group %in% "males.25to29", "25-29", ifelse(wa_acs_agebyregion$Age_group %in% "males.30to34", "30-34", ifelse(wa_acs_agebyregion$Age_group %in% "males.35to39", "35-39", NA))))))
+    
+    #Apply proportion MSM in each region to get age distribution among MSM
+    wa_acs_agebyregion$numMSM <- ifelse(wa_acs_agebyregion$region %in% "Eastern", round(wa_acs_agebyregion$Frequency*propMSMbyregion$propmsm[propMSMbyregion$region %in% "Eastern WA"]), ifelse(wa_acs_agebyregion$region %in% "King County", round(wa_acs_agebyregion$Frequency*propMSMbyregion$propmsm[propMSMbyregion$region %in% "King County"]), ifelse(wa_acs_agebyregion$region %in% "Other Western", round(wa_acs_agebyregion$Frequency*propMSMbyregion$propmsm[propMSMbyregion$region %in% "Other Western WA"]), NA)))
+    
+    pop.age.all <- wa_acs_agebyregion %>% select(-Frequency) %>% group_by(age_cat_alt) %>% summarise(Freq = sum(numMSM))
+    
+    #HIV-positive only
+    pop.age.pos <- plwha_age
+    
+    #HIV-negative only
+    pop.age.neg <- cbind.data.frame(age_cat_alt = c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"), Freq = c(round(pop.age.all$Freq - pop.age.pos$Freq)))
+
+#-----------------------------------------------------------------------------------
+# Rake the survey samples using population totals
+#-----------------------------------------------------------------------------------
+
+# Make sure factor vars are ordered the same way across surveys and match pop totals
+    artnet_neg_svy$variables$hbo <- factor(artnet_neg_svy$variables$hbo, levels = c("Hispanic", "Black", "Other"))
+     artnet_pos_svy$variables$hbo <- factor(artnet_pos_svy$variables$hbo, levels = c("Hispanic", "Black", "Other"))
+
+# Rename age_cat variable in pop.age.pos and pop.age.neg to match variable name in artnet
+    setnames(pop.age.pos, old = "age_groups", new = "age_cat")
+    setnames(pop.age.neg, old = "age_cat_alt", new = "age_cat")
+
+# Rake
+    artnet_neg_rake_w <- rake(artnet_neg_svy, list(~hbo, ~age_cat), list(pop.hbo.neg, pop.age.neg))
+    artnet_pos_rake_w <- rake(artnet_pos_svy, list(~hbo, ~age_cat), list(pop.hbo.pos, pop.age.pos))
+
+####################################################################################
+# Analyses
+####################################################################################
+   
+addmargins(prop.table(svytable(~deg.main_cat + deg.pers_cat, artnet_pos_rake_w)), margin=c(1,2), sum, quiet = TRUE)
+addmargins(prop.table(svytable(~deg.main_cat + deg.pers_cat, artnet_neg_rake_w)), margin=c(1,2), sum, quiet = TRUE)
+svyby(~rate_inst, ~deg.main_cat + deg.pers_cat, design=artnet_pos_rake_w, svymean, na.rm=TRUE)
+svymean(~rate_inst, artnet_pos_rake_w, na.rm=TRUE)
+svymean(~rate_inst, artnet_neg_rake_w, na.rm=TRUE)
+
+```
