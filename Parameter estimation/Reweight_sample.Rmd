@@ -36,6 +36,7 @@ options(knitr.table.format = "html")
 # To load MMP data, need to mount windows to access the data because this server is on Linux. Open the Terminal in RStudio, and type "winmount" It will first ask for password to mount the U drive and H drive, which I don't need, so hit enter. Then it will prompt me for a password to mount the CSDE Project (R:) directory. Enter my UW netid password. Then type cd /homes/dpwhite/win/project/MMP_WADOH The mount will expire after ~24 hours, so will need to re-mount it periodically by typing "winmount"
 
     load(file="/homes/dpwhite/win/project/MMP_WADOH/mmp_clean_msm.Rdata")
+    load(file="/homes/dpwhite/win/project/MMP_WADOH/mmp_msm_l.Rdata")
     load(file="Data/InternetSurveySample.Rdata")
     load(file="Data/InternetSurveySample_allages.Rdata")
     load(file="Data/ARTNet_pos_wide.Rdata")
@@ -157,7 +158,12 @@ options(knitr.table.format = "html")
     artnet_pos_rake_w <- rake(artnet_pos_svy, list(~hbo, ~age_cat), list(pop.hbo.pos, pop.age.pos))
     artnet_neg_rake_w <- rake(artnet_neg_svy, list(~hbo, ~age_cat), list(pop.hbo.neg, pop.age.neg2)) # For comparison only
 
-# Merge weights from the raked wide ART-Net dataframe to the long dataframe
+# Merge weights from the raked wide MMP dataframe to the long dataframe
+    mmp_wts <- cbind.data.frame("pid" = mmp_rake$variables$pid, "weight" = (1/mmp_rake$prob))
+    mmp_l_wts <- merge(mmp_msm_l, mmp_wts, by= "pid")
+    mmp_rake_l <- svydesign(id=~1, data=mmp_l_wts, weights = ~weight)
+
+# Merge weights from the raked wide ART-Net dataframes to the long dataframes and create combined pos and neg version of the raked ART-Net dataframes
     artnet_pos_wts <- cbind.data.frame("AMIS_ID" = artnet_pos_rake_w$variables$AMIS_ID, "weight" = (1/artnet_pos_rake_w$prob))
     artnet_pos_w_wts <- merge(artnet_pos_w, artnet_pos_wts, by= "AMIS_ID")
     artnet_pos_l_wts <- merge(artnet_pos_l, artnet_pos_wts, by= "AMIS_ID")
@@ -176,6 +182,7 @@ options(knitr.table.format = "html")
      save(sample_rake_neg, file="Data/InternetSurvey_reweighted_neg.Rdata")
      save(sample_rake_all, file="Data/InternetSurvey_reweighted_all.Rdata")
      save(mmp_rake, file="/homes/dpwhite/win/project/MMP_WADOH/mmp_reweighted.Rdata")
+     save(mmp_rake_l, file="/homes/dpwhite/win/project/MMP_WADOH/mmp_reweighted_long.Rdata")
      save(artnet_pos_rake_w, file="Data/artnet_reweighted_pos_w.Rdata")
      save(artnet_pos_rake_l, file="Data/artnet_reweighted_pos_l.Rdata")
      save(artnet_full_rake_w, file="Data/artnet_reweighted_all_w.Rdata")
