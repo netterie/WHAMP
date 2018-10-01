@@ -1,0 +1,117 @@
+# Combine HIV-positive and HIV-negative datasets
+
+This file contains code to merge the WHPP dataset with the ART-Net and MMP datasets. The combined WHPP and ART-Net dataset used to estimate the rate of instantaneous partnerships is defined in the "Rate_of_instantaneous_pships.Rmd" file, as additional steps were required to account for missing data.
+```{r}
+#-----------------------------------------------------------------------------------
+# Load packages
+#-----------------------------------------------------------------------------------
+
+    library("tidyverse")
+    library("ggplot2")
+    library("survey")
+    library("knitr")
+    library("xtable")
+    library("data.table")
+    library("kableExtra")
+
+# Set options
+    opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
+    options(knitr.table.format = "html") 
+    
+#-----------------------------------------------------------------------------------
+# Load data
+#-----------------------------------------------------------------------------------
+    load(file="Data/InternetSurveySample.Rdata")
+    load(file="Data/ARTNet_pos_wide.Rdata")
+    load(file="Data/InternetSurvey_reweighted_neg.Rdata")
+    load(file="Data/artnet_reweighted_pos_w.Rdata")
+    load(file="/homes/dpwhite/win/project/MMP_WADOH/mmp_reweighted.Rdata")
+    load(file="/homes/dpwhite/win/project/MMP_WADOH/mmp_reweighted_long.Rdata")
+    load(file="/homes/dpwhite/win/project/MMP_WADOH/mmp_msm_l.Rdata")
+    
+# Merge ART-Net and WHPP datasets with the relevant variables
+    neg_wts <- cbind.data.frame("pid" = sample_rake_neg$variables$pid, "weight" = (1/sample_rake_neg$prob))
+    neg <- merge(sample, neg_wts, by= "pid")
+    neg$hiv <- 0
+    neg$mrp_hivpos <- ifelse(neg$mrp_statuscat_now %in% "HIV-positive", 1, 
+                                         ifelse(neg$mrp_statuscat_now %in% c("HIV-negative", "Unknown"), 0,
+                                                NA))
+    neg$mrp_type <- ifelse(neg$mrp_type_r %in% "Main", "Main", ifelse(neg$mrp_type_r %in% "Casual", "Pers", ifelse(neg$mrp_type_r %in% "One time", "Inst", NA)))
+    setnames(neg, old = "mrp_ageinyears_approx", new = "mrp_ageinyrs")
+    neg1 <- neg %>% select(pid, degree_main, degreecat_cas, region, hbo, age, hiv, mrp_type_ongoing, mrp_type, mrp_ageinyrs, mrp_hivpos, pship_age, position_cat, weight)
+
+    
+    pos_wts <- cbind.data.frame("AMIS_ID" = artnet_pos_rake_w$variables$AMIS_ID, "weight" = (1/artnet_pos_rake_w$prob))
+    pos <- merge(artnet_pos_w, pos_wts, by= "AMIS_ID")
+    pos$hiv <- 1
+    pos$region <- NA #Since ART-Net is a national sample, set the WA region variable to missing
+    pos$mrp_type_ongoing <- ifelse(pos$mrp_type %in% "Main" & pos$mrp_ongoing %in% 1, "Main",
+                                   ifelse(pos$mrp_type %in% "Pers" & pos$mrp_ongoing %in% 1, "Persistent",
+                                          NA))
+    pos$mrp_type_ongoing <- as.factor(pos$mrp_type_ongoing)
+    pos$deg.pers_cat <- factor(pos$deg.pers_cat, levels = c(0, 1, 2), labels = c("None", "One", "Two or more"))
+    setnames(pos, old = c("deg.main_cat", "deg.pers_cat", "AMIS_ID", "mrp_pship_age"), new = c("degree_main", "degreecat_cas", "pid", "pship_age"))
+    pos1 <- pos %>% select(pid, degree_main, degreecat_cas, region, hbo, age, hiv, mrp_type_ongoing, mrp_type, mrp_ageinyrs, mrp_hivpos, pship_age, position_cat, weight)
+
+    full1 <- rbind.data.frame(pos1, neg1)
+    whpp_artnet <- svydesign(id=~1, data=full1, weights = ~weight) # Note this doesn't get the variance correct, but it gets the sample composition
+    
+    rm(pos_wts, pos, pos1, neg_wts, neg, neg1, artnet_pos_rake_w, full1)
+  
+# Merge MMP and WHPP datasets with the relevant variables for race mixing
+    neg_wts <- cbind.data.frame("pid" = sample_rake_neg$variables$pid, "weight" = (1/sample_rake_neg$prob))
+    neg <- merge(sample, neg_wts, by= "pid")
+    neg$hiv <- 0
+    setnames(neg, old = "mrp_ageinyears_approx", new = "mrp_ageinyrs")
+    neg$mrp_age_low <- NA # Define empty vectors for vars in MMP
+    neg$mrp_age_mid <- NA
+    neg$mrp_age_high <- NA
+    neg$mrp_type_mix <- ifelse(neg$mrp_type_ongoing %in% "Main", "Main", ifelse(neg$mrp_type_ongoing %in% "Persistent", "Persistent", ifelse(neg$mrp_type_r %in% "One time", "Instantaneous", NA)))
+    neg2 <- neg %>% select(pid, age, hbo, hiv, mrp_hbo, mrp_ageinyrs, mrp_age_low, mrp_age_mid, mrp_age_high, position_cat, mrp_type_mix, weight)
+    
+    mmp_wts <- cbind.data.frame("pid" = mmp_rake_l$variables$pid, "weight" = (1/mmp_rake_l$prob))
+    mmp <- merge(mmp_msm_l, mmp_wts, by= "pid")
+    mmp_mrp <- mmp %>% arrange(pid, pnum) %>% group_by(pid) %>% filter(row_number() == 1) 
+    mmp_mrp$hiv <- 1
+    mmp_mrp$mrp_type_mix <- mmp_mrp$p_type
+    mmp_mrp$hbo <- factor(mmp_mrp$hbo, levels = c("Hispanic", "Black", "Other"))
+    mmp_mrp$mrp_hbo <- factor(mmp_mrp$p_hbo, levels = c("Hispanic", "Black", "Other"))
+    setnames(mmp_mrp, old = c("AGE", "p_age_low", "p_age_mid", "p_age_high"), new = c("age", "mrp_age_low", "mrp_age_mid", "mrp_age_high"))
+    mmp_mrp$mrp_ageinyrs <- NA # Define empty vectors for var in WHPP
+    pos2 <- mmp_mrp %>% select(pid, age, hbo, hiv, mrp_hbo, mrp_ageinyrs, mrp_age_low, mrp_age_mid, mrp_age_high, position_cat, mrp_type_mix, weight)
+    
+    full2 <- rbind.data.frame(neg2, pos2)
+    whpp_mmp <- svydesign(id=~1, data=full2, weights = ~weight) # Note this doesn't get the variance correct, but it gets the sample composition
+    
+    rm(mmp, mmp_mrp, mmp_wts, pos2, neg_wts, neg, neg2, mmp_msm_l, mmp_rake_l, sample_rake_neg, full2)
+    
+    
+#-----------------------------------------------------------------------------------
+# Data manipulation
+#-----------------------------------------------------------------------------------
+
+# Change degree variables to factor and add labels
+whpp_artnet$variables$degree_main <- factor(whpp_artnet$variables$degree_main, levels = c(0, 1), labels = c("No main", "Main"))
+    
+# Re-order race and region variables
+whpp_artnet$variables$hbo <- factor(whpp_artnet$variables$hbo, levels = c("Hispanic", "Black", "Other"), labels = c("Hispanic", "Black", "Other"))
+whpp_artnet$variables$region <- factor(whpp_artnet$variables$region, levels = c("King County", "Western WA", "Eastern WA"), labels = c("King County", "Western WA", "Eastern WA"))
+
+#Define indicator of age 40-49 and MRP age 40-49
+whpp_artnet$variables$age40to49 <- ifelse(whpp_artnet$variables$age %in% c(40:49), 1,
+                                              ifelse(!is.na(whpp_artnet$variables$age), 0,
+                                                     NA))
+
+whpp_artnet$variables$mrp_age40to49 <- ifelse(whpp_artnet$variables$mrp_ageinyrs %in% c(40:49), 1,
+                                              ifelse(!is.na(whpp_artnet$variables$mrp_ageinyrs), 0,
+                                                     NA))
+
+
+#-----------------------------------------------------------------------------------
+# Save
+#-----------------------------------------------------------------------------------
+
+save(whpp_artnet, file = "Data/whpp_artnet.Rdata")
+save(whpp_mmp, file = "/homes/dpwhite/win/project/MMP_WADOH/whpp_mmp.Rdata")
+
+```
