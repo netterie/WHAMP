@@ -4,8 +4,8 @@ output:
     toc: true
     toc_float: true
 ---
-# Main network model diagnostics - balanced statistics without regional mixing
-This file shows diagnostics for main network models fit using balanced racial/ethnic mixing matrices and degree terms adjusted to correspond to the balanced mixing matrices. 
+# Main network model diagnostics - unbalanced statistics without regional mixing
+This file shows diagnostics for main network models fit using unbalanced racial/ethnic mixing matrices and degree terms as reported by egos.
 
 ## Load packages and model fits
 ```{r, warning=FALSE}
