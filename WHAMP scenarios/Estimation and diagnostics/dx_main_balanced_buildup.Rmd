@@ -1,0 +1,45 @@
+---
+output:
+  html_document:
+    toc: true
+    toc_float: true
+---
+# Main network model diagnostics - balanced statistics without regional mixing
+This file shows diagnostics for main network models fit using balanced racial/ethnic mixing matrices and degree terms adjusted to correspond to the balanced mixing matrices. 
+
+## Load packages and model fits
+```{r, warning=FALSE}
+rm(list = ls())
+suppressMessages(library("EpiModelHIV"))
+library("latticeExtra")
+
+load(file = "/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/fit.m.balanced.noregiomix.whamp.rda")
+
+```
+
+## MCMC diagnostics
+
+```{r, message=FALSE, echo=FALSE}
+mcmc.diagnostics(fit.m$fit)
+```
+
+## Suffificient statistics
+
+```{r}
+fit.m
+```
+
+## Summary of model fit
+
+```{r}
+summary(fit.m)
+```
+
+## Network diagnostics
+
+```{r}
+(dx_main <- netdx(fit.m, nsims = 10, nsteps = 1000, ncores = 4))
+plot(dx_main, type="formation")
+plot(dx_main, type="duration")
+plot(dx_main, type="dissolution")
+```
