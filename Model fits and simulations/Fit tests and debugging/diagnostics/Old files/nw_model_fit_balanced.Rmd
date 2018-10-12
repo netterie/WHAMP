@@ -1,0 +1,99 @@
+---
+output:
+  html_document:
+    toc: true
+    toc_float: true
+---
+# Network model diagnostics - balanced
+This file shows diagnostics for models fit using balanced racial/ethnic mixing matrices and degree terms adjusted to correspond to the balanced mixing matrices.
+
+## Load packages and model fits
+```{r, warning=FALSE}
+rm(list = ls())
+suppressMessages(library("EpiModelHIV"))
+
+load(file = "/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/fit.bal.whamp.rda")
+
+```
+
+## Fit times 
+Main network: `r round(runtime_min_fit_main, 1)` minutes
+Persistent: `r round(runtime_min_fit_pers, 1)` minutes
+Instantaneous: `r round(runtime_min_fit_inst, 1)` minutes
+
+## MCMC diagnostics
+
+### Main
+```{r}
+mcmc.diagnostics(est.bal[[1]])
+```
+
+### Persistent
+```{r}
+mcmc.diagnostics(est.bal[[2]])
+```
+
+### Instantaneous
+```{r}
+mcmc.diagnostics(est.bal[[3]])
+```
+
+## Suffificient statistics
+
+### Main
+```{r}
+est.bal[[1]]
+```
+
+### Persistent
+```{r}
+est.bal[[2]]
+```
+
+### Instantaneous
+```{r}
+est.bal[[3]]
+```
+
+## Summary of model fit
+
+### Main
+```{r}
+summary(est.bal[[1]])
+```
+
+### Persistent
+```{r}
+summary(est.bal[[2]])
+```
+
+### Instantaneous
+```{r}
+summary(est.bal[[3]])
+```
+
+## Network diagnostics
+
+### Main
+```{r}
+(dx_main <- netdx(est.bal[[1]], nsims = 10, nsteps = 1000, ncores = 4))
+plot(dx_main, type="formation")
+plot(dx_main, type="duration")
+plot(dx_main, type="dissolution")
+```
+
+### Persistent
+```{r}
+(dx_pers <- netdx(est.bal[[2]], nsims = 10, nsteps = 1000, ncores = 4))
+plot(dx_pers, type="formation")
+plot(dx_pers, type="duration")
+plot(dx_pers, type="dissolution")
+```
+
+### Instantaneous
+```{r}
+(dx_inst <- netdx(est.bal[[3]], nsims = 10, nsteps = 1000, ncores = 4))
+plot(dx_inst, type="formation")
+```
+
+

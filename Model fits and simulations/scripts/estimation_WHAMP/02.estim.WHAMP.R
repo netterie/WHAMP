@@ -10,9 +10,9 @@ balanced = 1
 
 # Load the appropriate file (balanced or unbalanced)
 if (balanced == 1) {
-load(file = "/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/nwstats.balanced.whamp.rda")
+load(file = "/homes/dpwhite/R/GitHub Repos/WHAMP/Model fits and simulations/est/nwstats.balanced.whamp.rda")
   } else {
-load(file = "/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/nwstats.unbalanced.whamp.rda")
+load(file = "/homes/dpwhite/R/GitHub Repos/WHAMP/Model fits and simulations/est/nwstats.unbalanced.whamp.rda")
   }
 
 # 1. Main Model -----------------------------------------------------------

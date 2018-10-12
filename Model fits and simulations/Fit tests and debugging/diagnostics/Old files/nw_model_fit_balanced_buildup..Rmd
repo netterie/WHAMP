@@ -1,0 +1,661 @@
+---
+output:
+  html_document:
+    toc: true
+    toc_float: true
+---
+# Network model estimation and diagnostics - balanced, nested models
+This file uses the balanced mixing matrices and degree distributions/rate of instantaneous partnerships adjusted to correspond to the balanced mixing matrices. To understand the effect of adding specific terms, we build up the models term by term to see where the fit issues emerge.
+
+## Load packages and define options
+```{r, warning=FALSE}
+rm(list = ls())
+suppressMessages(library("EpiModelHIV"))
+```
+
+## Calculate target statistics
+```{r, message = FALSE}
+
+# Time unit for simulation, relative to 1 day
+time.unit <- 7
+
+#Network size
+num <- 10000
+
+# Population size by race and region
+    ##--ORIGINAL CODE - DELETE WHEN FINISH DE-BUGGING
+    num.B <- 5000
+    num.W <- 5000
+  ## Vector with the proportion of Hispanic, black, and other race/ethnicity men in King County, other western WA, and eastern WA
+  prop.race.region <- sumto1(c(0.0549, 0.0421, 0.4739, 0.0309, 0.0166, 0.2807, 0.0222, 0.0021, 0.0767))
+  race.region <- apportion_lr(num, c("H.KC", "B.KC", "O.KC", "H.OW", "B.OW", "O.OW", "H.EW", "B.EW", "O.EW"),
+                             prop.race.region)
+  
+  num.H.KC <- sum(race.region %in% "H.KC")
+  num.B.KC <- sum(race.region %in% "B.KC")
+  num.O.KC <- sum(race.region %in% "O.KC")
+  num.H.OW <- sum(race.region %in% "H.OW")
+  num.B.OW <- sum(race.region %in% "B.OW")
+  num.O.OW <- sum(race.region %in% "O.OW")
+  num.H.EW <- sum(race.region %in% "H.EW")
+  num.B.EW <- sum(race.region %in% "B.EW")
+  num.O.EW <- sum(race.region %in% "O.EW")
+  
+# Age structure (proportion in each age group 18-24, 25-29... 55-59)
+agestr <- sumto1(c(0.1594, 0.1319, 0.1292, 0.1173, 0.1183, 0.1148, 0.1071, 0.122))
+    
+# mean/pers degree distributions matrices.
+deg.mp <- matrix(sumto1(c(0.4108, 0.0735, 0.0672, 
+                          0.3458, 0.0494, 0.0532)), byrow = TRUE, nrow = 2)
+deg.mp.H <- matrix(sumto1(c(0.2366, 0.1575, 0.0391,
+                            0.3413, 0.1759, 0.0496)), byrow = TRUE, nrow = 2)
+deg.mp.B <- matrix(sumto1(c(0.4923, 0.0814, 0.0839, 
+                            0.2307, 0.0395, 0.0723)), byrow = TRUE, nrow = 2)
+deg.mp.O <- matrix(sumto1(c(0.4275, 0.062, 0.0696, 
+                            0.3548, 0.0337, 0.0523)), byrow = TRUE, nrow = 2)
+deg.mp.KC <- matrix(sumto1(c(0.3609, 0.0824, 0.0735, 
+                             0.3792, 0.0464, 0.0577)), byrow = TRUE, nrow = 2)
+deg.mp.OW <- matrix(sumto1(c(0.4885, 0.0688, 0.0517, 
+                             0.289, 0.0502, 0.0518)), byrow = TRUE, nrow = 2)
+deg.mp.EW <- matrix(sumto1(c(0.4186, 0.0621, 0.0806, 
+                             0.364, 0.0401, 0.0346)), byrow = TRUE, nrow = 2)
+
+# Instantaneous partner rates (Mean rate (degree) of inst partnerships per day by momentary main/pers degree)
+  # (order: 0 main 0 pers, 0 main 1 pers, 0 main 2+ pers, 1 main 0 pers, 1 main 1 pers, 1 main 2+ pers)
+mdeg.inst <- matrix(c(0.015734, 0.005987, 0.021057, 
+                      0.007052, 0.009709, 0.032598), byrow = TRUE, nrow = 2) 
+
+# Quintile distribution of overall instantaneous AI rates
+qnts.18to49 <- c(0.0001, 0.000525, 0.005024, 0.054838) #set to 0.0001 if 0 to give non-zero prob
+qnts.50to59 <- c(0.0001, 0.0001, 0.001551, 0.021283)  #set to 0.0001 if 0 to give non-zero prob
+
+# Mean rate of instantaneous partnerships by race (black, Hispanic, other)
+inst.bho <- c(0.0202, 0.012978, 0.012418)
+
+# Mean rate of instantaneous partnerships by region (EW, KC, OW)
+inst.region <- c(0.011216, 0.014955, 0.01)
+
+# Proportion in same-race partnerships (main, pers, inst)
+prop.hom.mpi.H <- c(0.4229, 0.1631, 0.1787)
+prop.hom.mpi.B <- c(0.2939, 0.0701, 0.0853)
+prop.hom.mpi.O <- c(0.8911, 0.7847, 0.7666)
+
+# Mean age diffs (main, pers, inst)
+sqrt.adiff.mpi <- c(0.539, 0.7619, 0.7741)
+
+# Region mixing (main, pers, inst)
+prop.hom.region.mpi <- c(1.0, 0.8, 0.8)
+
+# Mean durations
+durs.main <- 1020
+durs.pers <- 192
+
+# Age-sex-specific mortality rates
+ages <- 18:59
+
+asmr.B <- c(rep(0, 17),
+            1-(1-c(rep(0.00159, 7),
+                   rep(0.00225, 10),
+                   rep(0.00348, 25)))^(1/(365/time.unit)), 1) #-- To make old code work with new age str, I added 20 to the last deaths vector
+
+asmr.W <- c(rep(0, 17),
+            1-(1-c(rep(0.00103, 7),
+                   rep(0.00133, 10),
+                   rep(0.00214, 25)))^(1/(365/time.unit)), 1) #-- To make old code work with new age str, I added 20 to the last deaths vector
+
+asmr.H..wa <- c(rep(0, 17),
+            1-(1-c(rep(0.00089, 2),
+                   rep(0.00107, 5),
+                   rep(0.00112, 5),
+                   rep(0.00123, 5),
+                   rep(0.00126, 5),
+                   rep(0.00186, 5),
+                   rep(0.00207, 5),
+                   rep(0.00343, 5),
+                   rep(0.00495, 5)))^(1/(365/time.unit)), 1)
+
+asmr.B..wa <- c(rep(0, 17),
+            1-(1-c(rep(0.00168, 2),
+                   rep(0.00117, 5),
+                   rep(0.00161, 5),
+                   rep(0.00169, 5),
+                   rep(0.00267, 5),
+                   rep(0.00224, 5),
+                   rep(0.00428, 5),
+                   rep(0.00619, 5),
+                   rep(0.01311, 5)))^(1/(365/time.unit)), 1)
+
+asmr.O..wa <- c(rep(0, 17),
+            1-(1-c(rep(0.00068, 2),
+                   rep(0.00101, 5),
+                   rep(0.00119, 5),
+                   rep(0.00138, 5),
+                   rep(0.00161, 5),
+                   rep(0.00198, 5),
+                   rep(0.00306, 5),
+                   rep(0.00517, 5),
+                   rep(0.00781, 5)))^(1/(365/time.unit)), 1)
+
+# I, R, V role frequencies
+role.prob <- c(0.15, 0.205, 0.645)
+
+
+# Create meanstats
+st <- calc_nwstats_msm_whamp(
+  method = 1,
+  time.unit = time.unit,
+  num.B = num.B,
+  num.W = num.W,
+  num.H.KC = num.H.KC,
+  num.B.KC = num.B.KC,
+  num.O.KC = num.O.KC,
+  num.H.OW = num.H.OW,
+  num.B.OW = num.B.OW,
+  num.O.OW = num.O.OW,
+  num.H.EW = num.H.EW,
+  num.B.EW = num.B.EW,
+  num.O.EW = num.O.EW,
+  agestr = agestr,
+  deg.mp = deg.mp,
+  deg.mp.H = deg.mp.H,
+  deg.mp.B = deg.mp.B,
+  deg.mp.O = deg.mp.O,
+  deg.mp.KC = deg.mp.KC,
+  deg.mp.OW = deg.mp.OW,
+  deg.mp.EW = deg.mp.EW,
+  mdeg.inst = mdeg.inst,
+  qnts.18to49 = qnts.18to49,
+  qnts.50to59 = qnts.50to59,
+  inst.bho = inst.bho,
+  inst.region = inst.region,
+  prop.hom.mpi.H = prop.hom.mpi.H,
+  prop.hom.mpi.B = prop.hom.mpi.B,
+  prop.hom.mpi.O = prop.hom.mpi.O,
+  sqrt.adiff.mpi = sqrt.adiff.mpi,
+  prop.hom.region.mpi,
+  diss.main = ~offset(edges),
+  diss.pers = ~offset(edges),
+  durs.main = durs.main,
+  durs.pers = durs.pers,
+  ages = ages,
+  asmr.B <- asmr.B,
+  asmr.W <- asmr.W,
+  asmr.H..wa = asmr.H..wa,
+  asmr.B..wa = asmr.B..wa,
+  asmr.O..wa = asmr.O..wa,
+  role.prob = role.prob)
+
+```
+
+## Main partner network
+
+### Fit models
+```{r, message=FALSE}
+
+  # Initialize network
+  nw.main <- base_nw_msm_whamp(st)
+  
+  # Assign degree
+  nw.main <- assign_degree_whamp(nw.main, deg.type = "pers", nwstats = st)
+
+  # Formulas and fits
+  
+   ## 1. Edges + nodefactor terms -------------------------------------------
+    formation.m1 <- ~edges +
+                  nodefactor("deg.pers") +
+                  nodefactor("race..wa", base=3) + 
+                  nodefactor("region", base=2) +
+                  offset(nodematch("role.class", diff = TRUE, keep = 1:2))
+
+    fit.m1 <- netest(nw.main,
+                    formation = formation.m1,
+                    target.stats = st$stats.m[-(c(8:11))],
+                    coef.form = c(-Inf, -Inf),
+                    coef.diss = st$coef.diss.m,
+                    constraints = ~bd(maxout = 1),
+                    set.control.ergm = control.ergm(MPLE.max.dyad.types = 1e10,
+                                                    init.method = "zeros",
+                                                    MCMC.interval = 1e+6,
+                                                    MCMLE.maxit = 250))
+
+    ## 2. Edges + nodefactor terms + absdiff-------------------------------------------
+    formation.m2 <- ~edges +
+                  nodefactor("deg.pers") +
+                  nodefactor("race..wa", base=3) + 
+                  nodefactor("region", base=2) +
+                  absdiff("sqrt.age") +
+                  offset(nodematch("role.class", diff = TRUE, keep = 1:2))
+
+    fit.m2 <- netest(nw.main,
+                    formation = formation.m2,
+                    target.stats = st$stats.m[-(c(8:10))],
+                    coef.form = c(-Inf, -Inf),
+                    coef.diss = st$coef.diss.m,
+                    constraints = ~bd(maxout = 1),
+                    set.control.ergm = control.ergm(MPLE.max.dyad.types = 1e10,
+                                                    init.method = "zeros",
+                                                    MCMC.interval = 1e+6,
+                                                    MCMLE.maxit = 250))
+    
+    ## 3. Edges + nodefactor terms + absdiff + racematch--------------------------------------
+    formation.m3 <- ~edges +
+                  nodefactor("deg.pers") +
+                  nodefactor("race..wa", base=3) + 
+                  nodefactor("region", base=2) +
+                  nodematch("race..wa", diff=TRUE) +
+                  absdiff("sqrt.age") +
+                  offset(nodematch("role.class", diff = TRUE, keep = 1:2))
+
+    fit.m3 <- netest(nw.main,
+                    formation = formation.m3,
+                    target.stats = st$stats.m,
+                    coef.form = c(-Inf, -Inf),
+                    coef.diss = st$coef.diss.m,
+                    constraints = ~bd(maxout = 1),
+                    set.control.ergm = control.ergm(MPLE.max.dyad.types = 1e10,
+                                                    init.method = "zeros",
+                                                    MCMC.interval = 1e+6,
+                                                    MCMLE.maxit = 250))
+    ## 4. Edges + nodefactor terms + absdiff + racematch + offset for region matching-------
+    formation.m4 <- ~edges +
+                  nodefactor("deg.pers") +
+                  nodefactor("race..wa", base=3) + 
+                  nodefactor("region", base=2) +
+                  nodematch("race..wa", diff=TRUE) +
+                  absdiff("sqrt.age") +
+                  offset(nodematch("role.class", diff = TRUE, keep = 1:2)) +
+                  offset(nodemix("region", base = c(1,3,6)))
+
+
+    fit.m4 <- netest(nw.main,
+                    formation = formation.m4,
+                    target.stats = st$stats.m,
+                    coef.form = c(-Inf, -Inf, -Inf, -Inf, -Inf),
+                    coef.diss = st$coef.diss.m,
+                    constraints = ~bd(maxout = 1),
+                    set.control.ergm = control.ergm(MPLE.max.dyad.types = 1e10,
+                                                    init.method = "zeros",
+                                                    MCMC.interval = 1e+6,
+                                                    MCMLE.maxit = 250))
+```
+### MCMC diagnostics
+
+```{r}
+# Edges and nodefactor tersm
+mcmc.diagnostics(fit.m1)
+# Edges and nodefactor and absdiff
+mcmc.diagnostics(fit.m2)
+# Edges and nodefactor and absdiff and nodematch race
+mcmc.diagnostics(fit.m3)
+# Edges and nodefactor and absdiff and nodematch race and offset for nodematch region
+mcmc.diagnostics(fit.m4)
+```
+
+### Suffificient statistics
+```{r}
+# Edges and nodefactor tersm
+fit.m1
+# Edges and nodefactor and absdiff
+fit.m2
+# Edges and nodefactor and absdiff and nodematch race
+fit.m3
+# Edges and nodefactor and absdiff and nodematch race and offset for nodematch region
+fit.m4
+```
+
+### Summary of model fits
+```{r}
+# Edges and nodefactor tersm
+summary(fit.m1)
+# Edges and nodefactor and absdiff
+summary(fit.m2)
+# Edges and nodefactor and absdiff and nodematch race
+summary(fit.m3)
+# Edges and nodefactor and absdiff and nodematch race and offset for nodematch region
+summary(fit.m4)
+
+```
+
+### Network diagnostics
+```{r}
+# Edges and nodefactor tersm
+(dx_main1 <- netdx(fit.m1, nsims = 10, nsteps = 1000, ncores = 4))
+plot(dx_main1, type="formation")
+plot(dx_main1, type="duration")
+plot(dx_main1, type="dissolution")
+
+# Edges and nodefactor and absdiff
+(dx_main2 <- netdx(fit.m2, nsims = 10, nsteps = 1000, ncores = 4))
+plot(dx_main2, type="formation")
+plot(dx_main2, type="duration")
+plot(dx_main2, type="dissolution")
+
+# Edges and nodefactor and absdiff and nodematch race
+(dx_main3 <- netdx(fit.m3, nsims = 10, nsteps = 1000, ncores = 4))
+plot(dx_main3, type="formation")
+plot(dx_main3, type="duration")
+plot(dx_main3, type="dissolution")
+
+# Edges and nodefactor and absdiff and nodematch race and offset for nodematch region
+(dx_main4 <- netdx(fit.m4, nsims = 10, nsteps = 1000, ncores = 4))
+plot(dx_main4, type="formation")
+plot(dx_main4, type="duration")
+plot(dx_main4, type="dissolution")
+
+```
+
+## Persistent partner network
+
+### Fit models
+```{r, message=FALSE}
+   # Initialize network
+    nw.pers <- nw.main
+
+    # Assign degree
+    nw.pers <- assign_degree_whamp(nw.pers, deg.type = "main", nwstats = st)
+    
+    # Formulas and fits
+    ## 1. Edges + nodefactor terms -------------------------------------------
+    formation.p1 <- ~edges +
+                    nodefactor("deg.main") +
+                    nodefactor("race..wa", base=3) + 
+                    nodefactor("region", base=2) +
+                    offset(nodematch("role.class", diff = TRUE, keep = 1:2))
+    
+    fit.p1 <- netest(nw.pers,
+                    formation = formation.p1,
+                    target.stats = st$stats.p[1:6],
+                    coef.form = c(-Inf, -Inf),
+                    coef.diss = st$coef.diss.p,
+                    constraints = ~bd(maxout = 2), 
+                    edapprox = TRUE,
+                    set.control.ergm = control.ergm(MPLE.max.dyad.types = 1e9,
+                                                init.method = "zeros",
+                                                MCMC.interval = 1e+6,
+                                                MCMLE.maxit = 250))
+
+    ## 2. Edges + nodefactor terms + nodematch race and absdiff---------------------
+    formation.p2 <- ~edges +
+                    nodefactor("deg.main") +
+                    nodefactor("race..wa", base=3) + 
+                    nodefactor("region", base=2) +
+                    nodematch("race..wa", diff=TRUE) +
+                    absdiff("sqrt.age") +
+                    offset(nodematch("role.class", diff = TRUE, keep = 1:2))
+    
+      fit.p2 <- netest(nw.pers,
+                    formation = formation.p2,
+                    target.stats = st$stats.p[-c(7,11)],
+                    coef.form = c(-Inf, -Inf),
+                    coef.diss = st$coef.diss.p,
+                    constraints = ~bd(maxout = 2), 
+                    edapprox = TRUE,
+                    set.control.ergm = control.ergm(MPLE.max.dyad.types = 1e9,
+                                                init.method = "zeros",
+                                                MCMC.interval = 1e+6,
+                                                MCMLE.maxit = 250))
+    
+    ## 3. Edges + nodefactor terms + nodematch race and absdiff + concurrent------------------
+        formation.p3 <- ~edges +
+                    nodefactor("deg.main") +
+                    nodefactor("race..wa", base=3) + 
+                    nodefactor("region", base=2) +
+                    concurrent +
+                    nodematch("race..wa", diff=TRUE) +
+                    absdiff("sqrt.age") +
+                    offset(nodematch("role.class", diff = TRUE, keep = 1:2))
+    
+      fit.p3 <- netest(nw.pers,
+                    formation = formation.p3,
+                    target.stats = st$stats.p[-11],
+                    coef.form = c(-Inf, -Inf),
+                    coef.diss = st$coef.diss.p,
+                    constraints = ~bd(maxout = 2), 
+                    edapprox = TRUE,
+                    set.control.ergm = control.ergm(MPLE.max.dyad.types = 1e9,
+                                                init.method = "zeros",
+                                                MCMC.interval = 1e+6,
+                                                MCMLE.maxit = 250))
+      
+    ## 4. Edges + nodefactor terms + absdiff + race mixing + region match-----
+      formation.p4 <- ~edges +
+                    nodefactor("deg.main") +
+                    nodematch("race..wa", diff=TRUE) +
+                    nodematch("region", diff=FALSE) +
+                    concurrent +
+                    absdiff("sqrt.age") +
+                    offset(nodematch("role.class", diff = TRUE, keep = 1:2))
+    
+      fit.p4 <- netest(nw.pers,
+                    formation = formation.p4,
+                    target.stats = st$stats.p,
+                    coef.form = c(-Inf, -Inf),
+                    coef.diss = st$coef.diss.p,
+                    constraints = ~bd(maxout = 2), 
+                    edapprox = TRUE,
+                    set.control.ergm = control.ergm(MPLE.max.dyad.types = 1e9,
+                                                init.method = "zeros",
+                                                MCMC.interval = 1e+6,
+                                                MCMLE.maxit = 250))
+```
+
+### MCMC diagnostics
+
+```{r}
+# Edges and nodefactor terms
+mcmc.diagnostics(fit.p1)
+# Edges, nodefactor, and race and age mixing
+mcmc.diagnostics(fit.p2)
+# Edges, nodefactor, race and age mixing, and concurrent
+mcmc.diagnostics(fit.p3)
+# Edges, nodefactor, race and age mixing, concurrent, and regional mixing
+mcmc.diagnostics(fit.p4)
+```
+
+### Suffificient statistics
+```{r}
+# Edges and nodefactor terms
+fit.p1
+# Edges, nodefactor, and race and age mixing
+fit.p2
+# Edges, nodefactor, race and age mixing, and concurrent
+fit.p3
+# Edges, nodefactor, race and age mixing, concurrent, and regional mixing
+fit.p4
+
+```
+
+### Summary of model fits
+```{r}
+# Edges and nodefactor terms
+summary(fit.p1)
+# Edges, nodefactor, and race and age mixing
+summary(fit.p2)
+# Edges, nodefactor, race and age mixing, and concurrent
+summary(fit.p3)
+# Edges, nodefactor, race and age mixing, concurrent, and regional mixing
+summary(fit.p4)
+
+```
+
+### Network diagnostics
+```{r}
+# Edges and nodefactor tersm
+(dx_pers1 <- netdx(fit.p1, nsims = 10, nsteps = 1000, ncores = 4))
+plot(dx_pers1, type="formation")
+plot(dx_pers1, type="duration")
+plot(dx_pers1, type="dissolution")
+
+# Edges and nodefactor and absdiff
+(dx_pers2 <- netdx(fit.p2, nsims = 10, nsteps = 1000, ncores = 4))
+plot(dx_pers2, type="formation")
+plot(dx_pers2, type="duration")
+plot(dx_pers2, type="dissolution")
+
+# Edges and nodefactor and absdiff and nodematch race
+(dx_pers3 <- netdx(fit.p3, nsims = 10, nsteps = 1000, ncores = 4))
+plot(dx_pers3, type="formation")
+plot(dx_pers3, type="duration")
+plot(dx_pers3, type="dissolution")
+
+# Edges and nodefactor and absdiff and nodematch race and offset for nodematch region
+(dx_pers4 <- netdx(fit.p4, nsims = 10, nsteps = 1000, ncores = 4))
+plot(dx_pers4, type="formation")
+plot(dx_pers4, type="duration")
+plot(dx_pers4, type="dissolution")
+
+```
+
+## Instantaneous partner network
+
+### Fit models
+```{r, message=FALSE}
+
+   # Initialize network
+    nw.inst <- nw.main
+
+    # Assign degree
+    nw.inst <- set.vertex.attribute(nw.inst, "deg.main", nw.pers %v% "deg.main")
+    nw.inst <- set.vertex.attribute(nw.inst, "deg.pers", nw.main %v% "deg.pers")
+    table(nw.inst %v% "deg.main", nw.inst %v% "deg.pers")
+        
+    # Formulas and fits
+    ## 1. Edges + nodefactor degree, race, and region --------------------------------------
+    formation.i1 <- ~edges +
+                    nodefactor(c("deg.main", "deg.pers")) +
+                    nodefactor("race..wa", base=3) + 
+                    nodefactor("region", base=2) +
+                    offset(nodematch("role.class", diff = TRUE, keep = 1:2)) 
+    
+    fit.i1 <- netest(nw.inst,
+                    formation = formation.i1,
+                    target.stats = st$stats.i[c(1:6, 14:17)],
+                    coef.form = c(-Inf, -Inf),
+                    coef.diss = dissolution_coefs(~offset(edges), 1),
+                    set.control.ergm = control.ergm(MPLE.max.dyad.types = 1e9,
+                                                    MCMC.interval = 1e+6,
+                                                    MCMLE.maxit = 250))
+
+    ## 2. Edges + nodefactor degree, race, and region + nodefactor risk group-----------------
+      formation.i2 <- ~edges +
+                    nodefactor(c("deg.main", "deg.pers")) +
+                    nodefactor("riskg") +
+                    nodefactor("race..wa", base=3) + 
+                    nodefactor("region", base=2) +
+                    offset(nodematch("role.class", diff = TRUE, keep = 1:2)) 
+    
+    fit.i2 <- netest(nw.inst,
+                    formation = formation.i2,
+                    target.stats = st$stats.i[1:17],
+                    coef.form = c(-Inf, -Inf),
+                    coef.diss = dissolution_coefs(~offset(edges), 1),
+                    set.control.ergm = control.ergm(MPLE.max.dyad.types = 1e9,
+                                                    MCMC.interval = 1e+6,
+                                                    MCMLE.maxit = 250))
+    
+    ## 3. Edges + nodefactor degree, race, and region + nodefactor risk group + nodematch race and absdiff age------
+      formation.i3 <- ~edges +
+                    nodefactor(c("deg.main", "deg.pers")) +
+                    nodefactor("riskg") +
+                    nodefactor("race..wa", base=3) + 
+                    nodefactor("region", base=2) +
+                    nodematch("race..wa", diff=TRUE) +
+                    absdiff("sqrt.age") +
+                    offset(nodematch("role.class", diff = TRUE, keep = 1:2)) 
+    
+    fit.i3 <- netest(nw.inst,
+                    formation = formation.i3,
+                    target.stats = st$stats.i[-21],
+                    coef.form = c(-Inf, -Inf),
+                    coef.diss = dissolution_coefs(~offset(edges), 1),
+                    set.control.ergm = control.ergm(MPLE.max.dyad.types = 1e9,
+                                                    MCMC.interval = 1e+6,
+                                                    MCMLE.maxit = 250))
+      
+    ## 4. Edges + nodefactor degree, race, and region + nodefactor risk group + nodematch race and absdiff age + nodematch region-----
+      formation.i4 <- ~edges +
+                    nodefactor(c("deg.main", "deg.pers")) +
+                    nodefactor("riskg") +
+                    nodefactor("race..wa", base=3) + 
+                    nodefactor("region", base=2) +
+                    nodematch("race..wa", diff=TRUE) +
+                    nodematch("region", diff=FALSE) +
+                    absdiff("sqrt.age") +
+                    offset(nodematch("role.class", diff = TRUE, keep = 1:2)) 
+    
+    fit.i4 <- netest(nw.inst,
+                    formation = formation.i4,
+                    target.stats = st$stats.i,
+                    coef.form = c(-Inf, -Inf),
+                    coef.diss = dissolution_coefs(~offset(edges), 1),
+                    set.control.ergm = control.ergm(MPLE.max.dyad.types = 1e9,
+                                                    MCMC.interval = 1e+6,
+                                                    MCMLE.maxit = 250))
+```
+
+### MCMC diagnostics
+
+```{r}
+# Edges and nodefactor terms
+mcmc.diagnostics(fit.i1)
+# Edges, nodefactor, and race and age mixing
+mcmc.diagnostics(fit.i2)
+# Edges, nodefactor, race and age mixing, and concurrent
+mcmc.diagnostics(fit.i3)
+# Edges, nodefactor, race and age mixing, concurrent, and regional mixing
+mcmc.diagnostics(fit.i4)
+```
+
+### Suffificient statistics
+```{r}
+# Edges and nodefactor terms
+fit.i1
+# Edges, nodefactor, and race and age mixing
+fit.i2
+# Edges, nodefactor, race and age mixing, and concurrent
+fit.i3
+# Edges, nodefactor, race and age mixing, concurrent, and regional mixing
+fit.i4
+
+```
+
+### Summary of model fits
+```{r}
+# Edges and nodefactor terms
+summary(fit.i1)
+# Edges, nodefactor, and race and age mixing
+summary(fit.i2)
+# Edges, nodefactor, race and age mixing, and concurrent
+summary(fit.i3)
+# Edges, nodefactor, race and age mixing, concurrent, and regional mixing
+summary(fit.i4)
+
+```
+
+### Network diagnostics
+```{r}
+# Edges and nodefactor tersm
+(dx_inst1 <- netdx(fit.i1, nsims = 10, nsteps = 1000, ncores = 4))
+plot(dx_inst1, type="formation")
+plot(dx_inst1, type="duration")
+plot(dx_inst1, type="dissolution")
+
+# Edges and nodefactor and absdiff
+(dx_inst2 <- netdx(fit.i2, nsims = 10, nsteps = 1000, ncores = 4))
+plot(dx_inst2, type="formation")
+plot(dx_inst2, type="duration")
+plot(dx_inst2, type="dissolution")
+
+# Edges and nodefactor and absdiff and nodematch race
+(dx_inst3 <- netdx(fit.i3, nsims = 10, nsteps = 1000, ncores = 4))
+plot(dx_inst3, type="formation")
+plot(dx_inst3, type="duration")
+plot(dx_inst3, type="dissolution")
+
+# Edges and nodefactor and absdiff and nodematch race and offset for nodematch region
+(dx_inst4 <- netdx(fit.i4, nsims = 10, nsteps = 1000, ncores = 4))
+plot(dx_inst4, type="formation")
+plot(dx_inst4, type="duration")
+plot(dx_inst4, type="dissolution")
+
+```
