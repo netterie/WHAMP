@@ -1,0 +1,167 @@
+# Test model structure and functionality
+
+This file presents analyses that test the model structure and functionality.
+
+```{r setup, include=FALSE}
+# Load packages
+library("survey")
+library("tidyverse")
+library("methods")
+suppressMessages(library("EpiModelHIV"))
+
+# set plot settings 
+plot_background_nogrid <- theme(panel.background = element_rect(fill="white", colour = "black")) 
+theme_title <- theme(plot.title = element_text(hjust = 0.5, size=12)) 
+
+
+```
+
+## Compare the attributes of the simulated network to the target distributions
+
+This first comparison looks at the attributes of a network simulated with very low HIV transmission probabilities to approximate a scenario in the absence of HIV. Since the model is not intended to work without transmission, we set the probability of UIAI to 0.00001 and URAI to 0.001. To reduce computation time, we run one simulation for 10 years.
+
+XXX CHANGE THIS - THE BETTER WAY TO SIMULATE WITHOUT THE EFFECTS OF HIV IS TO SET HIV MORTAILTY TO 0. THAT WAY HIV WON'T AFFECT DEMOGRAPHICS XXX
+
+```{r, echo=TRUE}
+
+# RUN SIMULATION
+
+## Load network and parameters
+load("/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/nwstats.whamp.rda") 
+load("/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/fit.whamp.rda")
+
+param.lowhiv <- param_msm_whamp(nwstats = st,
+                         URAI.prob = 0.0001,
+                         UIAI.prob = 0.00001)
+init <- init_msm_whamp(nwstats = st)
+control <- control_msm_whamp(nsteps = 52 * 10,
+                             nsims = 1,
+                             verbose = FALSE,
+                             save.nwstats = TRUE)
+
+sim.test.lowhiv <- netsim(est, param.lowhiv, init, control) 
+save(sim.test.lowhiv, file="/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/fit tests and debugging/sim.test.lowhiv.rda") 
+
+# Store attributes list as a data frame
+sim_data <- as.data.frame(sim.test.lowhiv$attr[[1]])
+
+# Store number of steps as time variable
+end <- length(sim.test.lowhiv$epi$num[,1])
+time <- 1:end
+
+
+```
+
+
+```{r include=FALSE}
+XXX CHANGE TO USE NEW DATASETS THAT COMBINE HIV+ AND HIV- XXX
+
+# Load survey data for comparison of simulation results to target statistics
+load("/homes/dpwhite/R/GitHub Repos/WHAMP/Parameter estimation/Data/InternetSurveySample.Rdata")
+load("/homes/dpwhite/R/GitHub Repos/WHAMP/Parameter estimation/Data/InternetSurvey_reweighted_all.Rdata")
+load("/homes/dpwhite/R/GitHub Repos/WHAMP/Parameter estimation/Data/InternetSurvey_reweighted_neg.Rdata")
+
+```
+### Post-simulation diagnostics
+```{r, echo=FALSE}
+plot(sim.test.lowhiv, type="formation", stats="edges")
+```
+
+The plot below looks at the network size over time to see if it was preserved as expected. We started with a network of size `r sim.test.lowhiv$epi$num[1,1]` and ended with a network of size `r sim.test.lowhiv$epi$num[end,1]` after 10 years. This reflects `r sum(sim.test.lowhiv$epi$dth.dis[,1], na.rm=TRUE)` disease-related deaths, which we do not balance with new entries.
+```{r, echo=FALSE}
+plot(sim.test.lowhiv, y="num", main = "Network size", xlab="Weeks")
+```
+
+### Age 
+
+The plot below shows the age distribution at the end of the simulation relative to the target statistics.
+```{r, echo=FALSE}
+# Define age category variable for the simulated network
+sim_data$age_cat <- cut(sim_data$age, c(17, 24, 29, 34, 39, 44, 49, 54, 59), labels=c("18-24", "25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59")) 
+
+# Define the target and simulated age distributions
+target_agedist <- as.vector(prop.table(svytable(~age_cat, sample_rake_all, round=FALSE)))
+sim_agedist <-  as.vector(prop.table(table(sim_data$age_cat)))
+
+# Combine the distributions in a data frame to plot
+compare_age_dist <- cbind.data.frame("Age_group" = rep(c("18-24", "25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59"), 2), "Source" = (c(rep("Target", 8), rep("Simulation", 8))), "Percentage" = c(target_agedist, sim_agedist))
+
+# Plot
+ggplot(compare_age_dist) + geom_col(aes(x=Age_group, y=Percentage, fill=Source), position="dodge") + scale_fill_brewer(type="qual", palette=2) + 
+  plot_background_nogrid + theme_title + labs(x="Age group", y="Percentage", title="Age distribution")
+```
+
+### Race/ethnicity and region
+To examine how the model assigned race/ethnicity and region, we first look at the distributions at the end of the simulation for the overall network compared to target statistics, then we look at the distributions stratified by age (below 28 or 28+). The distribution of those under age 28 reflects the way the model assigns attributes to new nodes over the course of the simulation.
+
+```{r, echo=FALSE}
+# Overall
+
+## Define levels for region and race attributes in the simulated data
+sim_data$region <- factor(sim_data$region, levels = c("KC", "OW", "EW"))
+sim_data$race..wa <- factor(sim_data$race..wa, levels = c("H", "B", "O"))
+
+## Define target and simulated distributions
+target_raceXregion <- as.vector(prop.table(svytable(~hbo + region, sample_rake_all, round=FALSE),2))
+sim_raceXregion <-  as.vector(prop.table(table(sim_data$race..wa, sim_data$region),2))
+
+# Combine the distributions in a data frame to plot
+compare_raceXregion <- cbind.data.frame("Race" = rep(c(rep(c("Hispanic", "Black", "Other"), 3)), 2), "Region"=rep(c(rep("King County", 3), rep("Other Western WA", 3), rep("Eastern WA", 3)),2), "Source" = (c(rep("Target", 9), rep("Simulation", 9))), "Percentage" = c(target_raceXregion, sim_raceXregion))
+
+# Plot
+ggplot(compare_raceXregion) + geom_col(aes(x=Race, y=Percentage, fill=Source), position="dodge") + facet_grid(.~Region) + scale_fill_brewer(type="qual", palette=2) + plot_background_nogrid + theme_title + labs(x="Race/ethnicity", y="Percentage", title="Racial/ethnic distribution")
+```
+
+```{r, echo=FALSE}
+# Restricted to nodes >=28 (those who were in the simulation at the start)
+  sim_raceXregion_28plus <-  as.vector(prop.table(table(sim_data$race..wa[sim_data$age>=28], sim_data$region[sim_data$age>=28]),2))
+
+  compare_raceXregion_28plus <- cbind.data.frame("Race" = rep(c(rep(c("Hispanic", "Black", "Other"), 3)), 2), "Region"=rep(c(rep("King County", 3), rep("Other Western WA", 3), rep("Eastern WA", 3)),2), "Source" = (c(rep("Target", 9), rep("Simulation", 9))), "Percentage" = c(target_raceXregion, sim_raceXregion_28plus))
+  
+  ggplot(compare_raceXregion_28plus) + geom_col(aes(x=Race, y=Percentage, fill=Source), position="dodge") + facet_grid(.~Region) + scale_fill_brewer(type="qual", palette=2) + plot_background_nogrid + theme_title + labs(x="Race/ethnicity", y="Percentage", title="Racial/ethnic distribution in those age 28+ in the simulation")
+  
+```
+
+```{r, echo=FALSE}
+# Restricted to nodes <28 (those who were added to the network over time)
+  sim_raceXregion_under28 <-  as.vector(prop.table(table(sim_data$race..wa[sim_data$age<28], sim_data$region[sim_data$age<28]),2))
+  
+  compare_raceXregion_under28 <- cbind.data.frame("Race" = rep(c(rep(c("Hispanic", "Black", "Other"), 3)), 2), "Region"=rep(c(rep("King County", 3), rep("Other Western WA", 3), rep("Eastern WA", 3)),2), "Source" = (c(rep("Target", 9), rep("Simulation", 9))), "Percentage" = c(target_raceXregion, sim_raceXregion_under28))
+  
+  ggplot(compare_raceXregion_under28) + geom_col(aes(x=Race, y=Percentage, fill=Source), position="dodge") + facet_grid(.~Region) + scale_fill_brewer(type="qual", palette=2) + plot_background_nogrid + theme_title + labs(x="Race/ethnicity", y="Percentage", title="Racial/ethnic distribution in those <28 in the simulation")
+  
+```
+
+We can also look at how the racial/ethnic and regional compositions changed over time, in the following plots
+```{r, echo=FALSE}
+
+# Race
+race.by.time <- cbind.data.frame("Weeks" = time, "Hispanic" = sim.test.lowhiv$epi$num.H..wa[,1] / sim.test.lowhiv$epi$num[,1], "Black" = sim.test.lowhiv$epi$num.B..wa[,1] / sim.test.lowhiv$epi$num[,1], "Other" = sim.test.lowhiv$epi$num.O..wa[,1] / sim.test.lowhiv$epi$num[,1])
+
+ggplot(data=race.by.time) + 
+  geom_line(aes(x=Weeks, y=Hispanic, colour="a")) + 
+  geom_line(aes(x=Weeks, y=Black, colour="b")) +
+  geom_line(aes(x=Weeks, y=Other, colour="c")) +
+  scale_colour_manual(name = "Race/ethnicity", values=c("a"="steelblue", "b"="firebrick", "c"="darkgreen"), labels=c("Hispanic", "Black", "Other")) +
+  labs(x="Weeks", y="Percent", title="Racial/ethnic distribution over time") +
+  plot_background_nogrid + theme_title
+
+# Region
+region.by.time <- cbind.data.frame("Weeks" = time, "KC" = sim.test.lowhiv$epi$num.KC[,1] / sim.test.lowhiv$epi$num[,1], "OW" = sim.test.lowhiv$epi$num.OW[,1] / sim.test.lowhiv$epi$num[,1], "EW" = sim.test.lowhiv$epi$num.EW[,1] / sim.test.lowhiv$epi$num[,1])
+
+ggplot(data=region.by.time) + 
+  geom_line(aes(x=Weeks, y=KC, colour="a")) + 
+  geom_line(aes(x=Weeks, y=OW, colour="b")) +
+  geom_line(aes(x=Weeks, y=EW, colour="c")) +
+  scale_colour_manual(name = "Region", values=c("a"="darkorchid", "b"="darkseagreen4", "c"="darksalmon"), labels=c("King County", "Western WA", "Eastern WA")) +
+  labs(x="Weeks", y="Percent", title="Regional distribution over time") +
+  plot_background_nogrid + theme_title
+```
+
+### HIV prevalence
+
+Lastly, we'll look to see how HIV prevalence changes over time to understand what is happening with transmission in this scenario.
+```{r, echo=FALSE}
+plot(time, sim.test.lowhiv$epi$i.prev[,1], type="l", main = "Prevalence", xlab="Weeks", ylab="Prevalence")
+
+```

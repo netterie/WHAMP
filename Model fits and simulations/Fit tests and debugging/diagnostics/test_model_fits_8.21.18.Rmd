@@ -1,0 +1,225 @@
+# Test model fit
+
+## Load packages and define options
+```{r, warning=FALSE}
+suppressMessages(library("EpiModelHIV"))
+```
+
+## Fit or load models
+```{r, message=FALSE}
+load <- TRUE
+#load <- FALSE
+
+if (load) {
+  #Edit path to model fit object 
+  load("/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/fit.whamp.rda")
+} else {
+  #Load data
+  load("/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/nwstats.whamp.rda")
+  
+# Fit models
+  
+  ## 1. Main Model -----------------------------------------------------------
+   
+  # Initialize network
+  nw.main <- base_nw_msm_whamp(st)
+  
+  # Assign degree
+  nw.main <- assign_degree_whamp(nw.main, deg.type = "pers", nwstats = st)
+  
+  # Formulas
+  formation.m <- ~edges +
+                  nodefactor("deg.pers") +
+                  nodefactor("race..wa", base=3) + 
+                  nodefactor("region", base=2) +
+                  nodematch("race..wa", diff=TRUE) +
+                  absdiff("sqrt.age") +
+                  offset(nodematch("role.class", diff = TRUE, keep = 1:2)) +
+                  offset(nodemix("region", base = c(1,3,6)))
+
+    # Start clock to calculate runtime
+    startclock_main <- proc.time()
+    
+    # Fit model
+    fit.m <- netest(nw.main,
+                    formation = formation.m,
+                    target.stats = st$stats.m,
+                    coef.form = c(-Inf, -Inf, -Inf, -Inf, -Inf),
+                    coef.diss = st$coef.diss.m,
+                    constraints = ~bd(maxout = 1),
+                    set.control.ergm = control.ergm(MPLE.max.dyad.types = 1e10,
+                                                    init.method = "zeros",
+                                                    MCMLE.maxit = 250))
+
+    # Fit time
+    runtime_min_fit_main <- (proc.time()-startclock_main)['elapsed']/60
+    
+        
+  ## 2. Casual Model ---------------------------------------------------------
+
+    # Initialize network
+    nw.pers <- nw.main
+
+    # Assign degree
+    nw.pers <- assign_degree_whamp(nw.pers, deg.type = "main", nwstats = st)
+    
+    # Formulas
+    formation.p <- ~edges +
+                    nodefactor("deg.main") +
+                    concurrent +
+                    nodematch("race..wa", diff=TRUE) +
+                    nodematch("region", diff=FALSE) +
+                    absdiff("sqrt.age") +
+                    offset(nodematch("role.class", diff = TRUE, keep = 1:2))
+
+        
+    # Start clock to calculate runtime
+    startclock_pers <- proc.time()
+    
+    # Fit model
+    fit.p <- netest(nw.pers,
+                    formation = formation.p,
+                    target.stats = st$stats.p,
+                    coef.form = c(-Inf, -Inf),
+                    coef.diss = st$coef.diss.p,
+                    constraints = ~bd(maxout = 2), 
+                    edapprox = TRUE,
+                    set.control.ergm = control.ergm(MPLE.max.dyad.types = 1e9,
+                                                init.method = "zeros",
+                                                MCMLE.maxit = 250))
+
+    # Fit time
+    runtime_min_fit_pers <- (proc.time()-startclock_pers)['elapsed']/60
+    
+
+  ## Fit inst model ----------------------------------------------------------
+
+    # Initialize network
+    nw.inst <- nw.main
+
+    # Assign degree
+    nw.inst <- set.vertex.attribute(nw.inst, "deg.main", nw.pers %v% "deg.main")
+    nw.inst <- set.vertex.attribute(nw.inst, "deg.pers", nw.main %v% "deg.pers")
+    table(nw.inst %v% "deg.main", nw.inst %v% "deg.pers")
+    
+    # Formulas
+   formation.i <- ~edges +
+                    nodefactor(c("deg.main", "deg.pers")) +
+                    nodefactor("riskg") +
+                    nodematch("race..wa", diff=TRUE) +
+                    nodematch("region", diff=FALSE) +
+                    absdiff("sqrt.age") +
+                    offset(nodematch("role.class", diff = TRUE, keep = 1:2)) 
+    
+    # Start clock to calculate runtime
+    startclock_inst <- proc.time()
+    
+    # Fit model
+    fit.i <- netest(nw.inst,
+                    formation = formation.i,
+                    target.stats = st$stats.i,
+                    coef.form = c(-Inf, -Inf),
+                    coef.diss = dissolution_coefs(~offset(edges), 1),
+                    set.control.ergm = control.ergm(MPLE.max.dyad.types = 1e9,
+                                                    MCMLE.maxit = 250))
+    
+     # Fit time
+    runtime_min_fit_inst <- (proc.time()-startclock_inst)['elapsed']/60
+    
+    est <- list(fit.m, fit.p, fit.i)
+}
+```
+
+## Fit times 
+_(NA if loaded models that were fitted in the "02.estim.WHAMP.R" script)_
+
+Main network: `r ifelse(load==FALSE,round(runtime_min_fit_main, 1),NA)` minutes
+Persistent: `r ifelse(load==FALSE,round(runtime_min_fit_pers, 1),NA)` minutes
+Instantaneous: `r ifelse(load==FALSE,round(runtime_min_fit_inst, 1),NA)` minutes
+
+## Suffificient statistics
+
+### Main
+```{r}
+if (load) {
+  est[[1]]
+} else {
+fit.m
+}
+```
+
+### Persistent
+```{r}
+if (load) {
+  est[[2]]
+} else {
+fit.p
+}
+```
+
+### Instantaneous
+```{r}
+if (load) {
+  est[[3]]
+} else {
+fit.i
+}
+```
+
+## Summary of model fit
+
+### Main
+```{r}
+if (load) {
+  summary(est[[1]])
+} else {
+summary(fit.m)
+}
+```
+
+### Persistent
+```{r}
+if (load) {
+  summary(est[[2]])
+} else {
+summary(fit.p)
+}
+```
+
+### Instantaneous
+```{r}
+if (load) {
+  summary(est[[3]])
+} else {
+summary(fit.i)
+}
+```
+
+## MCMC diagnostics
+
+### Main
+```{r}
+#Edit the nwstats.formula to reflect model formula and other stats want to evaluate
+(dx_main <- netdx(est[[1]], nsims = 10, nsteps = 1000, ncores = 4))
+plot(dx_main, type="formation")
+plot(dx_main, type="duration")
+plot(dx_main, type="dissolution")
+```
+
+### Persistent
+```{r}
+#Edit the nwstats.formula to reflect model formula and other stats want to evaluate
+(dx_pers <- netdx(est[[2]], nsims = 10, nsteps = 1000, ncores = 4))
+plot(dx_pers, type="formation")
+plot(dx_pers, type="duration")
+plot(dx_pers, type="dissolution")
+```
+
+### Instantaneous
+```{r}
+#Edit the nwstats.formula to reflect model formula and other stats want to evaluate
+(dx_inst <- netdx(est[[3]], nsims = 10, nsteps = 1000, ncores = 4))
+plot(dx_inst, type="formation")
+```
+
+
