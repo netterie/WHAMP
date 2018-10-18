@@ -59,9 +59,6 @@ fit.m <- netest(nw.main,
 # Fit time
 runtime_min_fit_main <- (proc.time()-startclock_main)['elapsed']/60
 
-save(fit.m, file = "/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/fit.m.balanced.whamp.rda")
-
-
 
 # 2. Persistent Model ---------------------------------------------------------
 
@@ -108,9 +105,6 @@ fit.p <- netest(nw.pers,
 # Fit time
 runtime_min_fit_pers <- (proc.time()-startclock_pers)['elapsed']/60
 
-save(fit.p, file = "/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/fit.p.balanced.whamp.rda")
-
-
 
 # Fit inst model ----------------------------------------------------------
 
@@ -146,7 +140,6 @@ fit.i <- netest(nw.inst,
                                                 MCMC.samplesize = 7500,
                                                 MCMC.burnin = 1e+6,
                                                 MPLE.max.dyad.types = 1e+7,
-                                                init.method = "zeros",
                                                 MCMLE.maxit = 400,
                                                 parallel = np/2, 
                                                 parallel.type="PSOCK"))
@@ -158,9 +151,9 @@ runtime_min_fit_inst <- (proc.time()-startclock_inst)['elapsed']/60
 # Save data ---------------------------------------------------------------
 if (balanced == 1) {
   est.bal <- list(fit.m, fit.p, fit.i, runtime_min_fit_main, runtime_min_fit_pers, runtime_min_fit_inst)
-  save(est.bal, file = "/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/fit.bal.whamp.rda")
+  save(est.bal, file = "/homes/dpwhite/R/GitHub Repos/WHAMP/Model fits and simulations/est/fit.bal.whamp.rda")
 } else {
   est.unbal <- list(fit.m, fit.p, fit.i, runtime_min_fit_main, runtime_min_fit_pers, runtime_min_fit_inst)
-  save(est.unbal, file = "/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/fit.unbal.whamp.rda")
+  save(est.unbal, file = "/homes/dpwhite/R/GitHub Repos/WHAMP/Model fits and simulations/est/fit.unbal.whamp.rda")
 }
 
