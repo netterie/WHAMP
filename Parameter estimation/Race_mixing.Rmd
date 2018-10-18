@@ -27,6 +27,7 @@ options(knitr.table.format = "html")
     load(file="Data/rate.inst.fullpop.Rdata")
     load(file="Data/degreedists.Rdata")
     load(file="Data/race_mixing.Rdata")
+    load(file="Data/race_mixing_inst.Rdata")
     load(file="/homes/dpwhite/win/project/MMP_WADOH/mmp_reweighted.Rdata")
     load(file = "Data/whpp_artnet.Rdata")
     load(file = "/homes/dpwhite/win/project/MMP_WADOH/whpp_mmp.Rdata")
@@ -48,7 +49,7 @@ Data on patterns of racial/ethnic mixing are from the WHPP and the 2014 Washingt
   4. Balance the matrix by taking the mean of the off-diagonal elements.
   5. Calculate target statistics by multiplying the total degree for each racial/ethnic group by the proportion of total degree that is homophilous on race/ethnicity for that group. We focus on the proportion homophilous instead of describing the full distribution because the small number of black men who reported on ongoing partnerships in the survey limits our ability to make inference about the distribution of mixed-race partnerships (see section \@ref(decisions)).
 
-An issue with this balancing approach is that it affects estimates of homophily in perhaps undesirable ways. For Hispanics, for example, we see lower reported ties with black and other race/ethnicity men than black and other men report with Hispanics across all three partner types. There are several potential explanations for this mismatch.^[The mismatch in mixed-race/ethnicity partnerhip counts as reported by Hispanics and as reported by black and other race/ethnicity men could reflect the following: Hispanic men under-report all partnerships, black and other men misclassify partners as Hispanic who aren't, or Hispanic men misclassify partners who aren't Hispanic as Hispanic, though this latter explanation seems unlikely. Another possiblity is that there are differential selection biases by race/ethnicity that result in incompatible reporting of partnership counts.] In any case, balancing by taking the mean of the off-diagonal elements bumps up the mixed-race partnership count for Hispanic men but does not change the on-diagonal partnership count, such that the implied log-odds of a same-race/ethnicity tie is lower than in the observed egocentric data. The balanced matrix also implies a higher mean degree for Hispanic men than they reported. Because we don't have data on the source of bias and the best way to handle it, __we will try two approaches for defining mixing parameters__: 1) We will take the approach above and adjust the race/ethnicity-specific momentary degree distributions to align with the group-specific mean degrees from the balanced mixing matrices, and 2) we will use observed data on degree and the unbalanced mixing matrices in calculating target statistics. We will fit the model using target statistics calculated both ways and evaluate which results in networks with the features we expect, and/or how much of a difference on our outcomes the two parameter sets make (see [issue #44](https://github.com/statnet/WHAMP/issues/44)).
+An issue with this balancing approach is that it affects estimates of homophily in perhaps undesirable ways. For Hispanics, for example, we see lower reported ties with black and other race/ethnicity men than black and other men report with Hispanics across all three partner types. There are several potential explanations for this mismatch.^[The mismatch in mixed-race/ethnicity partnerhip counts as reported by Hispanics and as reported by black and other race/ethnicity men could reflect the following: Hispanic men under-report all partnerships, black and other men misclassify partners as Hispanic who aren't, or Hispanic men misclassify partners who aren't Hispanic as Hispanic, though this latter explanation seems unlikely. Another possiblity is that there are differential selection biases by race/ethnicity that result in incompatible reporting of partnership counts.] In any case, balancing by taking the mean of the off-diagonal elements bumps up the mixed-race partnership count for Hispanic men but does not change the on-diagonal partnership count, such that the implied log-odds of a same-race/ethnicity tie is lower than in the observed egocentric data. The balanced matrix also implies a higher mean degree for Hispanic men than they reported. Because we don't have data on the source of bias and the best way to handle it, __we will try two approaches for defining mixing parameters__: 1) We will take the approach above and adjust the race/ethnicity-specific momentary degree distributions and rate of instantaneous partnesrhips to align with the group-specific mean degrees from the balanced mixing matrices, and 2) we will use observed data on degree and the unbalanced mixing matrices in calculating target statistics. We will fit the model using target statistics calculated both ways and evaluate which results in networks with the features we expect, and/or how much of a difference on our outcomes the two parameter sets make (see [issue #44](https://github.com/statnet/WHAMP/issues/44)).
 
 Both approaches assume that mixing with the unobserved ties follows the same pattern as mixing with the observed ties, and that men who did not report on their main/persistent/instantaneous partner have the same mixing propensities as those of the same racial/ethnic group who did report on their main/persistent/instantaneous partner. Since we did not observe racial/ethic mixing to vary by age or region, there is not an indication that we need to account for heterogeneity on these characteristics, such that this approach seems reasonable. Additionally, in section \@ref(mrp_limitations), we did not observe any differences in main partnerships reported by those with 0 compared to those with 1+ persistent partnerships, suggesting that we can use data on the most recent partnership to represent all partnerships of that type.
 
@@ -109,37 +110,22 @@ As with persistent partnerships, we will obtain the row conditional probabilitie
 The table below shows the unbalanced mixing matrix by race/ethnicity in instantaneous partnerships reweighted to Washington demographics and scaled back to the total sample size from the WHPP and MMP surveys. Note these counts are not integers because they are from the re-weighted sample.
 
 ```{r}
-#Conditional row probabilities - using data from both ongoing persistent and most recent one-time partners
-  racemix_inst <- prop.table(svytable(~hbo + mrp_hbo, whpp_mmp[whpp_mmp$variables$mrp_type_mix %in% c("Persistent", "Instantaneous")], round=FALSE),1)
 
-#Rate of instantaneous partnerships by race from the dataset defined in "Rate_of_instantaneous_pships.Rmd"
-  rateinstXrace <- svyby(~rate_inst, ~hbo, inst.full, svymean, na.rm=TRUE)[2]
-  
-  #N by race in reweighted sample (scaled back to the size of the original sample)
-  nXrace <- svytable(~hbo, whpp_artnet, Ntotal=(dim(sample)[1] + dim(mmp_rake$variables)[1]), round=FALSE)
-  
-  #Reweighted mixing matrix, accounting for mean degree
-  racemix_inst_rwt <- matrix(c(racemix_inst[1,]*rateinstXrace[1,1]*nXrace[1], racemix_inst[2,]*rateinstXrace[2,1]*nXrace[2], racemix_inst[3,]*rateinstXrace[3,1]*nXrace[3]), byrow=TRUE, nrow=3)
-  racemix_inst_rwt <- as.data.frame(racemix_inst_rwt, row.names=c("Hispanic", "Black", "Other"))
-  names(racemix_inst_rwt) <- c("Hispanic", "Black", "Other")
-  
-kable(racemix_inst_rwt, align=c("c", "c", "c"), digits=c(4, 4, 4)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, bold=T, color="black", width="2cm") %>% column_spec(2:4, width = "2cm")
+kable(race_mixing_inst$racemix_inst_rwt, align=c("c", "c", "c"), digits=c(4, 4, 4)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, bold=T, color="black", width="2cm") %>% column_spec(2:4, width = "2cm")
 
 ```
 
 Taking the average of the off-diagonal elements to balance the matrix, we get the following:
 ```{r}
-#Take average of off-diagonals to balance
-  racemix_inst_bal <- as.data.frame(matrix(c("HH"=racemix_inst_rwt[1,1], "HB" = mean(c(racemix_inst_rwt[1,2], racemix_inst_rwt[2,1])), "HO" = mean(c(racemix_inst_rwt[1,3], racemix_inst_rwt[3,1])), "BH" = mean(c(racemix_inst_rwt[1,2], racemix_inst_rwt[2,1])), "BB" = racemix_inst_rwt[2,2], "BO" = mean(c(racemix_inst_rwt[2,3], racemix_inst_rwt[3,2])), "OH" = mean(c(racemix_inst_rwt[1,3], racemix_inst_rwt[3,1])), "OB" = mean(c(racemix_inst_rwt[2,3], racemix_inst_rwt[3,2])), "OO" = racemix_inst_rwt[3,3]), nrow=3, ncol=3, byrow=TRUE, dimnames=list(c("Hispanic", "Black", "Other"), c("Hispanic", "Black", "Other"))))
 
-kable(racemix_inst_bal, align=c("c", "c", "c"), digits=c(4, 4, 4)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, bold=T, color="black", width="2cm") %>% column_spec(2:4, width = "2cm")
+kable(race_mixing_inst$racemix_inst_bal, align=c("c", "c", "c"), digits=c(4, 4, 4)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, bold=T, color="black", width="2cm") %>% column_spec(2:4, width = "2cm")
 
 ```
 
 To calculate target statistics for the model, we will define parameters for the proportion of instantaneous partnerships that are homophilous for Hispanic, black, and other race/ethnicity men from these matrices (below), and multiply each proportion by the number of edges in the scaled network involving Hispanic, black, and other race/ethnicity men, respectively.
 
 ```{r}
-prop.hom.inst <- cbind.data.frame("Method" = c("Unbalanced", "Balanced"), "Hispanic" = c(racemix_inst_rwt[1,1]/sum(racemix_inst_rwt[1,]), racemix_inst_bal[1,1]/sum(racemix_inst_bal[1,])), "Black" = c(racemix_inst_rwt[2,2]/sum(racemix_inst_rwt[2,]), racemix_inst_bal[2,2]/sum(racemix_inst_bal[2,])), "Other" = c(racemix_inst_rwt[3,3]/sum(racemix_inst_rwt[3,]), racemix_inst_bal[3,3]/sum(racemix_inst_bal[3,])))
+prop.hom.inst <- cbind.data.frame("Method" = c("Unbalanced", "Balanced"), "Hispanic" = c(race_mixing_inst$racemix_inst_rwt[1,1]/sum(race_mixing_inst$racemix_inst_rwt[1,]), race_mixing_inst$racemix_inst_bal[1,1]/sum(race_mixing_inst$racemix_inst_bal[1,])), "Black" = c(race_mixing_inst$racemix_inst_rwt[2,2]/sum(race_mixing_inst$racemix_inst_rwt[2,]), race_mixing_inst$racemix_inst_bal[2,2]/sum(race_mixing_inst$racemix_inst_bal[2,])), "Other" = c(race_mixing_inst$racemix_inst_rwt[3,3]/sum(race_mixing_inst$racemix_inst_rwt[3,]), race_mixing_inst$racemix_inst_bal[3,3]/sum(race_mixing_inst$racemix_inst_bal[3,])))
     
 kable(prop.hom.inst, align=c("l", "c", "c", "c"), digits=c(4, 4, 4)) %>% kable_styling(full_width=F, position="center") %>% column_spec(2:4, width = "2cm")
 ```
