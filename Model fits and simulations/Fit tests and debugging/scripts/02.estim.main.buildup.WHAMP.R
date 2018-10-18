@@ -11,9 +11,9 @@ balanced = 1
 
 # Load the appropriate file (balanced or unbalanced)
 if (balanced == 1) {
-load(file = "/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/nwstats.balanced.whamp.rda")
+load(file = "/homes/dpwhite/R/GitHub Repos/WHAMP/Model fits and simulations/est/nwstats.balanced.whamp.rda")
   } else {
-load(file = "/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/nwstats.unbalanced.whamp.rda")
+load(file = "/homes/dpwhite/R/GitHub Repos/WHAMP/Model fits and simulations/est/nwstats.unbalanced.whamp.rda")
   }
 
 # Initialize main network and assign degree -----------------------------------------------------------
@@ -43,7 +43,7 @@ fit.m1 <- netest(nw.main,
                                                 MPLE.max.dyad.types = 1e+7,
                                                 init.method = "zeros",
                                                 MCMLE.maxit = 400,
-                                                parallel = np/2, 
+                                                parallel = np/4, 
                                                 parallel.type="PSOCK"))
 
 
@@ -70,20 +70,21 @@ fit.m2 <- netest(nw.main,
                                                  MPLE.max.dyad.types = 1e+7,
                                                  init.method = "zeros",
                                                  MCMLE.maxit = 400,
-                                                 parallel = np/2, 
+                                                 parallel = np/4, 
                                                  parallel.type="PSOCK"))
+
 
 # 3. Edges + nodefactor(race) + nodefactor(region) -----------------------------------------------------------
 # (+ constraint for max one ongoing and offset for role class) 
 
 # Formulas
 formation.m3 <- ~edges +
-                nodefactor("race..wa", base=3) + 
-                nodefactor("region", base=2) +
-                degrange(from = 2) +
-                offset(nodematch("role.class", diff = TRUE, keep = 1:2)) 
+                  nodefactor("race..wa", base=3) + 
+                  nodematch("race..wa", diff=TRUE) +
+                  degrange(from = 2) + 
+                  offset(nodematch("role.class", diff = TRUE, keep = 1:2)) 
 
-stats.m3 <- c(st$stats.m[c(1,4,5,6,7)], 0)
+stats.m3 <- c(st$stats.m[c(1,4,5,8:10)], 0)
 
 # Fit model
 fit.m3 <- netest(nw.main,
@@ -95,24 +96,23 @@ fit.m3 <- netest(nw.main,
                                                  MCMC.samplesize = 7500,
                                                  MCMC.burnin = 1e+6,
                                                  MPLE.max.dyad.types = 1e+7,
-                                                 init.method = "zeros",
                                                  MCMLE.maxit = 400,
-                                                 parallel = np/2, 
+                                                 parallel = np/4, 
                                                  parallel.type="PSOCK"))
 
-# 4. Edges + nodefactor(race) + nodefactor(region) + nodefactor(deg.pers) -----------------------------------------------------------
+
+# 4. Edges + nodefactor(race) + nodematch(race) + nodefactor(deg.pers) -----------------------------------------------------------
 # (+ constraint for max one ongoing and offset for role class) 
 
 # Formulas
 formation.m4 <- ~edges +
-                nodefactor("deg.pers") +
-                nodefactor("race..wa", base=3) + 
-                nodefactor("region", base=2) +
-                degrange(from = 2) +
-                offset(nodematch("role.class", diff = TRUE, keep = 1:2)) 
+                  nodefactor("deg.pers") +
+                  nodefactor("race..wa", base=3) + 
+                  nodematch("race..wa", diff=TRUE) +
+                  degrange(from = 2) +
+                  offset(nodematch("role.class", diff = TRUE, keep = 1:2)) 
 
-
-stats.m4 <- c(st$stats.m[c(1:7)], 0)
+stats.m4 <- c(st$stats.m[c(1:5,8:10)], 0)
 
 # Fit model
 fit.m4 <- netest(nw.main,
@@ -126,11 +126,10 @@ fit.m4 <- netest(nw.main,
                                                  MPLE.max.dyad.types = 1e+7,
                                                  init.method = "zeros",
                                                  MCMLE.maxit = 400,
-                                                 parallel = np/2, 
+                                                 parallel = np/4, 
                                                  parallel.type="PSOCK"))
 
-
-# 5. Edges + nodefactor(race) + nodefactor(region) + nodefactor(deg.pers) + nodematch(race) -----------------------------------------------------------
+# 5. Edges + nodefactor(race) + nodematch(race) + nodefactor(deg.pers) + nodefactor(region)-----------------------------------------------------------
 # (+ constraint for max one ongoing and offset for role class) 
 
 # Formulas
@@ -141,7 +140,6 @@ formation.m5 <- ~edges +
                 nodematch("race..wa", diff=TRUE) +
                 degrange(from = 2) +
                 offset(nodematch("role.class", diff = TRUE, keep = 1:2)) 
-                
 
 stats.m5 <- c(st$stats.m[c(1:10)], 0)
 
@@ -157,22 +155,21 @@ fit.m5 <- netest(nw.main,
                                                  MPLE.max.dyad.types = 1e+7,
                                                  init.method = "zeros",
                                                  MCMLE.maxit = 400,
-                                                 parallel = np/2, 
+                                                 parallel = np/4, 
                                                  parallel.type="PSOCK"))
 
-# 6. Edges + nodefactor(race) + nodefactor(region) + nodefactor(deg.pers) + nodematch(race) + absdiff(sqrtage) -----------------------------------------------------------
+# 6. Edges + nodefactor(race) + nodematch(race) + nodefactor(deg.pers) + nodefactor(region) + absdiff(sqrtage)-----------------------------------------------------------
 # (+ constraint for max one ongoing and offset for role class) 
 
 # Formulas
 formation.m6 <- ~edges +
-                nodefactor("deg.pers") +
-                nodefactor("race..wa", base=3) + 
-                nodefactor("region", base=2) +
-                nodematch("race..wa", diff=TRUE) +
-                absdiff("sqrt.age") +
-                degrange(from = 2) +
-                offset(nodematch("role.class", diff = TRUE, keep = 1:2)) 
-
+                  nodefactor("deg.pers") +
+                  nodefactor("race..wa", base=3) + 
+                  nodefactor("region", base=2) +
+                  nodematch("race..wa", diff=TRUE) +
+                  absdiff("sqrt.age") +
+                  degrange(from = 2) +
+                  offset(nodematch("role.class", diff = TRUE, keep = 1:2)) 
 
 stats.m6 <- c(st$stats.m, 0)
 
@@ -188,8 +185,9 @@ fit.m6 <- netest(nw.main,
                                                  MPLE.max.dyad.types = 1e+7,
                                                  init.method = "zeros",
                                                  MCMLE.maxit = 400,
-                                                 parallel = np/2, 
+                                                 parallel = np/4, 
                                                  parallel.type="PSOCK"))
+
 
 #7. Full model: Edges + nodefactor(race) + nodefactor(region) + nodefactor(deg.pers) + nodematch(race) + absdiff(sqrtage) + offset for region -----------------------------------------------------------
 # (+ constraint for max one ongoing and offset for role class) 
@@ -220,7 +218,7 @@ fit.m7 <- netest(nw.main,
                                                 MPLE.max.dyad.types = 1e+7,
                                                 init.method = "zeros",
                                                 MCMLE.maxit = 400,
-                                                parallel = np/2, 
+                                                parallel = np/4, 
                                                 parallel.type="PSOCK"))
 
 #8. Alt model: 90% regional assortativity -----------------------------------------------------------
@@ -255,16 +253,16 @@ fit.m8 <- netest(nw.main,
                                                  MPLE.max.dyad.types = 1e+7,
                                                  init.method = "zeros",
                                                  MCMLE.maxit = 400,
-                                                 parallel = np/2, 
+                                                 parallel = np/4, 
                                                  parallel.type="PSOCK"))
 
 
 # Save fits ---------------------------------------------------------------
 if (balanced == 1) {
   est.m.buildup.bal <- list(fit.m1, fit.m2, fit.m3, fit.m4, fit.m5, fit.m6, fit.m7, fit.m8)
-  save(est.m.buildup.bal, file = "/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/fit.m.buildup.bal.rda")
+  save(est.m.buildup.bal, file = "/homes/dpwhite/R/GitHub Repos/WHAMP/Model fits and simulations/Fit tests and debugging/est/fit.m.buildup.bal.rda")
 } else {
   est.m.buildup.unbal <- list(fit.m1, fit.m2, fit.m3, fit.m4, fit.m5, fit.m6, fit.m7, fit.m8)
-  save(est.m.buildup.unbal, file = "/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/fit.m.buildup.unbal.rda")
+  save(est.m.buildup.unbal, file = "/homes/dpwhite/R/GitHub Repos/WHAMP/Model fits and simulations/Fit tests and debugging/est/fit.m.buildup.unbal.rda")
 }
 

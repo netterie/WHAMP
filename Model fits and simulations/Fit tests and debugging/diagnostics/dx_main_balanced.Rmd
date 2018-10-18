@@ -14,7 +14,7 @@ suppressMessages(library("EpiModelHIV"))
 library("latticeExtra")
 options(tibble.print_max = 10000)
 
-load(file = "/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/fit.m.balanced.whamp.rda")
+load(file = "/homes/dpwhite/R/GitHub Repos/WHAMP/Model fits and simulations/Fit tests and debugging/est/fit.m.balanced.whamp.rda")
 
 ```
 

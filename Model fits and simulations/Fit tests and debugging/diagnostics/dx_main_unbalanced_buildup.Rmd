@@ -4,8 +4,8 @@ output:
     toc: true
     toc_float: true
 ---
-# Main network model diagnostics - unbalanced statistics without regional mixing
-This file shows diagnostics for main network models fit using unbalanced racial/ethnic mixing matrices and degree terms as reported by egos.
+# Main network model diagnostics - unbalanced statistics
+This file shows diagnostics for main network models fit using unbalanced racial/ethnic mixing matrices and degree terms as reported by egos. In this file, we fit a series of nested models by adding one term at a time to examine changes to model estimates, MCMC diagnostics, and network diagnostics.
 
 ## Load packages and model fits
 ```{r, warning=FALSE}
@@ -15,14 +15,14 @@ library("latticeExtra")
 library("knitr")
 library("kableExtra")
 
-load(file = "/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/fit.m.buildup.unbal.rda")
+load(file = "/homes/dpwhite/R/GitHub Repos/WHAMP/Model fits and simulations/Fit tests and debugging/est/fit.m.buildup.unbal.rda")
 
 ```
 
 ## Model terms and control settings
 
 ```{r, echo=FALSE}
-targets <- cbind.data.frame("terms" = c(est.m.buildup.unbal[[7]]$target.stats.names, "degrange", "nodematch.role.class.I", "nodematch.role.class.R", "mix.region.EW.KC", "mix.region.EW.OW", "mix.region.KC.OW", "nodematch.region"), "stats.1" = round(c(est.m.buildup.unbal[[1]]$target.stats[1], rep(NA,10), est.m.buildup.unbal[[1]]$target.stats[2], -Inf, -Inf, rep(NA,4)),1), "stats.2" = round(c(est.m.buildup.unbal[[2]]$target.stats[1], rep(NA,2), est.m.buildup.unbal[[2]]$target.stats[2:3], rep(NA,6), est.m.buildup.unbal[[2]]$target.stats[4], -Inf, -Inf, rep(NA,4)),1), "stats.3" = round(c(est.m.buildup.unbal[[3]]$target.stats[1], rep(NA,2), est.m.buildup.unbal[[3]]$target.stats[2:5], rep(NA,4), est.m.buildup.unbal[[3]]$target.stats[6], -Inf, -Inf, rep(NA,4)),1), "stats.4" = round(c(est.m.buildup.unbal[[4]]$target.stats[1:7], rep(NA,4), est.m.buildup.unbal[[4]]$target.stats[8], -Inf, -Inf, rep(NA,4)),1), "stats.5" = round(c(est.m.buildup.unbal[[5]]$target.stats[1:10], rep(NA,1), est.m.buildup.unbal[[5]]$target.stats[11], -Inf, -Inf, rep(NA,4)),1), "stats.6" = round(c(est.m.buildup.unbal[[6]]$target.stats, -Inf, -Inf, rep(NA,4)),1), "stats.7" = round(c(est.m.buildup.unbal[[7]]$target.stats, -Inf, -Inf, -Inf, -Inf, -Inf, rep(NA,1)),1), "stats.8" = round(c(est.m.buildup.unbal[[8]]$target.stats[c(1:11,13)], -Inf, -Inf, rep(NA,3), est.m.buildup.unbal[[8]]$target.stats[c(12)]),1))
+targets <- cbind.data.frame("terms" = c(est.m.buildup.unbal[[7]]$target.stats.names, "degrange", "nodematch.role.class.I", "nodematch.role.class.R", "mix.region.EW.KC", "mix.region.EW.OW", "mix.region.KC.OW", "nodematch.region"), "stats.1" = round(c(est.m.buildup.unbal[[1]]$target.stats[1], rep(NA,10), est.m.buildup.unbal[[1]]$target.stats[2], -Inf, -Inf, rep(NA,4)),1), "stats.2" = round(c(est.m.buildup.unbal[[2]]$target.stats[1], rep(NA,2), est.m.buildup.unbal[[2]]$target.stats[2:3], rep(NA,6), est.m.buildup.unbal[[2]]$target.stats[4], -Inf, -Inf, rep(NA,4)),1), "stats.3" = round(c(est.m.buildup.unbal[[3]]$target.stats[1], rep(NA,2), est.m.buildup.unbal[[3]]$target.stats[2:3], rep(NA,2), est.m.buildup.unbal[[3]]$target.stats[4:6], rep(NA,1), est.m.buildup.unbal[[3]]$target.stats[7], -Inf, -Inf, rep(NA,4)),1), "stats.4" = round(c(est.m.buildup.unbal[[4]]$target.stats[1:5], rep(NA,2), est.m.buildup.unbal[[4]]$target.stats[6:8], rep(NA,1), est.m.buildup.unbal[[4]]$target.stats[9], -Inf, -Inf, rep(NA,4)),1), "stats.5" = round(c(est.m.buildup.unbal[[5]]$target.stats[1:10], rep(NA,1), est.m.buildup.unbal[[5]]$target.stats[11], -Inf, -Inf, rep(NA,4)),1), "stats.6" = round(c(est.m.buildup.unbal[[6]]$target.stats, -Inf, -Inf, rep(NA,4)),1), "stats.7" = round(c(est.m.buildup.unbal[[7]]$target.stats, -Inf, -Inf, -Inf, -Inf, -Inf, rep(NA,1)),1), "stats.8" = round(c(est.m.buildup.unbal[[8]]$target.stats[c(1:11,13)], -Inf, -Inf, rep(NA,3), est.m.buildup.unbal[[8]]$target.stats[c(12)]),1))
 
 kable(targets, col.names = c("Terms", "Model 1", "Model 2", "Model 3", "Model 4", "Model 5", "Model 6", "Model 7", "Model 8"), caption="Model terms and target statistics") %>% kable_styling(full_width=F, position="center")
 ```
