@@ -56,7 +56,7 @@ qnts.18to49 <- c(0.0001, 0.000608, 0.005247, 0.056484) #set to 0.0001 if 0 to gi
 qnts.50to59 <- c(0.0001, 0.0001, 0.00171, 0.027315)  #set to 0.0001 if 0 to give non-zero prob
 
 # Mean rate of instantaneous partnerships by race (black, Hispanic, other)
-inst.bho <- c(0.017666, 0.013338, 0.013424)
+inst.bho <- c(0.017761, 0.019732, 0.012586)
 
 # Distribution of instantaneous partnerships by region (EW, KC, OW)
 inst.region <- sumto1(c(0.0871, 0.6598, 0.253))
@@ -170,5 +170,5 @@ st <- calc_nwstats_msm_whamp(
   asmr.O..wa = asmr.O..wa,
   role.prob = role.prob)
 
-save(st, file = "/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/nwstats.balanced.whamp.rda")
+save(st, file = "/homes/dpwhite/R/GitHub Repos/WHAMP/Model fits and simulations/est/nwstats.balanced.whamp.rda")
 rm(list = ls())
