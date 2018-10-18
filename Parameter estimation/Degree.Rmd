@@ -241,6 +241,15 @@ save(race_mixing, file="Data/race_mixing.Rdata")
 # 5. Define overall adjusted degree distribution as weighted avg of balanced degrees ----
 deg.mp.adj <- deg.mp.H.adj*prop.table(svytable(~hbo, whpp_artnet, round=FALSE))[1] + deg.mp.B.adj*prop.table(svytable(~hbo, whpp_artnet, round=FALSE))[2] + deg.mp.O.adj*prop.table(svytable(~hbo, whpp_artnet, round=FALSE))[3] 
     
+# 6. Define adjusted regional degree distributions as weighted avg of balanced racial/ethnic degree dists
+prop.raceregion <- prop.table(svytable(~hbo + region, whpp_artnet),2)
+
+deg.mp.KC.adj <- deg.mp.H.adj*prop.raceregion[1,1]+deg.mp.B.adj*prop.raceregion[2,1] + deg.mp.O.adj*prop.raceregion[3,1]
+
+deg.mp.OW.adj <- deg.mp.H.adj*prop.raceregion[1,2]+deg.mp.B.adj*prop.raceregion[2,2] + deg.mp.O.adj*prop.raceregion[3,2]
+
+deg.mp.EW.adj <- deg.mp.H.adj*prop.raceregion[1,3]+deg.mp.B.adj*prop.raceregion[2,3] + deg.mp.O.adj*prop.raceregion[3,3]
+    
 ```
 
 ## Momentary degree distribution
