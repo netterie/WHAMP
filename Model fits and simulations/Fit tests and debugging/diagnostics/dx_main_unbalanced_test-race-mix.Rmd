@@ -1,0 +1,119 @@
+---
+output:
+  html_document:
+    toc: true
+    toc_float: true
+---
+# Main network model diagnostics - unbalanced statistics
+This file shows diagnostics for main network models fit using unbalanced racial/ethnic mixing matrices and degree terms as reported by egos. Here we try to identify which term added to a model with `nodefactor(race)` and `nodematch(race)` creates issues with MCMC diagnostics for race matching. This is motivated by observing, in the "dx_main_unbalanced_buildup.Rmd" file that the MCMC diagnostics for race matching are off when added to a model with `nodefactor(race)`, `nodefactor(region)`, and `nodefactor(deg.pers)`. We will see if we can get it to fit in the absence of these other `nodefactor` terms and then see how the fit changes with the addition of each alone.
+
+
+## Load packages and model fits
+```{r, warning=FALSE}
+rm(list = ls())
+suppressMessages(library("EpiModelHIV"))
+library("latticeExtra")
+library("knitr")
+library("kableExtra")
+
+load(file = "/homes/dpwhite/R/GitHub Repos/WHAMP/Model fits and simulations/Fit tests and debugging/est/fit.m.testracemix.unbal.rda")
+
+```
+
+## Model terms and control settings
+
+```{r, echo=FALSE}
+targets <- cbind.data.frame("terms" = c(est.m.testracemix.unbal[[4]]$target.stats.names, "degrange", "nodematch.role.class.I", "nodematch.role.class.R"), "stats.1" = round(c(est.m.testracemix.unbal[[1]]$target.stats[1], rep(NA,2), est.m.testracemix.unbal[[1]]$target.stats[2:3], rep(NA,2), est.m.testracemix.unbal[[1]]$target.stats[4:7], -Inf, -Inf),1), "stats.2" = round(c(est.m.testracemix.unbal[[2]]$target.stats[1:5], rep(NA,2), est.m.testracemix.unbal[[2]]$target.stats[6:9], -Inf, -Inf),1), "stats.3" = round(c(est.m.testracemix.unbal[[3]]$target.stats[1], rep(NA,2), est.m.testracemix.unbal[[3]]$target.stats[2:9], -Inf, -Inf),1), "stats.4" = round(c(est.m.testracemix.unbal[[4]]$target.stats, -Inf, -Inf),1))
+
+kable(targets, col.names = c("Terms", "Model 1", "Model 2", "Model 3", "Model 4"), caption="Model terms and target statistics") %>% kable_styling(full_width=F, position="center")
+```
+
+The control settings for these models are:
+```{r, eval=FALSE}
+set.control.ergm = control.ergm(MCMC.interval = 1e+5,
+                                MCMC.samplesize = 7500,
+                                MCMC.burnin = 1e+6,
+                                MPLE.max.dyad.types = 1e+7,
+                                init.method = "zeros",
+                                MCMLE.maxit = 400,
+                                parallel = np/2, 
+                                parallel.type="PSOCK"))
+```
+
+## MCMC diagnostics
+
+### Model 1
+```{r, message=FALSE, echo=FALSE}
+mcmc.diagnostics(est.m.testracemix.unbal[[1]]$fit)
+```
+
+### Model 2
+```{r, message=FALSE, echo=FALSE}
+mcmc.diagnostics(est.m.testracemix.unbal[[2]]$fit)
+```
+
+### Model 3
+```{r, message=FALSE, echo=FALSE}
+mcmc.diagnostics(est.m.testracemix.unbal[[3]]$fit)
+```
+
+### Model 4
+```{r, message=FALSE, echo=FALSE}
+mcmc.diagnostics(est.m.testracemix.unbal[[4]]$fit)
+```
+
+## Summary of model fit
+
+### Model 1
+```{r}
+summary(est.m.testracemix.unbal[[1]])
+```
+
+### Model 2
+```{r}
+summary(est.m.testracemix.unbal[[2]])
+```
+
+### Model 3
+```{r}
+summary(est.m.testracemix.unbal[[3]])
+```
+
+### Model 4
+```{r}
+summary(est.m.testracemix.unbal[[4]])
+```
+
+## Network diagnostics
+
+### Model 1
+```{r}
+(dx_main1 <- netdx(est.m.testracemix.unbal[[1]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.m.testracemix.unbal[[4]]$formation))
+plot(dx_main1, type="formation")
+plot(dx_main1, type="duration")
+plot(dx_main1, type="dissolution")
+```
+
+### Model 2
+```{r}
+(dx_main2 <- netdx(est.m.testracemix.unbal[[2]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.m.testracemix.unbal[[4]]$formation))
+plot(dx_main2, type="formation")
+plot(dx_main2, type="duration")
+plot(dx_main2, type="dissolution")
+```
+
+### Model 3
+```{r}
+(dx_main3 <- netdx(est.m.testracemix.unbal[[3]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.m.testracemix.unbal[[4]]$formation))
+plot(dx_main3, type="formation")
+plot(dx_main3, type="duration")
+plot(dx_main3, type="dissolution")
+```
+
+### Model 4
+```{r}
+(dx_main4 <- netdx(est.m.testracemix.unbal[[4]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.m.testracemix.unbal[[4]]$formation))
+plot(dx_main4, type="formation")
+plot(dx_main4, type="duration")
+plot(dx_main4, type="dissolution")
+```

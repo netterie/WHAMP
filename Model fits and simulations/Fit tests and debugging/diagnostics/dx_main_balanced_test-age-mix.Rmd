@@ -1,0 +1,118 @@
+---
+output:
+  html_document:
+    toc: true
+    toc_float: true
+---
+# Main network model diagnostics - balanced statistics
+This file shows diagnostics for main network models fit using balanced racial/ethnic mixing matrices and degree terms as reported by egos. Here we examine the fit of the full models with and without the addition of the age mixing term. We look at both a full model fit using a constraint for 100% regional assortativity and using a term specifying 90% assortativity. 
+
+## Load packages and model fits
+```{r, warning=FALSE}
+rm(list = ls())
+suppressMessages(library("EpiModelHIV"))
+library("latticeExtra")
+library("knitr")
+library("kableExtra")
+
+load(file = "/homes/dpwhite/R/GitHub Repos/WHAMP/Model fits and simulations/Fit tests and debugging/est/fit.m.testagemix.bal.rda")
+
+```
+
+## Model terms and control settings
+
+```{r, echo=FALSE}
+targets <- cbind.data.frame("terms" = c(est.m.testagemix.bal[[2]]$target.stats.names, "degrange", "nodematch.role.class.I", "nodematch.role.class.R", "mix.region.EW.KC", "mix.region.EW.OW", "mix.region.KC.OW", "nodematch.region"), "stats.1" = round(c(est.m.testagemix.bal[[1]]$target.stats, rep(NA,1), -Inf, -Inf, rep(NA,4)),1), "stats.2" = round(c(est.m.testagemix.bal[[2]]$target.stats, -Inf, -Inf, -Inf, -Inf, -Inf, NA),1), "stats.3" = round(c(est.m.testagemix.bal[[3]]$target.stats[c(1:10,12)], -Inf, -Inf, rep(NA,3), est.m.testagemix.bal[[3]]$target.stats[11]),1), "stats.4" = round(c(est.m.testagemix.bal[[4]]$target.stats[c(1:11,13)], -Inf, -Inf, rep(NA,3), est.m.testagemix.bal[[4]]$target.stats[12]),1))
+
+kable(targets, col.names = c("Terms", "Model 1a", "Model 1b", "Model 2a", "Model 2b"), caption="Model terms and target statistics") %>% kable_styling(full_width=F, position="center")
+```
+
+The control settings for these models are:
+```{r, eval=FALSE}
+set.control.ergm = control.ergm(MCMC.interval = 1e+5,
+                                MCMC.samplesize = 7500,
+                                MCMC.burnin = 1e+6,
+                                MPLE.max.dyad.types = 1e+7,
+                                init.method = "zeros",
+                                MCMLE.maxit = 400,
+                                parallel = np/2, 
+                                parallel.type="PSOCK"))
+```
+
+## MCMC diagnostics
+
+### Model 1a
+```{r, message=FALSE, echo=FALSE}
+mcmc.diagnostics(est.m.testagemix.bal[[1]]$fit)
+```
+
+### Model 1b
+```{r, message=FALSE, echo=FALSE}
+mcmc.diagnostics(est.m.testagemix.bal[[2]]$fit)
+```
+
+### Model 2a
+```{r, message=FALSE, echo=FALSE}
+mcmc.diagnostics(est.m.testagemix.bal[[3]]$fit)
+```
+
+### Model 2b
+```{r, message=FALSE, echo=FALSE}
+mcmc.diagnostics(est.m.testagemix.bal[[4]]$fit)
+```
+
+## Summary of model fit
+
+### Model 1a
+```{r}
+summary(est.m.testagemix.bal[[1]])
+```
+
+### Model 1b
+```{r}
+summary(est.m.testagemix.bal[[2]])
+```
+
+### Model 2a
+```{r}
+summary(est.m.testagemix.bal[[3]])
+```
+
+### Model 2b
+```{r}
+summary(est.m.testagemix.bal[[4]])
+```
+
+## Network diagnostics
+
+### Model 1a
+```{r}
+(dx_main1 <- netdx(est.m.testagemix.bal[[1]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.m.testagemix.bal[[4]]$formation))
+plot(dx_main1, type="formation")
+plot(dx_main1, type="duration")
+plot(dx_main1, type="dissolution")
+```
+
+### Model 1b
+```{r}
+(dx_main2 <- netdx(est.m.testagemix.bal[[2]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.m.testagemix.bal[[4]]$formation))
+plot(dx_main2, type="formation")
+plot(dx_main2, type="duration")
+plot(dx_main2, type="dissolution")
+```
+
+### Model 2a
+```{r}
+(dx_main3 <- netdx(est.m.testagemix.bal[[3]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.m.testagemix.bal[[4]]$formation))
+plot(dx_main3, type="formation")
+plot(dx_main3, type="duration")
+plot(dx_main3, type="dissolution")
+```
+
+### Model 2b
+```{r}
+(dx_main4 <- netdx(est.m.testagemix.bal[[4]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.m.testagemix.bal[[4]]$formation))
+plot(dx_main4, type="formation")
+plot(dx_main4, type="duration")
+plot(dx_main4, type="dissolution")
+```

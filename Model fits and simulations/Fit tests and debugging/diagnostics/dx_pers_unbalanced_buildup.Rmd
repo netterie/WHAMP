@@ -1,0 +1,192 @@
+---
+output:
+  html_document:
+    toc: true
+    toc_float: true
+---
+# Persistent network model diagnostics - unbalanced statistics 
+This file shows diagnostics for persistent network models fit using unbalanced racial/ethnic mixing matrices and degree terms as reported by egos. In this file, we fit a series of nested models by adding one term at a time to examine changes to model estimates, MCMC diagnostics, and network diagnostics.
+
+## Load packages and model fits
+```{r, warning=FALSE}
+rm(list = ls())
+suppressMessages(library("EpiModelHIV"))
+library("latticeExtra")
+library("knitr")
+library("kableExtra")
+
+load(file = "/homes/dpwhite/R/GitHub Repos/WHAMP/Model fits and simulations/Fit tests and debugging/est/fit.p.buildup.unbal.rda")
+
+```
+
+## Model terms and control settings
+
+```{r, echo=FALSE}
+targets <- cbind.data.frame("terms" = c(est.p.buildup.unbal[[8]]$target.stats.names, "degrange", "nodematch.role.class.I", "nodematch.role.class.R"), "stats.1" = round(c(est.p.buildup.unbal[[1]]$target.stats[1], rep(NA,11), est.p.buildup.unbal[[1]]$target.stats[2], -Inf, -Inf),1), "stats.2" = round(c(est.p.buildup.unbal[[2]]$target.stats[1], rep(NA,1), est.p.buildup.unbal[[2]]$target.stats[2:3], rep(NA,8), est.p.buildup.unbal[[2]]$target.stats[4], -Inf, -Inf),1), "stats.3" = round(c(est.p.buildup.unbal[[3]]$target.stats[1], rep(NA,1), est.p.buildup.unbal[[3]]$target.stats[2:3], rep(NA,3), est.p.buildup.unbal[[3]]$target.stats[4:6], rep(NA,2), est.p.buildup.unbal[[3]]$target.stats[7], -Inf, -Inf),1), "stats.4" = round(c(est.p.buildup.unbal[[4]]$target.stats[1:4], rep(NA,3), est.p.buildup.unbal[[4]]$target.stats[5:7], rep(NA,2), est.p.buildup.unbal[[4]]$target.stats[8], -Inf, -Inf),1), "stats.5" = round(c(est.p.buildup.unbal[[5]]$target.stats[1:6], rep(NA,1), est.p.buildup.unbal[[5]]$target.stats[7:9], rep(NA,2), est.p.buildup.unbal[[5]]$target.stats[10], -Inf, -Inf),1), "stats.6" = round(c(est.p.buildup.unbal[[6]]$target.stats[1:6], rep(NA,1), est.p.buildup.unbal[[6]]$target.stats[7:9], rep(NA,1), est.p.buildup.unbal[[6]]$target.stats[c(10,11)],  -Inf, -Inf),1), "stats.7" = round(c(est.p.buildup.unbal[[7]]$target.stats[1:10], rep(NA,1), est.p.buildup.unbal[[7]]$target.stats[c(11,12)], -Inf, -Inf),1), "stats.8" = round(c(est.p.buildup.unbal[[8]]$target.stats, -Inf, -Inf),1))
+
+kable(targets, col.names = c("Terms", "Model 1", "Model 2", "Model 3", "Model 4", "Model 5", "Model 6", "Model 7", "Model 8"), caption="Model terms and target statistics") %>% kable_styling(full_width=F, position="center")
+```
+
+The control settings for these models are:
+```{r, eval=FALSE}
+set.control.ergm = ccontrol.ergm(MCMC.interval = 1e+5,
+                                 MCMC.samplesize = 7500,
+                                 MCMC.burnin = 1e+6,
+                                 MPLE.max.dyad.types = 1e+7,
+                                 init.method = "zeros",
+                                 MCMLE.maxit = 400,
+                                 parallel = np/2,
+                                 parallel.type="PSOCK"))
+```
+
+## MCMC diagnostics
+
+### Model 1
+```{r, message=FALSE, echo=FALSE}
+mcmc.diagnostics(est.p.buildup.unbal[[1]]$fit)
+```
+
+### Model 2
+```{r, message=FALSE, echo=FALSE}
+mcmc.diagnostics(est.p.buildup.unbal[[2]]$fit)
+```
+
+### Model 3
+```{r, message=FALSE, echo=FALSE}
+mcmc.diagnostics(est.p.buildup.unbal[[3]]$fit)
+```
+
+### Model 4
+```{r, message=FALSE, echo=FALSE}
+mcmc.diagnostics(est.p.buildup.unbal[[4]]$fit)
+```
+
+### Model 5
+```{r, message=FALSE, echo=FALSE}
+mcmc.diagnostics(est.p.buildup.unbal[[5]]$fit)
+```
+
+### Model 6
+```{r, message=FALSE, echo=FALSE}
+mcmc.diagnostics(est.p.buildup.unbal[[6]]$fit)
+```
+
+### Model 7
+```{r, message=FALSE, echo=FALSE}
+mcmc.diagnostics(est.p.buildup.unbal[[7]]$fit)
+```
+
+### Model 8
+```{r, message=FALSE, echo=FALSE}
+mcmc.diagnostics(est.p.buildup.unbal[[8]]$fit)
+```
+
+
+## Summary of model fit
+
+### Model 1
+```{r}
+summary(est.p.buildup.unbal[[1]])
+```
+
+### Model 2
+```{r}
+summary(est.p.buildup.unbal[[2]])
+```
+
+### Model 3
+```{r}
+summary(est.p.buildup.unbal[[3]])
+```
+
+### Model 4
+```{r}
+summary(est.p.buildup.unbal[[4]])
+```
+
+### Model 5
+```{r}
+summary(est.p.buildup.unbal[[5]])
+```
+
+### Model 6
+```{r}
+summary(est.p.buildup.unbal[[6]])
+```
+
+### Model 7
+```{r}
+summary(est.p.buildup.unbal[[7]])
+```
+
+### Model 8
+```{r}
+summary(est.p.buildup.unbal[[8]])
+```
+
+
+## Network diagnostics
+
+### Model 1
+```{r}
+(dx_pers1 <- netdx(est.p.buildup.unbal[[1]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.p.buildup.unbal[[8]]$formation))
+plot(dx_pers1, type="formation")
+plot(dx_pers1, type="duration")
+plot(dx_pers1, type="dissolution")
+```
+
+### Model 2
+```{r}
+(dx_pers2 <- netdx(est.p.buildup.unbal[[2]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.p.buildup.unbal[[8]]$formation))
+plot(dx_pers2, type="formation")
+plot(dx_pers2, type="duration")
+plot(dx_pers2, type="dissolution")
+```
+
+### Model 3
+```{r}
+(dx_pers3 <- netdx(est.p.buildup.unbal[[3]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.p.buildup.unbal[[8]]$formation))
+plot(dx_pers3, type="formation")
+plot(dx_pers3, type="duration")
+plot(dx_pers3, type="dissolution")
+```
+
+### Model 4
+```{r}
+(dx_pers4 <- netdx(est.p.buildup.unbal[[4]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.p.buildup.unbal[[8]]$formation))
+plot(dx_pers4, type="formation")
+plot(dx_pers4, type="duration")
+plot(dx_pers4, type="dissolution")
+```
+
+### Model 5
+```{r}
+(dx_pers5 <- netdx(est.p.buildup.unbal[[5]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.p.buildup.unbal[[8]]$formation))
+plot(dx_pers5, type="formation")
+plot(dx_pers5, type="duration")
+plot(dx_pers5, type="dissolution")
+```
+
+### Model 6
+```{r}
+(dx_pers6 <- netdx(est.p.buildup.unbal[[6]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.p.buildup.unbal[[8]]$formation))
+plot(dx_pers6, type="formation")
+plot(dx_pers6, type="duration")
+plot(dx_pers6, type="dissolution")
+```
+
+### Model 7
+```{r}
+(dx_pers7 <- netdx(est.p.buildup.unbal[[7]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.p.buildup.unbal[[8]]$formation))
+plot(dx_pers7, type="formation")
+plot(dx_pers7, type="duration")
+plot(dx_pers7, type="dissolution")
+```
+
+### Model 8
+```{r}
+(dx_pers8 <- netdx(est.p.buildup.unbal[[8]], nsims = 10, nsteps = 1000, ncores = 4))
+plot(dx_pers8, type="formation")
+plot(dx_pers8, type="duration")
+plot(dx_pers8, type="dissolution")
+```
