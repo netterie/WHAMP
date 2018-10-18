@@ -29,6 +29,11 @@
     load(file="Data/prop_msmbyregion.Rdata")
     load(file="Data/plwha_age.Rdata")
     load(file="Data/plwha_hboXregion.Rdata")
+    load(file = "Data/whpp_artnet.Rdata")
+    load(file = "/homes/dpwhite/win/project/MMP_WADOH/whpp_mmp.Rdata")
+    load(file="/homes/dpwhite/win/project/MMP_WADOH/mmp_reweighted.Rdata")
+
+
     
 
 # Set options
@@ -41,7 +46,7 @@ The statistics in this file are based on the total number of reported instantane
 
 To account for differential missingness in data on the number of one-time partners in the past 12 months in the WHPP survey (the ART-Net sample was defined to include only complete entries), we impute values for respondents with missing data using data from respondents of the same race/ethnicity, region, and age group. We do this by defining a restricted sample of people who had complete data on the number of one-time partners and main and persistent momentary degree.^[Because we define the rate of one-time partners stratified by main/persistent degree, we need to define the sample as those with non-missing data on all three variables. Only `r sum(!is.na(sample$deg_matrix) & is.na(sample$rate_inst))` people had missing data on the rate of one-time partners who did not have missing data on main/persistent degree, and `r sum(is.na(sample$deg_matrix) & !is.na(sample$rate_inst))` had missing data on main/pers degree who did not have missing data on the number of one-time partners.] We then rake this restricted sample to the joint distribution of race/ethnicity and region and simultaneously to the marginal distribution by age among Washington males without diagnosed HIV (see section \@ref(reweight) for details on this approach). This approach assumes that there is non-differential missingness. It ensures that the rate of instantaneous partnerships defined by main/persistent degree and age are consistent and imply the same total number of partnerships (see [issue 39](https://github.com/statnet/WHAMP/issues/39)). 
 
-We will define the rate of instantaneous partnerships by main/persistent degree and age. We also define stratified rates by race/ethnicity and region for use in calculating mixing (`nodematch`) target statistics and for `nodefactor` target statistics (which are needed for interpretation of the mixing terms).
+We will define the rate of instantaneous partnerships by main/persistent degree and age. We also define stratified rates by race/ethnicity and region for use in calculating mixing (`nodematch`) target statistics and for `nodefactor` target statistics (which are needed for interpretation of the mixing terms). Because balancing the mixing matrices changes the race/ethnicity-specific rates of partnerships, we define the racial/ethnic group-specific rates of instantaneous partnerships both using the original unadjusted data, and after accounting for the balanced mixing matrices to ensure that the implied number of partnerships for each group and the total network are consistent (see section \@ref(degree)).
 
 ```{r, impute}
 #-----------------------------------------------------------------------------------
@@ -256,19 +261,55 @@ To capture heterogeneity in the rate of instantaneous partnerships by age, we de
 ```
 
 ## Instantaneous partnerships by race/ethnicity
+The tables below show the rate of instantaneous partnerships by race/ethcnity with and without adjustment to align with balanced mixing matrices.
 ```{r rate_instXhbo}
-means.hbo <- svyby(~rate_inst, ~hbo, inst.full, svymean, na.rm=TRUE)
-meansXhbo <- cbind.data.frame("Race" = means.hbo$hbo, "Mean" = round(means.hbo$rate_inst, 6))
 
-#Reorder race var to alphabetical order
-meansXhbo$Race <- factor(meansXhbo$Race, levels = c("Black", "Hispanic", "Other"))
-meansXhbo <- meansXhbo %>% arrange(Race)
+# MEANS WITHOUT ADJUSTMENT ----
+    means.hbo <- svyby(~rate_inst, ~hbo, inst.full, svymean, na.rm=TRUE)
+    meansXhbo <- cbind.data.frame("Race" = means.hbo$hbo, "Mean" = round(means.hbo$rate_inst, 6))
+    
+    #Reorder race var to alphabetical order
+    meansXhbo$Race <- factor(meansXhbo$Race, levels = c("Black", "Hispanic", "Other"))
+    meansXhbo <- meansXhbo %>% arrange(Race)
 
-#Make kable
-kable(meansXhbo, caption="Mean rate of instantaneous partnerships per day by racial/ethnic group", digits=c(6)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1:2, width = "4cm")
+# CALCULATE MEANS WITH ADJUSTMENT----
+    ## Conditional row probabilities - using data from both ongoing persistent and most recent one-time partners
+    racemix_inst <- prop.table(svytable(~hbo + mrp_hbo, whpp_mmp[whpp_mmp$variables$mrp_type_mix %in% c("Persistent", "Instantaneous")], round=FALSE),1)
 
-#save means
+    ## Rate of instantaneous partnerships by race 
+    rateinstXrace <- means.hbo[2]
+  
+    ## N by race in reweighted sample (scaled back to the size of the original sample)
+    nXrace <- svytable(~hbo, whpp_artnet, Ntotal=(dim(sample)[1] + dim(mmp_rake$variables)[1]), round=FALSE)
+  
+    ## Reweighted mixing matrix, accounting for mean degree
+      racemix_inst_rwt <- matrix(c(racemix_inst[1,]*rateinstXrace[1,1]*nXrace[1], racemix_inst[2,]*rateinstXrace[2,1]*nXrace[2], racemix_inst[3,]*rateinstXrace[3,1]*nXrace[3]), byrow=TRUE, nrow=3)
+      racemix_inst_rwt <- as.data.frame(racemix_inst_rwt, row.names=c("Hispanic", "Black", "Other"))
+      names(racemix_inst_rwt) <- c("Hispanic", "Black", "Other")
+ 
+    ## Take average of off-diagonals to balance
+      racemix_inst_bal <- as.data.frame(matrix(c("HH"=racemix_inst_rwt[1,1], "HB" = mean(c(racemix_inst_rwt[1,2], racemix_inst_rwt[2,1])), "HO" = mean(c(racemix_inst_rwt[1,3], racemix_inst_rwt[3,1])), "BH" = mean(c(racemix_inst_rwt[1,2], racemix_inst_rwt[2,1])), "BB" = racemix_inst_rwt[2,2], "BO" = mean(c(racemix_inst_rwt[2,3], racemix_inst_rwt[3,2])), "OH" = mean(c(racemix_inst_rwt[1,3], racemix_inst_rwt[3,1])), "OB" = mean(c(racemix_inst_rwt[2,3], racemix_inst_rwt[3,2])), "OO" = racemix_inst_rwt[3,3]), nrow=3, ncol=3, byrow=TRUE, dimnames=list(c("Hispanic", "Black", "Other"), c("Hispanic", "Black", "Other"))))    
+    
+    ## save
+      race_mixing_inst <- list("racemix_inst_rwt" = racemix_inst_rwt, "racemix_inst_bal" = racemix_inst_bal)
+      save(race_mixing_inst, file="Data/race_mixing_inst.Rdata")
+      
+    # Obtain mean degree from balanced matrices
+    meansXhbo_adj <- cbind.data.frame("Race" = rownames(racemix_inst_bal), "Mean" = c(sum(racemix_inst_bal[1,])/nXrace[1], sum(racemix_inst_bal[2,])/nXrace[2], sum(racemix_inst_bal[3,])/nXrace[3]))
+
+    # Reorder race var to alphabetical order
+    meansXhbo_adj$Race <- factor(meansXhbo_adj$Race, levels = c("Black", "Hispanic", "Other"))
+        meansXhbo_adj <- meansXhbo_adj %>% arrange(Race)
+
+# Combine
+    meansXhbo <- cbind.data.frame("Race" = meansXhbo$Race, "Unbalanced" = meansXhbo$Mean, "Balanced" = meansXhbo_adj$Mean)
+
+# Make kable
+kable(meansXhbo, col.names=c("Race/ethnicity", "Unbalanced mean", "Balanced mean"), caption="Mean rate of instantaneous partnerships per day by racial/ethnic group", digits=c(6,6,6)) %>% kable_styling(full_width=F, position="center") %>% column_spec(2:3, width = "4cm")
+
+# save means
 save(meansXhbo, file="Data/rate_inst_hbo.Rdata")
+
 ```
 
 ## Instantaneous partnerships by region
