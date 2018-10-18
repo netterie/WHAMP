@@ -170,5 +170,5 @@ st <- calc_nwstats_msm_whamp(
   asmr.O..wa = asmr.O..wa,
   role.prob = role.prob)
 
-save(st, file = "/homes/dpwhite/R/GitHub Repos/WHAMP/WHAMP scenarios/est/nwstats.unbalanced.whamp.rda")
+save(st, file = "/homes/dpwhite/R/GitHub Repos/WHAMP/Model fits and simulations/est/nwstats.unbalanced.whamp.rda")
 rm(list = ls())
