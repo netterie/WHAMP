@@ -16,7 +16,7 @@ library("knitr")
 library("kableExtra")
 library("here")
 
-load(file = here("Model fits and simulations/Fit tests and debugging/est/fit.p.buildup.bal.rda")
+load(file = here("Model fits and simulations/Fit tests and debugging/est/fit.p.buildup.bal.rda"))
 
 ```
 
