@@ -7,7 +7,7 @@ library("parallel")
 np <- detectCores()
 
 # Indicate whether using the balanced or unbalanced target stats
-balanced = 0
+balanced = 1
 
 # Load the appropriate file (balanced or unbalanced)
 if (balanced == 1) {
@@ -211,7 +211,7 @@ nw.inst <- nw.main
   # Formulas
   formation.i7 <- ~edges +
                     nodefactor(c("deg.main", "deg.pers")) +
-                    nodefactor("riskg") +
+                    nodefactor("riskg", base=8) +
                     nodefactor("race..wa", base=3) + 
                     nodefactor("region", base=2) +
                     nodematch("race..wa", diff=TRUE) +
@@ -240,7 +240,7 @@ nw.inst <- nw.main
   # Formulas
   formation.i8 <- ~edges +
                     nodefactor(c("deg.main", "deg.pers")) +
-                    nodefactor("riskg") +
+                    nodefactor("riskg", base=8) +
                     nodefactor("race..wa", base=3) + 
                     nodefactor("region", base=2) +
                     nodematch("race..wa", diff=TRUE) +
