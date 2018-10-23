@@ -52,8 +52,8 @@ mdeg.inst <- matrix(c(0.015521, 0.006713, 0.024792,
                       0.007272, 0.011021, 0.034444), byrow = TRUE, nrow = 2) 
 
 # Quintile distribution of overall instantaneous AI rates
-qnts.18to49 <- c(0.0001, 0.000608, 0.005247, 0.056484) #set to 0.0001 if 0 to give non-zero prob
-qnts.50to59 <- c(0.0001, 0.0001, 0.00171, 0.027315)  #set to 0.0001 if 0 to give non-zero prob
+qnts.18to49 <- c(0.0000, 0.000608, 0.005247, 0.056484) #alternative is to set to 0.0001 if 0 to give non-zero prob
+qnts.50to59 <- c(0.0000, 0.0000, 0.00171, 0.027315)  #alternative is to set to 0.0001 if 0 to give non-zero prob
 
 # Mean rate of instantaneous partnerships by race (black, Hispanic, other)
 inst.bho <- c(0.017761, 0.019732, 0.012586)
