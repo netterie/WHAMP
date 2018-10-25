@@ -43,8 +43,8 @@ deg.mp.B <- matrix(sumto1(c(0.4525, 0.0948, 0.101,
                             0.2429, 0.0448, 0.064)), byrow = TRUE, nrow = 2)
 deg.mp.O <- matrix(sumto1(c(0.414, 0.0645, 0.0789, 
                             0.3475, 0.0342, 0.0609)), byrow = TRUE, nrow = 2)
-deg.m.region <- sumto1(c(0.0994, 0.6153, 0.2852)) # EW, KC, OW
-deg.p.region <- sumto1(c(0.0911, 0.6159, 0.293)) # EW, KC, OW
+deg.m.region <- sumto1(c(0.1044, 0.5678, 0.3278)) # EW, KC, OW
+deg.p.region <- sumto1(c(0.1052, 0.5695, 0.3253)) # EW, KC, OW
 
 # Instantaneous partner rates (Mean rate (degree) of inst partnerships per day by momentary main/pers degree)
   # (order: 0 main 0 pers, 0 main 1 pers, 0 main 2+ pers, 1 main 0 pers, 1 main 1 pers, 1 main 2+ pers)
