@@ -1,4 +1,5 @@
 # Mixing by age, race, and region (#notes_mixing)
+This file examines balance in sexual mixing by race and age using data from participants in the WHPP survey. For this analysis, the data are re-weighted to match the population distributions for race by region and age among negative/unknown-status men (see section \@ref(reweight)), but scaled back to the survey sample size. Note that these tables show patterns of mixing with the most recent partner only; some men had more than one parter of a given type, but we do not have information on the characteristics of partners who were not the most recent. For calculation of target statistics in the model, we will weight these matrices by mean degree, making the assumption that mixing with the unobserved ties follows the same pattern as mixing with the observed ties (see \@ref(racemixing).
 
 ```{r, include=FALSE}
 ####################################################################################
@@ -84,7 +85,6 @@ theme_title <- theme(plot.title = element_text(hjust = 0.5, size=12))
     
         
 ```
-This file examines balance in sexual mixing by race and age in data from participants in the WHPP survey. For this analysis, the data are re-weighted to match the population distributions for race by region and age among negative/unknown-status men (see section \@ref(reweight)), but scaled back to the survey sample size. Note that these tables show patterns of mixing with the most recent partner only; some men had more than one parter of a given type, but we do not have information on the characteristics of partners who were not the most recent. For calculation of target statistics in the model, we will weight these matrices by mean degree, making the assumption that mixing with the unobserved ties follows the same pattern as mixing with the observed ties (see \@ref(racemixing).
 
 ## Observed race mixing
 In the internet survey, we observed the following partnership counts for main, persistent, and one-off partnerships by dyad race. 
