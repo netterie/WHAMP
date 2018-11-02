@@ -14,8 +14,9 @@ suppressMessages(library("EpiModelHIV"))
 library("latticeExtra")
 library("knitr")
 library("kableExtra")
+library("here")
 
-load(file = "/homes/dpwhite/R/GitHub Repos/WHAMP/Model fits and simulations/Fit tests and debugging/est/fit.p.buildup.unbal.rda")
+load(file = here("Model fits and simulations/Fit tests and debugging/est/fit.p.buildup.unbal.rda"))
 
 ```
 
@@ -129,7 +130,7 @@ summary(est.p.buildup.unbal[[8]])
 
 ### Model 1
 ```{r}
-(dx_pers1 <- netdx(est.p.buildup.unbal[[1]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.p.buildup.unbal[[8]]$formation))
+(dx_pers1 <- netdx(est.p.buildup.unbal[[1]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.p.buildup.unbal[[8]]$formation, set.control.stergm = control.simulate.network(MCMC.burnin.min = 1e+6, MCMC.burnin.max = 1e+6)))
 plot(dx_pers1, type="formation")
 plot(dx_pers1, type="duration")
 plot(dx_pers1, type="dissolution")
@@ -145,7 +146,7 @@ plot(dx_pers2, type="dissolution")
 
 ### Model 3
 ```{r}
-(dx_pers3 <- netdx(est.p.buildup.unbal[[3]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.p.buildup.unbal[[8]]$formation))
+(dx_pers3 <- netdx(est.p.buildup.unbal[[3]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.p.buildup.unbal[[8]]$formation, set.control.stergm = control.simulate.network(MCMC.burnin.min = 1e+6, MCMC.burnin.max = 1e+6)))
 plot(dx_pers3, type="formation")
 plot(dx_pers3, type="duration")
 plot(dx_pers3, type="dissolution")
@@ -153,7 +154,7 @@ plot(dx_pers3, type="dissolution")
 
 ### Model 4
 ```{r}
-(dx_pers4 <- netdx(est.p.buildup.unbal[[4]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.p.buildup.unbal[[8]]$formation))
+(dx_pers4 <- netdx(est.p.buildup.unbal[[4]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.p.buildup.unbal[[8]]$formation, set.control.stergm = control.simulate.network(MCMC.burnin.min = 1e+6, MCMC.burnin.max = 1e+6)))
 plot(dx_pers4, type="formation")
 plot(dx_pers4, type="duration")
 plot(dx_pers4, type="dissolution")
@@ -161,7 +162,7 @@ plot(dx_pers4, type="dissolution")
 
 ### Model 5
 ```{r}
-(dx_pers5 <- netdx(est.p.buildup.unbal[[5]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.p.buildup.unbal[[8]]$formation))
+(dx_pers5 <- netdx(est.p.buildup.unbal[[5]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.p.buildup.unbal[[8]]$formation, set.control.stergm = control.simulate.network(MCMC.burnin.min = 1e+6, MCMC.burnin.max = 1e+6)))
 plot(dx_pers5, type="formation")
 plot(dx_pers5, type="duration")
 plot(dx_pers5, type="dissolution")
@@ -169,7 +170,7 @@ plot(dx_pers5, type="dissolution")
 
 ### Model 6
 ```{r}
-(dx_pers6 <- netdx(est.p.buildup.unbal[[6]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.p.buildup.unbal[[8]]$formation))
+(dx_pers6 <- netdx(est.p.buildup.unbal[[6]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.p.buildup.unbal[[8]]$formation, set.control.stergm = control.simulate.network(MCMC.burnin.min = 1e+6, MCMC.burnin.max = 1e+6)))
 plot(dx_pers6, type="formation")
 plot(dx_pers6, type="duration")
 plot(dx_pers6, type="dissolution")
@@ -177,7 +178,7 @@ plot(dx_pers6, type="dissolution")
 
 ### Model 7
 ```{r}
-(dx_pers7 <- netdx(est.p.buildup.unbal[[7]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.p.buildup.unbal[[8]]$formation))
+(dx_pers7 <- netdx(est.p.buildup.unbal[[7]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.p.buildup.unbal[[8]]$formation, set.control.stergm = control.simulate.network(MCMC.burnin.min = 1e+6, MCMC.burnin.max = 1e+6)))
 plot(dx_pers7, type="formation")
 plot(dx_pers7, type="duration")
 plot(dx_pers7, type="dissolution")
@@ -185,7 +186,7 @@ plot(dx_pers7, type="dissolution")
 
 ### Model 8
 ```{r}
-(dx_pers8 <- netdx(est.p.buildup.unbal[[8]], nsims = 10, nsteps = 1000, ncores = 4))
+(dx_pers8 <- netdx(est.p.buildup.unbal[[8]], nsims = 10, nsteps = 1000, ncores = 4, set.control.stergm = control.simulate.network(MCMC.burnin.min = 1e+6, MCMC.burnin.max = 1e+6)))
 plot(dx_pers8, type="formation")
 plot(dx_pers8, type="duration")
 plot(dx_pers8, type="dissolution")
