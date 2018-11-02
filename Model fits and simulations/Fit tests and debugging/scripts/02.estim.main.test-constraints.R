@@ -9,7 +9,6 @@
 rm(list = ls())
 suppressMessages(library("EpiModelHIV"))
 library("parallel")
-library("here")
 np <- detectCores()
 
 # Indicate whether using the balanced or unbalanced target stats
@@ -17,9 +16,9 @@ balanced = 1
 
 # Load the appropriate file (balanced or unbalanced)
 if (balanced == 1) {
-  load(file = here("Model fits and simulations/est/nwstats.balanced.whamp.rda"))
+  load(file = "/homes/dpwhite/R/GitHub Repos/WHAMP/Model fits and simulations/est/nwstats.balanced.whamp.rda")
 } else {
-  load(file = here("Model fits and simulations/est/nwstats.unbalanced.whamp.rda"))
+  load(file = "/homes/dpwhite/R/GitHub Repos/WHAMP/Model fits and simulations/est/nwstats.unbalanced.whamp.rda")
 }
 
 # Initialize main network and assign degree -----------------------------------------------------------
@@ -123,12 +122,3 @@ fit.m4 <- netest(nw.main,
                                                  MCMLE.maxit = 400,
                                                  parallel = np/4, 
                                                  parallel.type="PSOCK"))
-
-# Save fits ---------------------------------------------------------------
-if (balanced == 1) {
-  est.m.testconstraints.bal <- list(fit.m1, fit.m2, fit.m3, fit.m4)
-  save(est.m.buildup.bal, file = here("Model fits and simulations/Fit tests and debugging/est/fit.m.testconstraints.bal.rda"))
-} else {
-  est.m.testconstraints.unbal <- list(fit.m1, fit.m2, fit.m3, fit.m4)
-  save(est.m.buildup.unbal, file = here("Model fits and simulations/Fit tests and debugging/est/fit.m.testconstraints.unbal.rda"))
-}
