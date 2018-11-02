@@ -18,27 +18,48 @@
     library("knitr")
     library("kableExtra")
     library("reshape2")
+    library("here")
 
 #-----------------------------------------------------------------------------------
 # Load data
 #-----------------------------------------------------------------------------------
     load(file="Data/InternetSurveySample.Rdata")
     load(file="Data/InternetSurveySample_allages.Rdata")
-    load(file="Data/census_agebyregion.Rdata")
-    load(file="Data/census_racebyregion.Rdata")
-    load(file="Data/census_totalbyregion.Rdata")
-    load(file="Data/wa_msm_est2013.Rdata")
-    load(file="Data/msmbyregion.Rdata")
-    load(file="Data/prop_msmbyregion.Rdata")
-    load(file="Data/InternetSurvey_reweighted_all.Rdata")
-    load(file="Data/InternetSurvey_reweighted_neg.Rdata")
-    load(file="Data/plwha_age.Rdata")
-    load(file="Data/plwha_hboXregion.Rdata")
+    load(file="Data/pop.totals.Rdata")
+    
+    pop.region.all <- pop.totals$pop.region.all
+    pop.region.neg <- pop.totals$pop.region.neg
+    pop.region.pos <- pop.totals$pop.region.pos
+    
+    pop.age.all_5yrage <- pop.totals$pop.age.all_5yrage
+    pop.age.all <- pop.totals$pop.age.all
+    pop.age.neg <- pop.totals$pop.age.neg
+    pop.age.pos <- pop.totals$pop.age.pos
+    
+    pop.hbo.all <- pop.totals$pop.hbo.all
+    pop.hbo.neg <- pop.totals$pop.hbo.neg
+    pop.hbo.pos <- pop.totals$pop.hbo.pos
+    
+    pop.hboregion.all <- pop.totals$pop.hboregion.all
+    pop.hboregion.neg <- pop.totals$pop.hboregion.neg
+    pop.hboregion.pos <- pop.totals$pop.hboregion.pos
 
     
 # Set options
     opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
     options(knitr.table.format = "html") 
+    
+#-----------------------------------------------------------------------------------
+# set plot settings 
+#-----------------------------------------------------------------------------------
+    
+    #White background and light grey lines
+    plot_background_nogrid <- theme(panel.background = element_rect(fill="white", colour = "black")) 
+    #Darken colors
+    darken_color <- scale_colour_hue(l=50)
+    #Title size to 12 and center it 
+    theme_title <- theme(plot.title = element_text(hjust = 0.5, size=12)) 
+    
     
 ```
 
@@ -52,12 +73,12 @@ Prior to launching the Washington HIV Prevention Project (WHPP), the majority of
 To define the distribution of nodes in the network by region, we need to know the distribution of MSM by region in the population. To estimate this, we used data from a 2016 analysis by @Grey2016 that estimated the sizes of the MSM population by state and county.^[County-level data were obtained from [Emory's Coalition for Applied Modeling for Prevention (CAMP) website](http://www.emorycamp.org/item.php?i=48)] After aggregating these county-level estimates to obtain the proportion of males who are MSM by region, we calculated the total number of MSM in each region by multiplying these proportions by the number of males aged 18 to 59 recorded in the 2011-2015 American Community Survey (ACS) 5-year estimates [@WA-census].^[Data were downloaded from the American FactFinder using the Guided Search. I selected the option "I'm looking for information about people", then under topics I selected Age and Sex from the "Age & Sex" menu. For Geographies, I selected County as the geographic type, Washington as the state, clicked "All counties within Washington," and added my selection. For Race/Ethnic Groups, I clicked "Select from detailed groups", and added the following to my selection: Total population (code 001), Hispanic or Latino (of any race)(200-299) (code 400), White alone, not Hispanic or Latino (code 451), Black or African American alone, not Hispanic or Latino (code 453), Black or African American alone or in combination with one or more other races, not Hispanic or Latino (code 454), American Indian and Alaska Native alone, not Hispanic or Latino (code 455), Asian alone, not Hispanic or Latino (code 457), Native Hawaiian and Other Pacific Islander alone, not Hispanic or Latino (code 459), Some other race alone, not Hispanic or Latino (code 461), Two or more races, not Hispanic or Latino (code 463), Black or African American alone, Hispanic or Latino (code 466), and Black or African American alone or in combination with one or more other races, Hispanic or Latino (code 467). I selected the latter two to look at how many men identified as Hispanic and reported black race. From the available tables, I clicked "SEX BY AGE", table ID B01001, and downloaded it with the option to use the data, with both options selected.] 
 
 ```{r region}
-    #Calculate the distribution from the re-weighted WHPP sample, with weights to adjust it to the population totals for all MSM
-    region_dist <- cbind.data.frame("Region" = c("King County", "Other Western WA", "Eastern WA"), 
-                                    "Proportion" = as.vector(prop.table(svytable(~region, sample_rake_all, round=TRUE))))
+    # calculate proportion
+    pop.region.all$percent <- pop.region.all$total / sum(pop.region.all$total)
+    region.dist <- pop.region.all %>% select(-total)
     
     #Make table
-    kable(region_dist, col.names=c("Region", "Proportion"), digits=c(0, 3), caption="Regional distribution among Washington MSM") %>% kable_styling(full_width=F, position="center") %>% column_spec(1:2, width = "10em") 
+    kable(region.dist, col.names=c("Region", "Proportion"), digits=c(0, 3), caption="Regional distribution among Washington MSM") %>% kable_styling(full_width=F, position="center") %>% column_spec(1:2, width = "10em") 
 ```
 
 ## Age {#age}
@@ -80,12 +101,14 @@ kable(agetable, col.names=c("Age group", "Frequency", "Percent"), digits=c(0, 0,
 The age distribution of the network will be set to match the age distribution of all Washington males aged 18-59 by region, based on the 2011-2015 American Community Survey 5-year Estimates [@WA-census]. This assumes that the age composition of MSM is similar to the age composition of all males. Of course, there may be differences due to migration patterns, varying ages of MSM sexual debut, and/or cessation of sexual activity with males at older ages, but we lack reliable data to inform this. We then applied the percent of males who are MSM estimated by @Grey2016 to these ACS population data such that, when aggregated to the state level, we will account for differeces in the age composition by region. This assumes that the proportion of males who are MSM in each region is the same across age groups. Table \@ref(tab:agedist_pop) presents the resulting age distributions for MSM in Washington.
 
 ```{r agedist_pop}
-    #Calculate the distribution from the re-weighted WHPP sample, with weights to adjust it to the population totals for all MSM
-    age_dist <- cbind.data.frame("Age group" = c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"), 
-                                    "Proportion" = as.vector(prop.table(svytable(~age_cat_alt, sample_rake_all, round=TRUE))))
+   # Calculate the proportion
+    pop.age.all$percent <- pop.age.all$Freq / sum(pop.age.all$Freq)
+    age.dist <- pop.age.all %>% select(-Freq)
     
     #Make table
-    kable(age_dist, col.names=c("Age group", "Proportion"), digits=c(0, 3), caption="Age distribution among Washington MSM") %>% kable_styling(full_width=F, position="center") %>% column_spec(1:2, width = "10em") 
+    kable(age.dist, col.names=c("Age group", "Proportion"), digits=c(0, 3), caption="Age distribution among Washington MSM") %>% kable_styling(full_width=F, position="center") %>% column_spec(1:2, width = "10em") 
+    
+     ggplot(pop.age.all_5yrage) + geom_col(aes(x=age_cat, y=Freq)) + plot_background_nogrid + theme_title + labs(x="Age group", y="Percentage", title="Age distribution") + theme(axis.text = element_text(size=12, color = "black"), axis.title = element_text(size=13), plot.title = element_text(size=15))
 ```
 
 ## Race/ethnicity {#race}
@@ -99,15 +122,30 @@ knitr::include_graphics(rep("Images/HIV prevalence by race.png"))
 The challenges with representing racial/ethnic heterogeneity in the model are that the model complexity grows with each additional attribute level defined by the model, and there are small numbers of observations in the WHPP survey and other datasets for minority racial groups. However, exploratory analysis of the data from the WHPP survey revealed potentially important differences in network structure and behavior between black, Hispanic, and other men <span style="color:green">(see section @ref(ADDLABEL)</span>. From these exploratory analyses, we decided to define the following race/ethnicity groups: Hispanic (of all races), non-Hispanic black (including men who reported black race alone or in combination with another race)^[While men who report black race in combination with another race may be distinct from men who report black race alone, we decided to combine these two groups as there is not enough data to support defining them separately, and the alternative is to categorize men who reported black race in combination with one or more other races in the group with whites and men of other non-Hispanic races. In support of this decision, there is evidence in the literature that multiracial men with some black/African American ancestry identify more closely with and have experiences more similar to black men than to their other racial groups. @Gullickson2011 used data from the 1990 and 2000 US census to look at the racial identity reported by individuals who reported ancestral descent from two or more groups. In 1990, individuals could only choose one race group, and in 2000 they could choose more than one. In the 2000 census, those who reported part-black ancestry were more likely to identify as black alone, followed by identification as multiracial. They authors argue that this provides evidence of a pattern of "hypodescent," meaning that individuals are assigned/identify with the 'lower-status' of their ancestral groups. In 1990, when individuals could choose only one race group, the vast majority of those with part-black ancestry identified as black. Additionally, a Pew Research Center Survey [@pew2015] reported that 69% of multiracial adults with a black background think most people would view them as black, and they generally report experiences and attitudes more similar to blacks than others. Persons who report a multiracial background including black report experiences of discrimination similar to those who report black race alone. Among those who report black and white races in combination, 58% say they have more in common with blacks and 18% say they have more in common with whites. They are also more likely to report feeling accepted by blacks than whites, and having more contact with black relatives], and non-Hispanic other (including men who listed any other non-Hispanic race). For the remainder of this document, these groups will be referred to as Hispanic, black, and other. 
 
 ### Racial/ethnic distribution {#racedist}
-As with age, we lack population-based data on the racial/ethnic distribution of the MSM population in Washington, so we assume the distribution of all males in Washington corresponds to the distribution of MSM. Because the regions in Washington are demographically diverse, we will represent the distribution separately in each region. We calculated the racial/ethnic distribution of MSM by region by applying the estimated percent of males who are MSM in each region [@Grey2016] to 2011-2015 ACS data on the size and racial composition of the male population aged 18-59 in each region [@WA-census]. This assumes that the proportion of males who are MSM is the same across racial/ethnic groups. Table \@ref(tab:racebyregion) presents the resulting racial/ethnic distributions.
+As with age, we lack population-based data on the racial/ethnic distribution of the MSM population in Washington, so we assume the distribution of all males in Washington corresponds to the distribution of MSM. Because the regions in Washington are demographically diverse, we will represent the distribution separately in each region. We calculated the racial/ethnic distribution of MSM by region by applying the estimated percent of males who are MSM in each region [@Grey2016] to 2011-2015 ACS data on the size and racial composition of the male population aged 18-59 in each region [@WA-census]. This assumes that the proportion of males who are MSM is the same across racial/ethnic groups. Table \@ref(tab:racebyregion) presents the resulting racial/ethnic distribution with the full racial groups, and table \@ref(tab:hbobyregion) presents the distribution after collapsing race/ethnicity into the Hispanic, Black, and Other categories.
 
 ```{r racebyregion}
+# Calculate proportions
+race.dist <- pop.fullrace.all %>% select(-total)
 
- #Calculate the distribution from the re-weighted WHPP sample, with weights to adjust it to the population totals for all MSM
-    raceregion_dist <- cbind.data.frame("Race_ethnicity" = c(rep(c("Hispanic", "Black", "Other"), 3)), 
-                                    "Proportion" = as.vector(prop.table(svytable(~hbo + region, sample_rake_all, round=TRUE), 2)))
-    
 #Make table
-    kable(raceregion_dist, col.names=c("Race/ethnicity", "Proportion"), digits=c(0, 3), caption="Racial/ethnic distribution by region among Washington MSM") %>% kable_styling(full_width=F, position="center") %>% group_rows("King County", 1, 3) %>% group_rows("Other Western WA", 4, 6) %>% group_rows("Eastern WA", 7, 9) %>% column_spec(1:2, width = "10em") 
+    kable(race.dist, col.names=c("Race/ethnicity", "Proportion"), digits=c(0, 3), caption="Racial/ethnic distribution among Washington MSM") %>% kable_styling(full_width=F, position="center") %>% column_spec(1:2, width = "10em") 
+    ```
+```{r hbobyregion}
+# Calculate proportions
+pop.hbo.all$percent <- pop.hbo.all$Freq / sum(pop.hbo.all$Freq)
+hbo.dist <- pop.hbo.all %>% select(-Freq)
+
+#Make table
+    kable(hbo.dist, col.names=c("Race/ethnicity", "Proportion"), digits=c(0, 3), caption="Racial/ethnic distribution among Washington MSM") %>% kable_styling(full_width=F, position="center") %>% column_spec(1:2, width = "10em") 
+    ```
+
+The table below shows the distribution of race/ethnicity (grouped as Hispanic, Black, and Other) by region.
+```{r}
+pop.hboregion.all <- pop.hboregion.all %>% group_by(region) %>% mutate(percent = Freq / sum(Freq))
+pop.hboregion.all <- as.data.frame(pop.hboregion.all)
+hboregion.dist <- pop.hboregion.all %>% select(-region, -Freq)
+
+kable(hboregion.dist, col.names=c("Race/ethnicity", "Proportion"), digits=c(0, 3), caption="Racial/ethnic distribution by region among Washington MSM") %>% kable_styling(full_width=F, position="center") %>% group_rows("King County", 1, 3) %>% group_rows("Other Western WA", 4, 6) %>% group_rows("Eastern WA", 7, 9) %>% column_spec(1:2, width = "10em") 
 
 ```
