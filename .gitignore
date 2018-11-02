@@ -3,7 +3,7 @@
 .RData
 .Ruserdata
 *.Rproj
-.pdf
+*.pdf
 Parameter estimation_old
 *templates/
 data/
