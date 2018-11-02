@@ -41,6 +41,78 @@ plot_background <- theme(panel.background = element_rect(fill="white", colour = 
             theme(panel.grid.major = element_line(colour = "grey90"))
 theme_title <- theme(plot.title = element_text(hjust = 0.5, size=12)) 
 
+## Function to prepare mixing matrix data for plots
+mixplot_age <- function(mm){
+    
+    # make it long format
+    mm$ego <- rownames(mm)
+    
+    mm.l <- melt(mm, id="ego")
+    names(mm.l)[names(mm.l) == "variable"] <- "alter"
+    mm.l$ego <- as.numeric(mm.l$ego)
+    mm.l$alter <- as.numeric(as.character(mm.l$alter))
+    
+    ## Collapse to 5/10-year age groups
+    mm.l <- within(mm.l, {
+        ego.cat <- cut(ego, c(17, 24, 29, 34, 39, 49, 59), labels=c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"))
+        alter.cat <- cut(alter, c(17, 24, 29, 34, 39, 49, 59), labels=c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"))
+    })
+    
+    mm.agecat <- mm.l %>% group_by(ego.cat, alter.cat) %>% summarise(count = sum(value))
+    
+    # Cast back to wide format
+    obs <- dcast(mm.agecat, ego.cat ~ alter.cat, value.var = "count")
+    obs$ego.cat <- factor(obs$ego.cat, levels = c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"))
+    obs <- arrange(obs, ego.cat)
+    rownames(obs) <- obs$ego.cat
+    obs <- obs[,-1]
+
+    # Calculate alphaij terms (observed / expected cell counts)
+        nXn <- dim(obs)
+        alphaij <- matrix(rep(NA, nXn[1]*nXn[2]), nrow = nXn[1])
+        for(i in 1:nXn[1]){
+            for(j in 1:nXn[2]){
+                alphaij[i,j] <- obs[i,j] / ((sum(obs[i,])*sum(obs[,j]))/sum(obs))
+            }
+        }
+        alphaij <- as.data.frame(alphaij, row.names = rownames(obs))
+        names(alphaij) <- names(obs)
+        
+        # Convert to long format
+        alphaij <- cbind.data.frame("ego" = rownames(alphaij), alphaij)
+        alphaij_l <- melt(alphaij, id="ego")
+        alphaij_l$log_alphaij <- log(alphaij_l$value)
+        colnames(alphaij_l)[colnames(alphaij_l)=="variable"] <- "alter"
+        
+    # Observed mixing matrix as conditional row probabilities
+        probs <- data.frame(matrix(rep(NA, nXn[1]*nXn[2]), nrow = nXn[1]))
+        for(i in 1:nXn[1]){
+            probs[i,] <- obs[i,]/sum(obs[i,]) 
+        }
+        probs <- as.data.frame(probs, row.names = rownames(obs))
+        names(probs) <- names(obs)
+    
+        # Convert to long format
+        probs <- cbind.data.frame("ego" = rownames(probs), probs)
+        probs_l <- melt(probs, id="ego")
+        colnames(probs_l)[colnames(probs_l)=="variable"] <- "alter"
+        
+    # Combined object to plot
+        mm_plot <- cbind.data.frame(probs_l, alphaij = alphaij_l$value, log_alphaij = alphaij_l$log_alphaij)
+        
+        # Add column with proportion as percent to plot
+        mm_plot$label <- paste0(round(mm_plot$value*100, 1),"%")
+    
+        # Define variable outline to outline the on-diagonal points
+        mm_plot$ondiag <- ifelse(as.character(mm_plot$ego)==as.character(mm_plot$alter), 
+                                 mm_plot$value, NA)
+    
+    # Reorder levels of ego factor so on-diagonal goes from left to right
+        mm_plot$ego <- factor(mm_plot$ego, levels = rev(levels(mm_plot$ego)))
+    
+    return(mm_plot)
+}
+
 ```
 
 We will capture age mixing using a term to specify the absolute difference in the square root of ego and alter ages. Data on patterns of age mixing are from the WHPP sample and MMP^[MMP measured alter age in 5-year increments. Using the lower bound of the range for alter age yielded estimates of the absolute difference in the square root of ego and alter ages of 0.5442927,  0.8398329, and 0.813158 for main, persistent, and instantaneous partnerships, respectively. Using the midpoint of the range yielded estimates of 0.5383779, 0.8252217, and 0.7940946, and using the upper bound yielded estimates of 0.5351637, 0.8124105, 0.8180763. We use the mid-point of the range for target statistics. For comparison, using data from ART-Net and WHPP for age mixing, estimates were 0.5518785, 0.8413099, and 0.7753907.] samples, reweighted to Washington demographics. Since we only have data from the WHPP survey on the age of the most recent partner, we will restrict the MMP sample to the most recent partner as well, and weight the reported age mixing matrix in single years of age by the mean degree from the combined WHPP and ART-Net dataset. We will then take the averages of the off-diagonal terms to obtain a balanced matrix, which we will use to calculate the mean absolute difference between the square root of ego and alter ages. This approach is summarized below
@@ -177,6 +249,22 @@ kable(agemix_main_bal.kbl, align=c(rep("c", dim(agemix_main_bal.kbl)[2])), digit
 
 ```
 
+The plot below shows the balanced age mixing matrix, with age collapsed into 5- to 10-year age bins.
+```{r fig.align="center"}
+# PLOT BALANCED MIXING MATRIX
+
+main_bal_plot <- mixplot_age(agemix_main_bal)
+# Plot
+ggplot(main_bal_plot, aes(x=alter, y=ego)) + 
+    geom_point(aes(size = value), colour="steelblue2") + 
+    geom_point(aes(size = ondiag), colour = "black", shape = 1) + 
+    geom_text(aes(label = label), hjust=0.6, size=4) +
+    scale_size_continuous(range = c(1,30), guide = "none") + 
+    labs(x="Alter", y="Ego", title="Age mixing row conditional probabilities: Main") + 
+    plot_background + theme_title 
+
+```
+
 To calculate the target statistic, we take the absolute difference between the square root of each combination of ego and alter ages and weight it by the count in the corresponding cell in the balanced mixing matrix. We then take the mean of the non-zero weighted differences (because cells are zero if no partnerships of that age combination were reported, which should not be included), shown below.
 
 ```{r}
@@ -291,6 +379,23 @@ kable(agemix_pers_bal.kbl, align=c(rep("c", dim(agemix_pers_bal.kbl)[2])), digit
 
 ```
 
+The plot below shows the balanced age mixing matrix, with age collapsed into 5- to 10-year age bins.
+```{r fig.align="center"}
+# PLOT BALANCED MIXING MATRIX
+
+pers_bal_plot <- mixplot_age(agemix_pers_bal)
+
+# Plot
+ggplot(pers_bal_plot, aes(x=alter, y=ego)) + 
+    geom_point(aes(size = value), colour="steelblue2") + 
+    geom_point(aes(size = ondiag), colour = "black", shape = 1) + 
+    geom_text(aes(label = label), hjust=0.6, size=4) +
+    scale_size_continuous(range = c(1,30), guide = "none") + 
+    labs(x="Alter", y="Ego", title="Age mixing row conditional probabilities: Persistent") + 
+    plot_background + theme_title 
+
+```
+
 To calculate the target statistic, we take the absolute difference between the square root of each combination of ego and alter ages and weight it by the count in the corresponding cell in the balanced mixing matrix. We then take the mean of the non-zero weighted differences (because cells are zero if no partnerships of that age combination were reported, which should not be included), shown below.
 
 ```{r}
@@ -396,6 +501,24 @@ kable(agemix_inst_bal.kbl, align=c(rep("c", dim(agemix_inst_bal.kbl)[2])), digit
 
 ```
 
+The plot below shows the balanced age mixing matrix, with age collapsed into 5- to 10-year age bins.
+```{r fig.align="center"}
+# PLOT BALANCED MIXING MATRIX
+
+inst_bal_plot <- mixplot_age(agemix_inst_bal)
+
+# Plot
+ggplot(inst_bal_plot, aes(x=alter, y=ego)) + 
+    geom_point(aes(size = value), colour="steelblue2") + 
+    geom_point(aes(size = ondiag), colour = "black", shape = 1) + 
+    geom_text(aes(label = label), hjust=0.6, size=4) +
+    scale_size_continuous(range = c(1,30), guide = "none") + 
+    labs(x="Alter", y="Ego", title="Age mixing row conditional probabilities: Instantaneous") + 
+    plot_background + theme_title 
+
+```
+
+
 To calculate the target statistic, we take the absolute difference between the square root of each combination of ego and alter ages and weight it by the count in the corresponding cell in the balanced mixing matrix. We then take the mean of the non-zero weighted differences (because cells are zero if no partnerships of that age combination were reported, which should not be included), shown below.
 
 ```{r}
@@ -421,3 +544,66 @@ for(i in 1:dim(agemix_inst_bal)[1]){
 #Save the means from the three networks
 sqrtabsdiff_agemix <- c(mean.absdiff_main, mean.absdiff_pers, mean.absdiff_inst)
 save(sqrtabsdiff_agemix, file="Data/sqrtabsdiff_agemix.Rdata")
+```
+
+```{r fig.align="center", include=FALSE}
+# Plot with mixing matrices in one pane for presentations
+
+## Combine long mixing matrix datasets
+main_bal_plot$ptype <- "Main"
+pers_bal_plot$ptype <- "Persistent"
+inst_bal_plot$ptype <- "Instantaneous"
+
+mixing_plot <- rbind.data.frame(main_bal_plot, pers_bal_plot, inst_bal_plot)
+
+mixing_plot$ptype <- factor(mixing_plot$ptype, levels = c("Main", "Persistent", "Instantaneous"))
+
+## Define indicator of on-diagnoal to have it be a different color
+mixing_plot$ondiag <- ifelse(as.character(mixing_plot$ego)==as.character(mixing_plot$alter), "yes", "no")
+
+## Define indicator of on-diagnoal to have it be outlined 
+mixing_plot$outline <- ifelse(as.character(mixing_plot$ego)==as.character(mixing_plot$alter), 1, 0)
+
+## Define threshold for label being white
+mixing_plot$threshold <- ifelse(mixing_plot$value < 0.4, 1, 0)
+
+## Plot
+# # All the same color
+# ggplot(mixing_plot, aes(x=alter.cat, y=ego.cat)) + 
+#     geom_point(aes(size = prop), color = "steelblue2") + 
+#     geom_text(aes(label = label), hjust=0.5, size=2.8) +
+#     scale_size_continuous(range = c(1,18), guide = "none") + 
+#     facet_grid(.~ptype) +
+#     labs(x="Alter", y="Ego", title="Age mixing row conditional probabilities") +
+#     theme(axis.text = element_text(size=10, color="black"), axis.title = element_text(size=12, color="black"),
+#           strip.text = element_text(size=12, color="black"), plot.title = element_text(size=13, color="black")) +
+#     plot_background + theme_title 
+
+# Colored by log alphaij
+ggplot(mixing_plot, aes(x=alter, y=ego)) + 
+    geom_point(aes(size = value, color = log_alphaij)) + 
+    geom_text(aes(label = label), hjust=0.5, size=2.8) +
+    scale_size_continuous(range = c(1,18), guide = "none") + 
+    scale_colour_gradient2(low = "steelblue", mid = "white", high = "red", midpoint = 0, guide = "none") +
+    facet_grid(.~ptype) +
+    labs(x="Alter", y="Ego", title="Age mixing row conditional probabilities") +
+    theme(axis.text = element_text(size=10, color="black"), axis.title = element_text(size=12, color="black"),
+          strip.text = element_text(size=12, color="black"), plot.title = element_text(size=13, color="black")) +
+    plot_background + theme_title 
+
+    
+# # Alternate plot with color by value and all the same size
+# 
+# # rescale the proportions for the coloring so that the colors are more pronounced
+# ggplot(mixing_plot, aes(x=alter.cat, y=ego.cat)) + 
+#     geom_point(aes(color = prop), size = 18) + 
+#     geom_text(aes(label = label, color = threshold), hjust=0.5, size=3.5) +
+#     geom_point(aes(color = outline), shape = 1, size=18) + 
+#     scale_colour_gradient(low="white", high="black") +
+#     facet_grid(.~ptype) +
+#     labs(x="Alter", y="Ego", title="Age mixing row conditional probabilities") +
+#     theme(axis.text = element_text(size=12, color="black"), axis.title = element_text(size=13, color="black"),
+#           strip.text = element_text(size=14, color="black"), plot.title = element_text(size=15, color="black")) +
+#     plot_background + theme_title 
+
+```
