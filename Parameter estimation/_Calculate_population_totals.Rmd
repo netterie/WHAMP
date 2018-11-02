@@ -1,0 +1,130 @@
+# Estimate MSM population totals
+This file combines data from the American Community Survey, estimates of the size of the MSM population by county, and surveillance data on the number of people living with HIV/AIDS to estimate the population totals for MSM in Washington by age, race, and region.
+
+This file uses output from the files "_Washington_census_data_prep.Rmd", which cleans and manipulates the ACS data, "_Washington_PLWHA_data_prep.Rmd", which cleans and manipulates data on the number of MSM living with diagnosed HIV/AIDS in Washington, and "_2013_MSM_estimates_data_prep.Rmd", which manipulates estimates of the size of the MSM population by county to get estimates by region.
+```{r}
+
+#-----------------------------------------------------------------------------------
+# Load packages
+#-----------------------------------------------------------------------------------
+
+    library("tidyverse")
+    library("psych") #To use "describe" function for continuous vars
+    #library("nnet") #For multinomial logistic regression
+    library("lmtest") #For likelihood ratio test
+    library("ggplot2")
+    library("survey")
+    library("knitr")
+    library("kableExtra")
+    library("reshape2")
+    library("here")
+
+#-----------------------------------------------------------------------------------
+# Load data
+#-----------------------------------------------------------------------------------
+    load(file="Data/census_agebyregion.Rdata")
+    load(file="Data/census_hboXregion.Rdata")
+    load(file="Data/census_fullraceXregion.Rdata")
+    load(file="Data/census_totalbyregion.Rdata")
+    load(file="Data/wa_msm_est2013.Rdata")
+    load(file="Data/msmbyregion.Rdata")
+    load(file="Data/prop_msmbyregion.Rdata")
+    load(file="Data/plwha_age.Rdata")
+    load(file="Data/plwha_hboXregion.Rdata")
+
+    
+# Set options
+    opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
+    options(knitr.table.format = "html") 
+    
+####################################################################################
+# Analyses
+####################################################################################
+
+#-----------------------------------------------------------------------------------
+#' Define "population" totals from census data and Jeremy Grey's analysis, and subtracting
+#' HIV-positives
+#' Population totals are defined for age and race by taking the distribution among all
+#' males by region from the census, and weighting by the distribution of MSM in each region
+#-----------------------------------------------------------------------------------
+
+# REGION----
+    
+    pop.region.all <- MSMbyregion %>% select(region, numMSM) %>% mutate(total = round(numMSM)) %>% select(-numMSM)
+    levels(pop.region.all$region)[levels(pop.region.all$region)=="Other Western WA"] <- "Western WA"
+    
+    # HIV-positive only
+    pop.region.pos <- plwha_hboXregion %>% group_by(region) %>% summarise("total" = sum(Freq))
+    pop.region.pos$region <- factor(pop.region.pos$region, levels = c("King County", "Western WA", "Eastern WA"))
+    pop.region.pos <- pop.region.pos %>% arrange(region)
+
+    # HIV-negative only
+    pop.region.neg <- cbind.data.frame(region = c("King County", "Western WA", "Eastern WA"), total = c(round(pop.region.all$total[pop.region.all$region %in% "King County"] - pop.region.pos$total[pop.region.pos$region %in% "King County"]), round(pop.region.all$total[pop.region.all$region %in% "Western WA"] - pop.region.pos$total[pop.region.pos$region %in% "Western WA"]), round(pop.region.all$total[pop.region.all$region %in% "Eastern WA"] - pop.region.pos$total[pop.region.pos$region %in% "Eastern WA"])))
+    pop.region.neg$region <- factor(pop.region.neg$region, levels = c("King County", "Western WA", "Eastern WA"))
+    pop.region.neg <- pop.region.neg %>% arrange(region)
+
+# RACE/ETHNICITY BY REGION ----
+# Full race groups by region (don't do this by HIV status b/c not used for re-weighting - only for descriptives)
+    # Weighted by MSM population in each region
+    pop.fullracebyregion.all <- rbind.data.frame(c(region = "Eastern WA", wa_acs_fullracebyregion_percent[1,2:9]*pop.region.all$total[pop.region.all$region %in% "Eastern WA"]), c(region = "King County", wa_acs_fullracebyregion_percent[2,2:9]*pop.region.all$total[pop.region.all$region %in% "King County"]), c(region = "Western WA", wa_acs_fullracebyregion_percent[3,2:9]*pop.region.all$total[pop.region.all$region %in% "Western WA"]))
+
+# HBO by region
+    # Weighted by MSM population in each region
+    pop.hboregion.all <- cbind.data.frame(region=c(rep("King County", 3), rep("Western WA", 3), rep("Eastern WA", 3)), hbo=c(rep(c("Hispanic", "Black", "Other"), 3)), Freq=c(wa_acs_hbobyregion$Percent_Hispanic[wa_acs_hbobyregion$region %in% "King County"]*pop.region.all$total[pop.region.all$region %in% "King County"], wa_acs_hbobyregion$Percent_black[wa_acs_hbobyregion$region %in% "King County"]*pop.region.all$total[pop.region.all$region %in% "King County"], wa_acs_hbobyregion$Percent_other[wa_acs_hbobyregion$region %in% "King County"]*pop.region.all$total[pop.region.all$region %in% "King County"], wa_acs_hbobyregion$Percent_Hispanic[wa_acs_hbobyregion$region %in% "Other Western"]*pop.region.all$total[pop.region.all$region %in% "Western WA"], wa_acs_hbobyregion$Percent_black[wa_acs_hbobyregion$region %in% "Other Western"]*pop.region.all$total[pop.region.all$region %in% "Western WA"], wa_acs_hbobyregion$Percent_other[wa_acs_hbobyregion$region %in% "Other Western"]*pop.region.all$total[pop.region.all$region %in% "Western WA"], wa_acs_hbobyregion$Percent_Hispanic[wa_acs_hbobyregion$region %in% "Eastern"]*pop.region.all$total[pop.region.all$region %in% "Eastern WA"], wa_acs_hbobyregion$Percent_black[wa_acs_hbobyregion$region %in% "Eastern"]*pop.region.all$total[pop.region.all$region %in% "Eastern WA"], wa_acs_hbobyregion$Percent_other[wa_acs_hbobyregion$region %in% "Eastern"]*pop.region.all$total[pop.region.all$region %in% "Eastern WA"]))
+    #Specify order of factors
+    pop.hboregion.all$hbo <- factor(pop.hboregion.all$hbo, levels = c("Hispanic", "Black", "Other"))
+    pop.hboregion.all$region <- factor(pop.hboregion.all$region, levels = c("King County", "Western WA", "Eastern WA"))
+    pop.hboregion.all <- pop.hboregion.all %>% arrange(region, hbo)
+
+    #HIV-positive only
+    pop.hboregion.pos <- plwha_hboXregion
+        #Specify order of factors
+        pop.hboregion.pos$hbo <- factor(pop.hboregion.pos$hbo, levels = c("Hispanic", "Black", "Other"))
+        pop.hboregion.pos$region <- factor(pop.hboregion.pos$region, levels = c("King County", "Western WA", "Eastern WA"))
+        pop.hboregion.pos <- pop.hboregion.pos %>% arrange(region, hbo)
+
+    #HIV-negative only
+    pop.hboregion.neg <- cbind.data.frame(region=c(rep("King County", 3), rep("Western WA", 3), rep("Eastern WA", 3)), hbo=c(rep(c("Hispanic", "Black", "Other"), 3)), Freq=c(round(pop.hboregion.all[1:3, 3] - pop.hboregion.pos[1:3, 3]), round(pop.hboregion.all[4:6, 3] - pop.hboregion.pos[4:6, 3]), round(pop.hboregion.all[7:9, 3] - pop.hboregion.pos[7:9, 3])))
+    
+# RACE/ETHNICITY ----
+# Race (Full race groups)
+    pop.fullrace.all <- melt(pop.fullracebyregion.all, id="region")
+    pop.fullrace.all <- pop.fullrace.all %>% group_by(variable) %>% summarise(total = sum(value)) %>% mutate(percent = total/sum(total))
+    
+# Race (Hispanic, black, other)
+    pop.hbo.all <- pop.hboregion.all %>% group_by(hbo) %>% summarise(Freq=sum(Freq))
+    pop.hbo.pos <- pop.hboregion.pos %>% group_by(hbo) %>% summarise(Freq=sum(Freq))
+    pop.hbo.neg <- pop.hboregion.neg %>% group_by(hbo) %>% summarise(Freq=sum(Freq))
+         #Specify order of factors
+        pop.hbo.neg$hbo <- factor(pop.hbo.neg$hbo, levels = c("Hispanic", "Black", "Other"))
+        pop.hbo.neg <- pop.hbo.neg %>% arrange(hbo)
+
+# AGE ----
+    # Define age groups
+      ## For descriptive stats, do it by 5-year age groups
+        wa_acs_agebyregion$age_cat <- ifelse(wa_acs_agebyregion$Age_group %in% "males.40to44", "40-44", ifelse(wa_acs_agebyregion$Age_group %in% "males.45to49", "45-49", ifelse(wa_acs_agebyregion$Age_group %in% "males.50to54", "50-54", ifelse(wa_acs_agebyregion$Age_group %in% "males.55to59", "55-59", ifelse(wa_acs_agebyregion$Age_group %in% "males.18to24", "18-24", ifelse(wa_acs_agebyregion$Age_group %in% "males.25to29", "25-29", ifelse(wa_acs_agebyregion$Age_group %in% "males.30to34", "30-34", ifelse(wa_acs_agebyregion$Age_group %in% "males.35to39", "35-39", NA))))))))
+    
+      ## For re-weighting, combine 40-49 and 50-59
+        wa_acs_agebyregion$age_cat_alt <- ifelse(wa_acs_agebyregion$Age_group %in% c("males.40to44", "males.45to49"), "40-49", ifelse(wa_acs_agebyregion$Age_group %in% c("males.50to54", "males.55to59"), "50-59", ifelse(wa_acs_agebyregion$Age_group %in% "males.18to24", "18-24", ifelse(wa_acs_agebyregion$Age_group %in% "males.25to29", "25-29", ifelse(wa_acs_agebyregion$Age_group %in% "males.30to34", "30-34", ifelse(wa_acs_agebyregion$Age_group %in% "males.35to39", "35-39", NA))))))
+        
+    # Weight by MSM population in each region to get age distribution among MSM
+        wa_acs_agebyregion$numMSM <- ifelse(wa_acs_agebyregion$region %in% "Eastern", round(wa_acs_agebyregion$Percent*pop.region.all$total[pop.region.all$region %in% "Eastern WA"]), ifelse(wa_acs_agebyregion$region %in% "King County", round(wa_acs_agebyregion$Percent*pop.region.all$total[pop.region.all$region %in% "King County"]), ifelse(wa_acs_agebyregion$region %in% "Other Western", round(wa_acs_agebyregion$Percent*pop.region.all$total[pop.region.all$region %in% "Western WA"]), NA)))
+        
+    pop.age.all_5yrage <- wa_acs_agebyregion %>% select(-Frequency) %>% group_by(age_cat) %>% summarise(Freq = sum(numMSM))
+        
+    pop.age.all <- wa_acs_agebyregion %>% select(-Frequency) %>% group_by(age_cat_alt) %>% summarise(Freq = sum(numMSM))
+    
+    #HIV-positive only
+    pop.age.pos <- plwha_age
+    
+    #HIV-negative only
+    pop.age.neg <- cbind.data.frame(age_cat_alt = c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"), Freq = c(round(pop.age.all$Freq - pop.age.pos$Freq)))    
+    
+####################################################################################
+# Save
+####################################################################################
+    
+    pop.totals <- list(pop.age.all = pop.age.all, pop.age.neg = pop.age.neg, pop.age.pos = pop.age.pos, pop.age.all_5yrage = pop.age.all_5yrage, pop.fullrace.all = pop.fullrace.all, pop.fullracebyregion.all = pop.fullracebyregion.all, pop.hbo.all = pop.hbo.all, pop.hbo.neg = pop.hbo.neg, pop.hbo.pos = pop.hbo.pos, pop.hboregion.all = pop.hboregion.all, pop.hboregion.neg = pop.hboregion.neg, pop.hboregion.pos = pop.hboregion.pos, pop.region.all = pop.region.all, pop.region.neg = pop.region.neg, pop.region.pos = pop.region.pos)
+    
+    save(pop.totals, file = here("Data/pop.totals.Rdata"))
+```
