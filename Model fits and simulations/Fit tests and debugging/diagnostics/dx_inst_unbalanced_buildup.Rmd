@@ -128,7 +128,7 @@ summary(est.i.buildup.unbal[[8]])
 
 ### Model 1
 ```{r}
-(dx_inst1 <- netdx(est.i.buildup.unbal[[1]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.i.buildup.unbal[[8]]$formation))
+(dx_inst1 <- netdx(est.i.buildup.unbal[[1]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.i.buildup.unbal[[8]]$formation, set.control.stergm = control.simulate.network(MCMC.burnin.min = 1e+5, MCMC.burnin.max = 1e+5)))
 plot(dx_inst1, type="formation")
 plot(dx_inst1, type="duration")
 plot(dx_inst1, type="dissolution")
@@ -136,7 +136,7 @@ plot(dx_inst1, type="dissolution")
 
 ### Model 2
 ```{r}
-(dx_inst2 <- netdx(est.i.buildup.unbal[[2]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.i.buildup.unbal[[8]]$formation))
+(dx_inst2 <- netdx(est.i.buildup.unbal[[2]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.i.buildup.unbal[[8]]$formation, set.control.stergm = control.simulate.network(MCMC.burnin.min = 1e+5, MCMC.burnin.max = 1e+5)))
 plot(dx_inst2, type="formation")
 plot(dx_inst2, type="duration")
 plot(dx_inst2, type="dissolution")
@@ -144,7 +144,7 @@ plot(dx_inst2, type="dissolution")
 
 ### Model 3
 ```{r}
-(dx_inst3 <- netdx(est.i.buildup.unbal[[3]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.i.buildup.unbal[[8]]$formation))
+(dx_inst3 <- netdx(est.i.buildup.unbal[[3]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.i.buildup.unbal[[8]]$formation, set.control.stergm = control.simulate.network(MCMC.burnin.min = 1e+5, MCMC.burnin.max = 1e+5)))
 plot(dx_inst3, type="formation")
 plot(dx_inst3, type="duration")
 plot(dx_inst3, type="dissolution")
@@ -152,7 +152,7 @@ plot(dx_inst3, type="dissolution")
 
 ### Model 4
 ```{r}
-(dx_inst4 <- netdx(est.i.buildup.unbal[[4]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.i.buildup.unbal[[8]]$formation))
+(dx_inst4 <- netdx(est.i.buildup.unbal[[4]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.i.buildup.unbal[[8]]$formation, set.control.stergm = control.simulate.network(MCMC.burnin.min = 1e+5, MCMC.burnin.max = 1e+5)))
 plot(dx_inst4, type="formation")
 plot(dx_inst4, type="duration")
 plot(dx_inst4, type="dissolution")
@@ -160,7 +160,7 @@ plot(dx_inst4, type="dissolution")
 
 ### Model 5
 ```{r}
-(dx_inst5 <- netdx(est.i.buildup.unbal[[5]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.i.buildup.unbal[[8]]$formation))
+(dx_inst5 <- netdx(est.i.buildup.unbal[[5]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.i.buildup.unbal[[8]]$formation, set.control.stergm = control.simulate.network(MCMC.burnin.min = 1e+5, MCMC.burnin.max = 1e+5)))
 plot(dx_inst5, type="formation")
 plot(dx_inst5, type="duration")
 plot(dx_inst5, type="dissolution")
@@ -168,7 +168,7 @@ plot(dx_inst5, type="dissolution")
 
 ### Model 6
 ```{r}
-(dx_inst6 <- netdx(est.i.buildup.unbal[[6]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.i.buildup.unbal[[8]]$formation))
+(dx_inst6 <- netdx(est.i.buildup.unbal[[6]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.i.buildup.unbal[[8]]$formation, set.control.stergm = control.simulate.network(MCMC.burnin.min = 1e+5, MCMC.burnin.max = 1e+5)))
 plot(dx_inst6, type="formation")
 plot(dx_inst6, type="duration")
 plot(dx_inst6, type="dissolution")
@@ -176,7 +176,7 @@ plot(dx_inst6, type="dissolution")
 
 ### Model 7
 ```{r}
-(dx_inst7 <- netdx(est.i.buildup.unbal[[7]], nsims = 10, nsteps = 1000, ncores = 4))
+(dx_inst7 <- netdx(est.i.buildup.unbal[[7]], nsims = 10, nsteps = 1000, ncores = 4, set.control.stergm = control.simulate.network(MCMC.burnin.min = 1e+5, MCMC.burnin.max = 1e+5)))
 plot(dx_inst7, type="formation")
 plot(dx_inst7, type="duration")
 plot(dx_inst7, type="dissolution")
@@ -184,7 +184,7 @@ plot(dx_inst7, type="dissolution")
 
 ### Model 8
 ```{r}
-(dx_inst8 <- netdx(est.i.buildup.unbal[[7]], nsims = 10, nsteps = 1000, ncores = 4))
+(dx_inst8 <- netdx(est.i.buildup.unbal[[8]], nsims = 10, nsteps = 1000, ncores = 4, set.control.stergm = control.simulate.network(MCMC.burnin.min = 1e+5, MCMC.burnin.max = 1e+5)))
 plot(dx_inst8, type="formation")
 plot(dx_inst8, type="duration")
 plot(dx_inst8, type="dissolution")
