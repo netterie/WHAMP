@@ -7,7 +7,7 @@ library("parallel")
 np <- detectCores()
 
 # Indicate whether using the balanced or unbalanced target stats
-balanced = 0
+balanced = 1
 
 # Load the appropriate file (balanced or unbalanced)
 if (balanced == 1) {
