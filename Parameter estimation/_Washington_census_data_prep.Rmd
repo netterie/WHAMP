@@ -79,7 +79,19 @@ options(knitr.table.format = "html")
     
     #Look at how many men who listed two or more races men identify as black 
     black.multi <- wa_acs_male18to59 %>% group_by(region) %>% filter(Age_group %in% "males.18to59") %>% summarise(total.black.alone = sum(Black_alone), total.black.any = sum(Black_any), total.multiple = sum(Multiple)) %>% mutate(total.black.multi = (total.black.any - total.black.alone), percent.blackmulti = total.black.multi / total.multiple)
-    #Ranges from 0.4 to 3%. For now, keep these men as Hispanic
+    #Ranges from 23% to 30%. Code as black
+    
+    # # Define race groups with the "other" category not collapsed  (for reasons specified above, this is some error in these totals)
+    #      ## To run this code, need to load the first part of the "reweight_sample file to define the pop.region.all dataframe"
+    # wa_acs_male18to59_fullracedist <- wa_acs_male18to59 %>% mutate(blackmulti = Black_any - Black_alone) %>% mutate(nonblackmulti = Multiple - blackmulti) %>% select(county, region, Age_group, Hispanic, Black_any, White, AIAN, Asian, NHOPI, Other, nonblackmulti, Total)
+    # wa_acs_fullracebyregion <- wa_acs_male18to59_fullracedist %>% filter(Age_group %in% "males.18to59") %>% group_by(region) %>% summarise_at(vars(Hispanic:Total), sum)
+    # wa_acs_fullracebyregion_percent <- wa_acs_fullracebyregion[,2:9] / wa_acs_fullracebyregion$Total
+    # 
+    # #Weighted by MSM population in each county
+    # fullracebyregion <- rbind.data.frame(c(region = "Eastern WA", wa_acs_fullracebyregion_percent[1,]*pop.region.all$total[pop.region.all$region %in% "Eastern WA"]), c(region = "King County", wa_acs_fullracebyregion_percent[2,]*pop.region.all$total[pop.region.all$region %in% "King County"]), c(region = "Western WA", wa_acs_fullracebyregion_percent[3,]*pop.region.all$total[pop.region.all$region %in% "Western WA"]))
+    # 
+    # fullrace <- fullracebyregion %>% summarise_at(vars(Hispanic:nonblackmulti), sum)
+    # fullrace_percent <- fullrace / sum(fullrace)
         
     #Define HBO race groups, with 'other' as total minus Hispanic and black
     wa_acs_male18to59_hbo <- wa_acs_male18to59 %>% select(county, region, Age_group, Black_any, Hispanic, Total) %>% mutate(Other = Total - Black_any - Hispanic)
