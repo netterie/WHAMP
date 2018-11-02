@@ -166,13 +166,9 @@ kable(age_dist_neg, col.names=c("Age group", "WHPP sample", "HIV-negative MSM"),
 
 kable(age_dist_pos, col.names=c("Age group", "MMP sample", "ART-Net sample", "HIV-positive MSM"), digits=c(0, 3, 3, 3), caption="Age distribution among HIV-positive MSM: MMP and ART-Net samples and target population distribution") %>% kable_styling(full_width=F, position="center") %>% column_spec(1:4, width = "10em") 
 
-# Make graphs
-#     wa_acs_agebyregion$age_cat <- ifelse(wa_acs_agebyregion$Age_group %in% "males.40to44", "40-44", ifelse(wa_acs_agebyregion$Age_group %in% "males.45to49", "45-49", ifelse(wa_acs_agebyregion$Age_group %in% "males.50to54", "50-54", ifelse(wa_acs_agebyregion$Age_group %in% "males.55to59", "55-59", ifelse(wa_acs_agebyregion$Age_group %in% "males.18to24", "18-24", ifelse(wa_acs_agebyregion$Age_group %in% "males.25to29", "25-29", ifelse(wa_acs_agebyregion$Age_group %in% "males.30to34", "30-34", ifelse(wa_acs_agebyregion$Age_group %in% "males.35to39", "35-39", NA))))))))
-#     
-#     
-#     age_dist_pop_graph <- wa_acs_agebyregion %>% select(-Frequency, -age_cat_alt) %>% group_by(age_cat) %>% summarise(Freq = sum(numMSM)) %>% mutate(Percent = Freq/sum(Freq))
-# 
-# ggplot(age_dist_pop_graph) + geom_col(aes(x=age_cat, y=Percent), fill = "dodgerblue2") + plot_background_nogrid + theme_title + labs(x="Age group", y="Percentage", title="Age distribution") + theme(axis.text = element_text(size=12, color = "black"), axis.title = element_text(size=13), plot.title = element_text(size=15))
+# Make a graph that shows age in 5-year groups (instead of grouping 40-49 and 50-59)
+
+# ggplot(pop.totals$pop.age.all_5yrage) + geom_col(aes(x=age_cat, y=Percent), fill = "dodgerblue2") + plot_background_nogrid + theme_title + labs(x="Age group", y="Percentage", title="Age distribution") + theme(axis.text = element_text(size=12, color = "black"), axis.title = element_text(size=13), plot.title = element_text(size=15))
 
 # age_dist_neg_graph <- melt(age_dist_neg, id="Age_group")
 # age_dist_neg_graph$source <- ifelse(age_dist_neg_graph$variable %in% "Neg_MSM", "Population", "WHPP sample")
