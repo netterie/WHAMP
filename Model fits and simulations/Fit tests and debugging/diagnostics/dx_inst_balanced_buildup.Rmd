@@ -22,7 +22,7 @@ load(file = "/homes/dpwhite/R/GitHub Repos/WHAMP/Model fits and simulations/Fit 
 ## Model terms and control settings
 
 ```{r, echo=FALSE}
-targets <- cbind.data.frame("terms" = c(est.i.buildup.bal[[8]]$target.stats.names, "nodematch.role.class.I", "nodematch.role.class.R"), "stats.1" = round(c(est.i.buildup.bal[[1]]$target.stats[1], rep(NA,21), -Inf, -Inf),1), "stats.2" = round(c(est.i.buildup.bal[[2]]$target.stats[1], rep(NA,12), est.i.buildup.bal[[2]]$target.stats[2:3], rep(NA,7), -Inf, -Inf),1), "stats.3" = round(c(est.i.buildup.bal[[3]]$target.stats[1], rep(NA,12), est.i.buildup.bal[[3]]$target.stats[2:3], rep(NA,2), est.i.buildup.bal[[3]]$target.stats[4:6], rep(NA,2), -Inf, -Inf),1), "stats.4" = round(c(est.i.buildup.bal[[4]]$target.stats[1:6], rep(NA,7), est.i.buildup.bal[[4]]$target.stats[7:8], rep(NA,2), est.i.buildup.bal[[4]]$target.stats[9:11], rep(NA,2), -Inf, -Inf),1), "stats.5" = round(c(est.i.buildup.bal[[5]]$target.stats[1:6], rep(NA,7), est.i.buildup.bal[[5]]$target.stats[7:13], rep(NA,2), -Inf, -Inf),1), "stats.6" = round(c(est.i.buildup.bal[[6]]$target.stats[1:6], rep(NA,7), est.i.buildup.bal[[6]]$target.stats[7:13], rep(NA,1), est.i.buildup.bal[[6]]$target.stats[14], -Inf, -Inf),1), "stats.7" = round(c(est.i.buildup.bal[[7]]$target.stats[1:20], rep(NA,1), est.i.buildup.bal[[7]]$target.stats[21], -Inf, -Inf),1), "stats.8" = round(c(est.i.buildup.bal[[8]]$target.stats, -Inf, -Inf),1))
+targets <- cbind.data.frame("terms" = c(est.i.buildup.bal[[8]]$target.stats.names[1:6], "nodefactor.riskg.O1", "nodefactor.riskg.O2", est.i.buildup.bal[[8]]$target.stats.names[7:8], "nodefactor.riskg.Y1", est.i.buildup.bal[[8]]$target.stats.names[9:19], "nodematch.role.class.I", "nodematch.role.class.R"), "stats.1" = round(c(est.i.buildup.bal[[1]]$target.stats[1], rep(NA,21), -Inf, -Inf),1), "stats.2" = round(c(est.i.buildup.bal[[2]]$target.stats[1], rep(NA,12), est.i.buildup.bal[[2]]$target.stats[2:3], rep(NA,7), -Inf, -Inf),1), "stats.3" = round(c(est.i.buildup.bal[[3]]$target.stats[1], rep(NA,12), est.i.buildup.bal[[3]]$target.stats[2:3], rep(NA,2), est.i.buildup.bal[[3]]$target.stats[4:6], rep(NA,2), -Inf, -Inf),1), "stats.4" = round(c(est.i.buildup.bal[[4]]$target.stats[1:6], rep(NA,7), est.i.buildup.bal[[4]]$target.stats[7:8], rep(NA,2), est.i.buildup.bal[[4]]$target.stats[9:11], rep(NA,2), -Inf, -Inf),1), "stats.5" = round(c(est.i.buildup.bal[[5]]$target.stats[1:6], rep(NA,7), est.i.buildup.bal[[5]]$target.stats[7:13], rep(NA,2), -Inf, -Inf),1), "stats.6" = round(c(est.i.buildup.bal[[6]]$target.stats[1:6], rep(NA,7), est.i.buildup.bal[[6]]$target.stats[7:13], rep(NA,1), est.i.buildup.bal[[6]]$target.stats[14], -Inf, -Inf),1), "stats.7" = round(c(est.i.buildup.bal[[7]]$target.stats[1:20], rep(NA,1), est.i.buildup.bal[[7]]$target.stats[21], -Inf, -Inf),1), "stats.8" = round(c(est.i.buildup.bal[[8]]$target.stats, -Inf, -Inf),1))
 
 kable(targets, col.names = c("Terms", "Model 1", "Model 2", "Model 3", "Model 4", "Model 5", "Model 6", "Model 7", "Model 8"), caption="Model terms and target statistics") %>% kable_styling(full_width=F, position="center")
 ```
@@ -128,7 +128,7 @@ summary(est.i.buildup.bal[[8]])
 
 ### Model 1
 ```{r}
-(dx_inst1 <- netdx(est.i.buildup.bal[[1]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.i.buildup.bal[[8]]$formation))
+(dx_inst1 <- netdx(est.i.buildup.bal[[1]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.i.buildup.bal[[8]]$formation, set.control.ergm = control.simulate.ergm(MCMC.interval = 1e+5, MCMC.burnin = 1e+6)))
 plot(dx_inst1, type="formation")
 plot(dx_inst1, type="duration")
 plot(dx_inst1, type="dissolution")
@@ -136,7 +136,7 @@ plot(dx_inst1, type="dissolution")
 
 ### Model 2
 ```{r}
-(dx_inst2 <- netdx(est.i.buildup.bal[[2]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.i.buildup.bal[[8]]$formation))
+(dx_inst2 <- netdx(est.i.buildup.bal[[2]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.i.buildup.bal[[8]]$formation, set.control.ergm = control.simulate.ergm(MCMC.interval = 1e+5, MCMC.burnin = 1e+6)))
 plot(dx_inst2, type="formation")
 plot(dx_inst2, type="duration")
 plot(dx_inst2, type="dissolution")
@@ -144,7 +144,7 @@ plot(dx_inst2, type="dissolution")
 
 ### Model 3
 ```{r}
-(dx_inst3 <- netdx(est.i.buildup.bal[[3]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.i.buildup.bal[[8]]$formation))
+(dx_inst3 <- netdx(est.i.buildup.bal[[3]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.i.buildup.bal[[8]]$formation, set.control.ergm = control.simulate.ergm(MCMC.interval = 1e+5, MCMC.burnin = 1e+6)))
 plot(dx_inst3, type="formation")
 plot(dx_inst3, type="duration")
 plot(dx_inst3, type="dissolution")
@@ -152,7 +152,7 @@ plot(dx_inst3, type="dissolution")
 
 ### Model 4
 ```{r}
-(dx_inst4 <- netdx(est.i.buildup.bal[[4]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.i.buildup.bal[[8]]$formation))
+(dx_inst4 <- netdx(est.i.buildup.bal[[4]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.i.buildup.bal[[8]]$formation, set.control.ergm = control.simulate.ergm(MCMC.interval = 1e+5, MCMC.burnin = 1e+6)))
 plot(dx_inst4, type="formation")
 plot(dx_inst4, type="duration")
 plot(dx_inst4, type="dissolution")
@@ -160,7 +160,7 @@ plot(dx_inst4, type="dissolution")
 
 ### Model 5
 ```{r}
-(dx_inst5 <- netdx(est.i.buildup.bal[[5]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.i.buildup.bal[[8]]$formation))
+(dx_inst5 <- netdx(est.i.buildup.bal[[5]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.i.buildup.bal[[8]]$formation, set.control.ergm = control.simulate.ergm(MCMC.interval = 1e+5, MCMC.burnin = 1e+6)))
 plot(dx_inst5, type="formation")
 plot(dx_inst5, type="duration")
 plot(dx_inst5, type="dissolution")
@@ -168,7 +168,7 @@ plot(dx_inst5, type="dissolution")
 
 ### Model 6
 ```{r}
-(dx_inst6 <- netdx(est.i.buildup.bal[[6]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.i.buildup.bal[[8]]$formation))
+(dx_inst6 <- netdx(est.i.buildup.bal[[6]], nsims = 10, nsteps = 1000, ncores = 4, nwstats.formula = est.i.buildup.bal[[8]]$formation, set.control.ergm = control.simulate.ergm(MCMC.interval = 1e+5, MCMC.burnin = 1e+6)))
 plot(dx_inst6, type="formation")
 plot(dx_inst6, type="duration")
 plot(dx_inst6, type="dissolution")
@@ -176,7 +176,7 @@ plot(dx_inst6, type="dissolution")
 
 ### Model 7
 ```{r}
-(dx_inst7 <- netdx(est.i.buildup.bal[[7]], nsims = 10, nsteps = 1000, ncores = 4))
+(dx_inst7 <- netdx(est.i.buildup.bal[[7]], nsims = 10, nsteps = 1000, ncores = 4, set.control.ergm = control.simulate.ergm(MCMC.interval = 1e+5, MCMC.burnin = 1e+6)))
 plot(dx_inst7, type="formation")
 plot(dx_inst7, type="duration")
 plot(dx_inst7, type="dissolution")
@@ -184,7 +184,7 @@ plot(dx_inst7, type="dissolution")
 
 ### Model 8
 ```{r}
-(dx_inst8 <- netdx(est.i.buildup.bal[[7]], nsims = 10, nsteps = 1000, ncores = 4))
+(dx_inst8 <- netdx(est.i.buildup.bal[[8]], nsims = 10, nsteps = 1000, ncores = 4, set.control.ergm = control.simulate.ergm(MCMC.interval = 1e+5, MCMC.burnin = 1e+6)))
 plot(dx_inst8, type="formation")
 plot(dx_inst8, type="duration")
 plot(dx_inst8, type="dissolution")
