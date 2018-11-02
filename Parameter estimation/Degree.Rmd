@@ -294,7 +294,7 @@ deg.mp.adj.l <- melt(deg.mp.adj.l, id="main")
 names(deg.mp.adj.l)[names(deg.mp.adj.l) == "variable"] <- "pers"
 
 ## Add column with proportion as percent to plot
-deg.mp.adj.l$label <- paste0(round(deg.mp.adj.l$value*100,2),"%")
+deg.mp.adj.l$label <- paste0(round(deg.mp.adj.l$value*100,1),"%")
 
 ## Rearrange levels of main variable to 0 is on top
 deg.mp.adj.l$main <- factor(deg.mp.adj.l$main, levels = c("1 Main", "0 Main"))
@@ -306,7 +306,7 @@ deg.mp.adj.l$threshold <- ifelse(deg.mp.adj.l$value < 0.3, 1, 0)
 ggplot(deg.mp.adj.l, aes(x=pers, y=main)) + 
     geom_point(aes(size = value), colour="palegreen3") + 
     geom_text(aes(label = label), hjust=0.5, size=4) +
-    scale_size_continuous(range = c(1,50), guide = "none") + 
+    scale_size_continuous(range = c(10,60), guide = "none") + 
     labs(x="Persistent", y="Main", title="Momentary degree distribution") + 
     theme(axis.text = element_text(size=12, color = "black"), axis.title = element_text(size=13),
           plot.title = element_text(size=15)) +
