@@ -29,22 +29,25 @@ options(knitr.table.format = "html")
 #Source: U.S. Census Bureau, 2011-2015 American Community Survey 5-Year Estimates
     #Table B01001: SEX BY AGE
 
-#Load data
+## Load data -----------------------------------------------------------------------
     wa_acs <- read.csv("Data/WA census data-ACS_15_SPT_B01001-5/ACS_15_SPT_B01001_with_ann.csv", skip=1, header=TRUE, sep=",")
 
-#Select the columns with ages 18-59 for males and the total for males
+## Reformat data and define age groups ----------------------------------------------
+
+# Select the columns with ages 18-59 for males and the total for males
     wa_acs_male18to59 <- wa_acs %>% select(Geography, Population.Group, Estimate..Male., Estimate..Male....18.and.19.years, Estimate..Male....20.years, Estimate..Male....21.years, Estimate..Male....22.to.24.years, Estimate..Male....25.to.29.years, Estimate..Male....30.to.34.years, Estimate..Male....35.to.39.years, Estimate..Male....40.to.44.years, Estimate..Male....45.to.49.years, Estimate..Male....50.to.54.years, Estimate..Male....55.to.59.years)
     
-#Rename columns
+# Rename columns
     setnames(wa_acs_male18to59, old=c("Geography", "Estimate..Male.", "Estimate..Male....18.and.19.years", "Estimate..Male....20.years", "Estimate..Male....21.years", "Estimate..Male....22.to.24.years", "Estimate..Male....25.to.29.years", "Estimate..Male....30.to.34.years", "Estimate..Male....35.to.39.years", "Estimate..Male....40.to.44.years", "Estimate..Male....45.to.49.years", "Estimate..Male....50.to.54.years", "Estimate..Male....55.to.59.years"), new=c("county", "tot.male", "males.18to19", "males.20", "males.21", "males.22to24", "males.25to29", "males.30to34", "males.35to39", "males.40to44", "males.45to49", "males.50to54", "males.55to59"))
-    
-#Define a variable for Total males 18-59 
+
+# Age
+  ## Define a variable for Total males 18-59 
     wa_acs_male18to59$males.18to59 <-  (wa_acs_male18to59$males.18to19 + wa_acs_male18to59$males.20 +  wa_acs_male18to59$males.21 + wa_acs_male18to59$males.22to24 + wa_acs_male18to59$males.25to29 + wa_acs_male18to59$males.30to34 + wa_acs_male18to59$males.35to39 + wa_acs_male18to59$males.40to44 + wa_acs_male18to59$males.45to49 + wa_acs_male18to59$males.50to54 + wa_acs_male18to59$males.55to59)
 
-#Re-group ages 18-24 into bin 18-24
+  ## Re-group ages 18-24 into bin 18-24
     wa_acs_male18to59$males.18to24 <- (wa_acs_male18to59$males.18to19 + wa_acs_male18to59$males.20 +  wa_acs_male18to59$males.21 + wa_acs_male18to59$males.22to24)
 
-#Select only age groups of interest
+  ## Select only age groups of interest
     wa_acs_male18to59 <- wa_acs_male18to59 %>% select(county, Population.Group, males.18to24, males.25to29, males.30to34, males.35to39, males.40to44, males.45to49, males.50to54, males.55to59, males.18to59)
     
 #Reshape the data so race/ethnicity groups are columns
@@ -56,48 +59,48 @@ options(knitr.table.format = "html")
     wa_acs_male18to59_cast[is.na(wa_acs_male18to59_cast)] <- 0
     
     #Rename columns
-    setnames(wa_acs_male18to59_cast, old=c("variable", "American Indian and Alaska Native alone, not Hispanic or Latino", "Asian alone, not Hispanic or Latino", "Black or African American alone or in combination with one or more other races, Hispanic or Latino", "Black or African American alone or in combination with one or more other races, not Hispanic or Latino", "Black or African American alone, Hispanic or Latino", "Black or African American alone, not Hispanic or Latino", "Hispanic or Latino (of any race) (200-299)", "Native Hawaiian and Other Pacific Islander alone, not Hispanic or Latino", "Some other race alone, not Hispanic or Latino", "Total population", "Two or more races, not Hispanic or Latino", "White alone, not Hispanic or Latino"), new=c("Age_group", "AIAN", "Asian", "Black_any_Hispanic", "Black_any", "Black_alone_Hispanic", "Black_alone", "Hispanic", "NHOPI", "Other", "Total", "Multiple", "White"))
+    setnames(wa_acs_male18to59_cast, old=c("variable", "American Indian and Alaska Native alone, not Hispanic or Latino", "Asian alone, not Hispanic or Latino", "Black or African American alone or in combination with one or more other races, Hispanic or Latino", "Black or African American alone or in combination with one or more other races, not Hispanic or Latino", "Black or African American alone, Hispanic or Latino", "Black or African American alone, not Hispanic or Latino", "Hispanic or Latino (of any race) (200-299)", "Native Hawaiian and Other Pacific Islander alone, not Hispanic or Latino", "Some other race alone, not Hispanic or Latino", "Total population", "Two or more races, not Hispanic or Latino", "White alone, not Hispanic or Latino"), new=c("Age_group", "AIAN", "Asian", "Black_any_Hispanic", "Black_any_nonHispanic", "Black_alone_Hispanic", "Black_alone_nonHispanic", "Hispanic", "NHOPI", "Other", "Total", "Multiple", "White"))
     
     #Replace original dataset with the reshaped one
     wa_acs_male18to59_orig <- wa_acs_male18to59
     wa_acs_male18to59 <- wa_acs_male18to59_cast
-    
-#Define a variable for region
+
+# Region
     wa_acs_male18to59$region <- ifelse(wa_acs_male18to59$county=="King County, Washington", "King County", ifelse(wa_acs_male18to59$county %in% c("Clallam County, Washington", "Clark County, Washington", "Cowlitz County, Washington", "Grays Harbor County, Washington", "Island County, Washington", "Jefferson County, Washington", "Kitsap County, Washington", "Lewis County, Washington", "Mason County, Washington", "Pacific County, Washington", "Pierce County, Washington", "San Juan County, Washington", "Skagit County, Washington", "Skamania County, Washington", "Snohomish County, Washington", "Thurston County, Washington", "Wahkiakum County, Washington", "Whatcom County, Washington"), "Other Western", "Eastern"))
+    
+# Race
+  ## Look at how many Hispanic men identify as black
+    wa_acs_male18to59 %>% group_by(region) %>% filter(Age_group %in% "males.18to59") %>% summarise(total.black.Hisp = sum(Black_any_Hispanic), total.Hisp = sum(Hispanic)) %>% mutate(percent.hispblack = total.black.Hisp / total.Hisp)
+    #Ranges from 0.4 to 3%. Keep these men as Hispanic
+    
+  ## Look at how many men who listed two or more races men identify as black 
+    black.multi <- wa_acs_male18to59 %>% group_by(region) %>% filter(Age_group %in% "males.18to59") %>% summarise(total.black.alone = sum(Black_alone_nonHispanic), total.black.any = sum(Black_any_nonHispanic), total.multiple = sum(Multiple)) %>% mutate(total.black.multi = (total.black.any - total.black.alone), percent.blackmulti = total.black.multi / total.multiple)
+    #Ranges from 23% to 30%. Code these as black
+    
+
+## Calculate desired population totals and percents----------------------------------------------------------
 
 #Total males by region
     wa_acs_totalbyregion <- wa_acs_male18to59 %>% filter(Age_group %in% "males.18to59") %>% select(region, Age_group, Total) %>% group_by(region) %>% summarise(total = sum(Total)) %>% mutate(Percent = total / sum(total))
     
 #Age by region
     wa_acs_agebyregion <- wa_acs_male18to59 %>% select(region, Age_group, Total) %>% filter(!(Age_group %in% "males.18to59")) %>% group_by(region, Age_group) %>% summarise(Frequency = sum(Total)) %>% group_by(region) %>% mutate(Percent = Frequency / sum(Frequency))
+ 
+# Race by region
+  ## Define race groups - note: this is not perfect because the numbers for the individuals race/eth groups (Hispanic, NH white, NH black alone, NH Asian, NH Native Hawaiian/Other Pacific Islander, NH American Indian/Alaska Native, NH other, and NH two or more) do not sum to the total in each county. This is likely due to variability in the estimates for each group. Could keep the columns with the margin of error for the original data frame and work with those (details on how they are calculated here: https://www.census.gov/content/dam/Census/programs-surveys/acs/guidance/training-presentations/2016_MOE_Transcript_01.pdf. 
+
+    ### Define race groups with the "other" category not collapsed  (for reasons specified above, this is some error in these totals)
+    wa_acs_male18to59_fullracedist <- wa_acs_male18to59 %>% mutate(blackmulti = Black_any_nonHispanic - Black_alone_nonHispanic) %>% mutate(nonblackmulti = Multiple - blackmulti) %>% select(county, region, Age_group, Hispanic, Black_any_nonHispanic, White, AIAN, Asian, NHOPI, Other, nonblackmulti, Total)
+    wa_acs_fullracebyregion <- as.data.frame(wa_acs_male18to59_fullracedist %>% filter(Age_group %in% "males.18to59") %>% group_by(region) %>% summarise_at(vars(Hispanic:nonblackmulti), sum))
+    wa_acs_fullracebyregion <- melt(wa_acs_fullracebyregion, id = "region")
+    wa_acs_fullracebyregion <- wa_acs_fullracebyregion %>% group_by(region) %>% mutate(percent = value / sum(value))
+    wa_acs_fullracebyregion_percent <- dcast(wa_acs_fullracebyregion, region ~ variable, value.var = "percent")
     
-#Define race groups - note: this is not perfect because the numbers for the individuals race/eth groups (Hispanic, NH white, NH black alone, NH Asian, NH Native Hawaiian/Other Pacific Islander, NH American Indian/Alaska Native, NH other, and NH two or more) do not sum to the total in each county. This is likely due to variability in the estimates for each group. Could keep the columns with the margin of error for the original data frame and work with those (details on how they are calculated here: https://www.census.gov/content/dam/Census/programs-surveys/acs/guidance/training-presentations/2016_MOE_Transcript_01.pdf. But for now use use the point estimates and define other group as total - Hispanic - black alone or in combination
+    ### Define HBO race groups
+     ## (for reasons specified above, this is some error in these totals. But for now use use the point estimates and define other group as total - Hispanic - black alone or in combination)
+    wa_acs_male18to59_hbo <- wa_acs_male18to59 %>% select(county, region, Age_group, Black_any_nonHispanic, Hispanic, Total) %>% mutate(Other = Total - Black_any_nonHispanic - Hispanic)
     
-    #Look at how many Hispanic men identify as black
-    wa_acs_male18to59 %>% group_by(region) %>% filter(Age_group %in% "males.18to59") %>% summarise(total.black.Hisp = sum(Black_any_Hispanic), total.Hisp = sum(Hispanic)) %>% mutate(percent.hispblack = total.black.Hisp / total.Hisp)
-    #Ranges from 0.4 to 3%. For now, keep these men as Hispanic
-    
-    #Look at how many men who listed two or more races men identify as black 
-    black.multi <- wa_acs_male18to59 %>% group_by(region) %>% filter(Age_group %in% "males.18to59") %>% summarise(total.black.alone = sum(Black_alone), total.black.any = sum(Black_any), total.multiple = sum(Multiple)) %>% mutate(total.black.multi = (total.black.any - total.black.alone), percent.blackmulti = total.black.multi / total.multiple)
-    #Ranges from 23% to 30%. Code as black
-    
-    # # Define race groups with the "other" category not collapsed  (for reasons specified above, this is some error in these totals)
-    #      ## To run this code, need to load the first part of the "reweight_sample file to define the pop.region.all dataframe"
-    # wa_acs_male18to59_fullracedist <- wa_acs_male18to59 %>% mutate(blackmulti = Black_any - Black_alone) %>% mutate(nonblackmulti = Multiple - blackmulti) %>% select(county, region, Age_group, Hispanic, Black_any, White, AIAN, Asian, NHOPI, Other, nonblackmulti, Total)
-    # wa_acs_fullracebyregion <- wa_acs_male18to59_fullracedist %>% filter(Age_group %in% "males.18to59") %>% group_by(region) %>% summarise_at(vars(Hispanic:Total), sum)
-    # wa_acs_fullracebyregion_percent <- wa_acs_fullracebyregion[,2:9] / wa_acs_fullracebyregion$Total
-    # 
-    # #Weighted by MSM population in each county
-    # fullracebyregion <- rbind.data.frame(c(region = "Eastern WA", wa_acs_fullracebyregion_percent[1,]*pop.region.all$total[pop.region.all$region %in% "Eastern WA"]), c(region = "King County", wa_acs_fullracebyregion_percent[2,]*pop.region.all$total[pop.region.all$region %in% "King County"]), c(region = "Western WA", wa_acs_fullracebyregion_percent[3,]*pop.region.all$total[pop.region.all$region %in% "Western WA"]))
-    # 
-    # fullrace <- fullracebyregion %>% summarise_at(vars(Hispanic:nonblackmulti), sum)
-    # fullrace_percent <- fullrace / sum(fullrace)
-        
-    #Define HBO race groups, with 'other' as total minus Hispanic and black
-    wa_acs_male18to59_hbo <- wa_acs_male18to59 %>% select(county, region, Age_group, Black_any, Hispanic, Total) %>% mutate(Other = Total - Black_any - Hispanic)
-    
-    #Race by region
-    wa_acs_racebyregion <- wa_acs_male18to59_hbo %>% filter(Age_group %in% "males.18to59") %>% group_by(region) %>% summarise_at(vars(Black_any:Other), sum) %>% mutate(Percent_Hispanic = (Hispanic / Total), Percent_black = (Black_any / Total), Percent_other = (Other / Total)) %>% select(region, Percent_Hispanic, Percent_black, Percent_other)
+    wa_acs_hbobyregion <- wa_acs_male18to59_hbo %>% filter(Age_group %in% "males.18to59") %>% group_by(region) %>% summarise_at(vars(Black_any_nonHispanic:Other), sum) %>% mutate(Percent_Hispanic = (Hispanic / Total), Percent_black = (Black_any_nonHispanic / Total), Percent_other = (Other / Total)) %>% select(region, Percent_Hispanic, Percent_black, Percent_other)
 
 #remove datasets don't need
     rm(wa_acs_male18to59_cast)
@@ -109,17 +112,20 @@ options(knitr.table.format = "html")
 # Save datasets
 #-----------------------------------------------------------------------------------
     
-    save(wa_acs_racebyregion, file="Data/census_racebyregion.Rdata")
+    save(wa_acs_hbobyregion, file="Data/census_hboXregion.Rdata")
+    save(wa_acs_fullracebyregion_percent, file="Data/census_fullraceXregion.Rdata")
     save(wa_acs_agebyregion, file="Data/census_agebyregion.Rdata")
     save(wa_acs_totalbyregion, file="Data/census_totalbyregion.Rdata")
     
     
-##NOT USING THIS BECAUSE IT DOESN'T INCLUDE DATA ON BLACK RACE IN COMBINATION WITH OTHER RACES, 
-##AND IT REQUIRES ASSUMPTIONS ABOUT AGE DISTRIBUTIONS##
-#     
+
 # ####################################################################################
 # # 2016 Small Area Demographic Esimates for WA State 
 # ####################################################################################
+    
+##NOT USING THIS BECAUSE IT DOESN'T INCLUDE DATA ON BLACK RACE IN COMBINATION WITH OTHER RACES, 
+##AND IT REQUIRES ASSUMPTIONS ABOUT AGE DISTRIBUTIONS##
+    
 # #-----------------------------------------------------------------------------------
 # # Load data on population composition and define variables
 # #-----------------------------------------------------------------------------------
