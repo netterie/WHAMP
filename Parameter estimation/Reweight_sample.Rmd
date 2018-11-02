@@ -43,14 +43,7 @@ options(knitr.table.format = "html")
     load(file="Data/ARTNet_pos_long.Rdata")
     load(file="Data/ARTNet_neg_wide.Rdata")
     load(file="Data/ARTNet_neg_long.Rdata")
-    load(file="Data/census_agebyregion.Rdata")
-    load(file="Data/census_racebyregion.Rdata")
-    load(file="Data/census_totalbyregion.Rdata")
-    load(file="Data/wa_msm_est2013.Rdata")
-    load(file="Data/msmbyregion.Rdata")
-    load(file="Data/prop_msmbyregion.Rdata")
-    load(file="Data/plwha_age.Rdata")
-    load(file="Data/plwha_hboXregion.Rdata")
+    load(file="Data/pop.totals.Rdata")
     
 #-----------------------------------------------------------------------------------
 # set plot settings 
@@ -77,63 +70,23 @@ options(knitr.table.format = "html")
     #mmp_svy_msm already defined
 
 #-----------------------------------------------------------------------------------
-# Define "population" totals from census data and Jeremy Grey's analysis, and subtracting
-# HIV-positives   
+# Load population totals (objects defined in the "Nework_composition.Rmd file") 
 #-----------------------------------------------------------------------------------
+pop.region.all <- pop.totals$pop.region.all
+pop.region.neg <- pop.totals$pop.region.neg
+pop.region.pos <- pop.totals$pop.region.pos
 
-#Region
-    pop.region.all <- MSMbyregion %>% select(region, numMSM) %>% mutate(total = round(numMSM)) %>% select(-numMSM)
-    levels(pop.region.all$region)[levels(pop.region.all$region)=="Other Western WA"] <- "Western WA"
-    
-    #HIV-positive only
-    pop.region.pos <- plwha_hboXregion %>% group_by(region) %>% summarise("total" = sum(Freq))
-    pop.region.pos$region <- factor(pop.region.pos$region, levels = c("King County", "Western WA", "Eastern WA"))
-    pop.region.pos <- pop.region.pos %>% arrange(region)
+pop.age.all <- pop.totals$pop.age.all
+pop.age.neg <- pop.totals$pop.age.neg
+pop.age.pos <- pop.totals$pop.age.pos
 
-    #HIV-negative only
-    pop.region.neg <- cbind.data.frame(region = c("King County", "Western WA", "Eastern WA"), total = c(round(pop.region.all$total[pop.region.all$region %in% "King County"] - pop.region.pos$total[pop.region.pos$region %in% "King County"]), round(pop.region.all$total[pop.region.all$region %in% "Western WA"] - pop.region.pos$total[pop.region.pos$region %in% "Western WA"]), round(pop.region.all$total[pop.region.all$region %in% "Eastern WA"] - pop.region.pos$total[pop.region.pos$region %in% "Eastern WA"])))
-    pop.region.neg$region <- factor(pop.region.neg$region, levels = c("King County", "Western WA", "Eastern WA"))
-    pop.region.neg <- pop.region.neg %>% arrange(region)
-    
-#Race and region
-    pop.raceregion.all <- cbind.data.frame(region=c(rep("King County", 3), rep("Western WA", 3), rep("Eastern WA", 3)), hbo=c(rep(c("Hispanic", "Black", "Other"), 3)), Freq=c(wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "King County"]*pop.region.all$total[pop.region.all$region %in% "King County"], wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "King County"]*pop.region.all$total[pop.region.all$region %in% "King County"], wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "King County"]*pop.region.all$total[pop.region.all$region %in% "King County"], wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "Other Western"]*pop.region.all$total[pop.region.all$region %in% "Western WA"], wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "Other Western"]*pop.region.all$total[pop.region.all$region %in% "Western WA"], wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "Other Western"]*pop.region.all$total[pop.region.all$region %in% "Western WA"], wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "Eastern"]*pop.region.all$total[pop.region.all$region %in% "Eastern WA"], wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "Eastern"]*pop.region.all$total[pop.region.all$region %in% "Eastern WA"], wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "Eastern"]*pop.region.all$total[pop.region.all$region %in% "Eastern WA"]))
-    #Specify order of factors
-    pop.raceregion.all$hbo <- factor(pop.raceregion.all$hbo, levels = c("Hispanic", "Black", "Other"))
-    pop.raceregion.all$region <- factor(pop.raceregion.all$region, levels = c("King County", "Western WA", "Eastern WA"))
-    pop.raceregion.all <- pop.raceregion.all %>% arrange(region, hbo)
+pop.hbo.all <- pop.totals$pop.hbo.all
+pop.hbo.neg <- pop.totals$pop.hbo.neg
+pop.hbo.pos <- pop.totals$pop.hbo.pos
 
-    #HIV-positive only
-    pop.raceregion.pos <- plwha_hboXregion
-        #Specify order of factors
-        pop.raceregion.pos$hbo <- factor(pop.raceregion.pos$hbo, levels = c("Hispanic", "Black", "Other"))
-        pop.raceregion.pos$region <- factor(pop.raceregion.pos$region, levels = c("King County", "Western WA", "Eastern WA"))
-        pop.raceregion.pos <- pop.raceregion.pos %>% arrange(region, hbo)
-
-    #HIV-negative only
-    pop.raceregion.neg <- cbind.data.frame(region=c(rep("King County", 3), rep("Western WA", 3), rep("Eastern WA", 3)), hbo=c(rep(c("Hispanic", "Black", "Other"), 3)), Freq=c(round(pop.raceregion.all[1:3, 3] - pop.raceregion.pos[1:3, 3]), round(pop.raceregion.all[4:6, 3] - pop.raceregion.pos[4:6, 3]), round(pop.raceregion.all[7:9, 3] - pop.raceregion.pos[7:9, 3])))
-    
-#Race
-    pop.hbo.all <- pop.raceregion.all %>% group_by(hbo) %>% summarise(Freq=sum(Freq))
-    pop.hbo.pos <- pop.raceregion.pos %>% group_by(hbo) %>% summarise(Freq=sum(Freq))
-    pop.hbo.neg <- pop.raceregion.neg %>% group_by(hbo) %>% summarise(Freq=sum(Freq))
-         #Specify order of factors
-        pop.hbo.neg$hbo <- factor(pop.hbo.neg$hbo, levels = c("Hispanic", "Black", "Other"))
-        pop.hbo.neg <- pop.hbo.neg %>% arrange(hbo)
-
-#Age
-    #All MSM
-    wa_acs_agebyregion$age_cat_alt <- ifelse(wa_acs_agebyregion$Age_group %in% c("males.40to44", "males.45to49"), "40-49", ifelse(wa_acs_agebyregion$Age_group %in% c("males.50to54", "males.55to59"), "50-59", ifelse(wa_acs_agebyregion$Age_group %in% "males.18to24", "18-24", ifelse(wa_acs_agebyregion$Age_group %in% "males.25to29", "25-29", ifelse(wa_acs_agebyregion$Age_group %in% "males.30to34", "30-34", ifelse(wa_acs_agebyregion$Age_group %in% "males.35to39", "35-39", NA))))))
-    
-    #Apply proportion MSM in each region to get age distribution among MSM
-    wa_acs_agebyregion$numMSM <- ifelse(wa_acs_agebyregion$region %in% "Eastern", round(wa_acs_agebyregion$Frequency*propMSMbyregion$propmsm[propMSMbyregion$region %in% "Eastern WA"]), ifelse(wa_acs_agebyregion$region %in% "King County", round(wa_acs_agebyregion$Frequency*propMSMbyregion$propmsm[propMSMbyregion$region %in% "King County"]), ifelse(wa_acs_agebyregion$region %in% "Other Western", round(wa_acs_agebyregion$Frequency*propMSMbyregion$propmsm[propMSMbyregion$region %in% "Other Western WA"]), NA)))
-    
-    pop.age.all <- wa_acs_agebyregion %>% select(-Frequency) %>% group_by(age_cat_alt) %>% summarise(Freq = sum(numMSM))
-    
-    #HIV-positive only
-    pop.age.pos <- plwha_age
-    
-    #HIV-negative only
-    pop.age.neg <- cbind.data.frame(age_cat_alt = c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"), Freq = c(round(pop.age.all$Freq - pop.age.pos$Freq)))
+pop.hboregion.all <- pop.totals$pop.hboregion.all
+pop.hboregion.neg <- pop.totals$pop.hboregion.neg
+pop.hboregion.pos <- pop.totals$pop.hboregion.pos
 
 #-----------------------------------------------------------------------------------
 # Rake the survey samples using population totals
@@ -152,8 +105,8 @@ options(knitr.table.format = "html")
     pop.age.neg2 <- cbind.data.frame("age_cat" = pop.age.neg$age_cat_alt, "Freq" = pop.age.neg$Freq)
 
 # Rake
-    sample_rake_neg <- rake(whpp_svy, list(~hbo+region, ~age_cat_alt), list(pop.raceregion.neg, pop.age.neg))
-    sample_rake_all <- rake(whpp_svy, list(~hbo+region, ~age_cat_alt), list(pop.raceregion.all, pop.age.all))
+    sample_rake_neg <- rake(whpp_svy, list(~hbo+region, ~age_cat_alt), list(pop.hboregion.neg, pop.age.neg))
+    sample_rake_all <- rake(whpp_svy, list(~hbo+region, ~age_cat_alt), list(pop.hboregion.all, pop.age.all))
     mmp_rake <- mmp_rake <- rake(mmp_svy_msm, list(~hbo, ~region, ~age_cat), list(pop.hbo.pos, pop.region.pos, pop.age.pos))
     artnet_pos_rake_w <- rake(artnet_pos_svy, list(~hbo, ~age_cat), list(pop.hbo.pos, pop.age.pos))
     artnet_neg_rake_w <- rake(artnet_neg_svy, list(~hbo, ~age_cat), list(pop.hbo.neg, pop.age.neg2)) # For comparison only
@@ -187,7 +140,7 @@ options(knitr.table.format = "html")
      save(artnet_pos_rake_l, file="Data/artnet_reweighted_pos_l.Rdata")
      save(artnet_full_rake_w, file="Data/artnet_reweighted_all_w.Rdata")
      save(artnet_full_rake_l, file="Data/artnet_reweighted_all_l.Rdata")
-
+     
 ```
 
 ## Sample and population distributions
@@ -212,6 +165,26 @@ age_dist_pos <- cbind.data.frame("Age_group" = c("18-24", "25-29", "30-34", "35-
 kable(age_dist_neg, col.names=c("Age group", "WHPP sample", "HIV-negative MSM"), digits=c(0, 3, 3), caption="Age distribution among HIV-negative MSM: WHPP sample and target population distribution") %>% kable_styling(full_width=F, position="center") %>% column_spec(1:3, width = "10em") 
 
 kable(age_dist_pos, col.names=c("Age group", "MMP sample", "ART-Net sample", "HIV-positive MSM"), digits=c(0, 3, 3, 3), caption="Age distribution among HIV-positive MSM: MMP and ART-Net samples and target population distribution") %>% kable_styling(full_width=F, position="center") %>% column_spec(1:4, width = "10em") 
+
+# Make graphs
+#     wa_acs_agebyregion$age_cat <- ifelse(wa_acs_agebyregion$Age_group %in% "males.40to44", "40-44", ifelse(wa_acs_agebyregion$Age_group %in% "males.45to49", "45-49", ifelse(wa_acs_agebyregion$Age_group %in% "males.50to54", "50-54", ifelse(wa_acs_agebyregion$Age_group %in% "males.55to59", "55-59", ifelse(wa_acs_agebyregion$Age_group %in% "males.18to24", "18-24", ifelse(wa_acs_agebyregion$Age_group %in% "males.25to29", "25-29", ifelse(wa_acs_agebyregion$Age_group %in% "males.30to34", "30-34", ifelse(wa_acs_agebyregion$Age_group %in% "males.35to39", "35-39", NA))))))))
+#     
+#     
+#     age_dist_pop_graph <- wa_acs_agebyregion %>% select(-Frequency, -age_cat_alt) %>% group_by(age_cat) %>% summarise(Freq = sum(numMSM)) %>% mutate(Percent = Freq/sum(Freq))
+# 
+# ggplot(age_dist_pop_graph) + geom_col(aes(x=age_cat, y=Percent), fill = "dodgerblue2") + plot_background_nogrid + theme_title + labs(x="Age group", y="Percentage", title="Age distribution") + theme(axis.text = element_text(size=12, color = "black"), axis.title = element_text(size=13), plot.title = element_text(size=15))
+
+# age_dist_neg_graph <- melt(age_dist_neg, id="Age_group")
+# age_dist_neg_graph$source <- ifelse(age_dist_neg_graph$variable %in% "Neg_MSM", "Population", "WHPP sample")
+# age_dist_neg_graph$source <- factor(age_dist_neg_graph$source, levels = c("WHPP sample", "Population"))
+# 
+# age_dist_pos_graph <- melt(age_dist_pos, id="Age_group")
+# age_dist_pos_graph$source <- ifelse(age_dist_pos_graph$variable %in% "Pos_MSM", "Population", ifelse(age_dist_pos_graph$variable %in% "MMP", "MMP sample", "ART-NET sample"))
+# age_dist_pos_graph$source <- factor(age_dist_pos_graph$source, levels = c("ART-NET sample", "MMP sample", "Population"))
+# 
+#  ggplot(age_dist_neg_graph) + geom_col(aes(x=Age_group, y=value, fill=source), position="dodge") +  scale_fill_brewer(type="qual", palette=3, direction = -1) + plot_background_nogrid + theme_title + labs(x="Age group", y="Percentage", title="Age distribution by region among HIV-negative MSM") + theme(legend.title = element_blank()) + theme(axis.text = element_text(size=12, color = "black"), axis.title = element_text(size=13), plot.title = element_text(size=15))
+#  
+#  ggplot(age_dist_pos_graph) + geom_col(aes(x=Age_group, y=value, fill=source), position="dodge") +  scale_fill_brewer(type="qual", palette=3, direction = -1) + plot_background_nogrid + theme_title + labs(x="Age group", y="Percentage", title="Age distribution by region among HIV-positive MSM") + theme(legend.title = element_blank()) + theme(axis.text = element_text(size=12, color = "black"), axis.title = element_text(size=13), plot.title = element_text(size=15))
 
 ```
 
@@ -263,6 +236,11 @@ kable(race_dist_neg, col.names=c("Race/ethnicity", "WHPP sample", "HIV-negative 
 
 kable(race_dist_pos, col.names=c("Race/ethnicity", "MMP sample", "ART-Net sample", "HIV-positive MSM"), digits=c(0, 3, 3, 3), caption="Racial/ethnic distribution among HIV-positive MSM: MMP and ART-Net samples and target population distribution") %>% kable_styling(full_width=F, position="center") %>% column_spec(1:4, width = "10em") 
 
+# # Make graph - with bars showing percent of total (not percent in each region)
+# raceregion_dist_graph <- raceregion_dist_pop_all %>% ungroup %>% mutate(percent = Freq/sum(Freq))
+
+# ggplot(raceregion_dist_graph) + geom_col(aes(x=region, y=percent, fill = hbo), position = "stack") + scale_fill_brewer(type = "qual", palette = 2) + plot_background_nogrid + theme_title + labs(x="Region", y="Percentage", title="Race/ethnicity by region") + theme(axis.text = element_text(size=12, color = "black"), axis.title = element_text(size=12), plot.title = element_text(size=13), legend.title = element_blank())
+
 ```
 
 ```{r raceXregion_dists}
@@ -271,16 +249,19 @@ kable(race_dist_pos, col.names=c("Race/ethnicity", "MMP sample", "ART-Net sample
 raceregion_dist_whpp <- as.vector(prop.table(table(sample$hbo, sample$region), 2))
     
 #All MSM
-raceregion_dist_pop_all <- pop.raceregion.all %>% group_by(region) %>% mutate(percent = Freq/sum(Freq))
+raceregion_dist_pop_all <- pop.hboregion.all %>% group_by(region) %>% mutate(percent = Freq/sum(Freq))
 
 #Negative MSM
-raceregion_dist_pop_neg <- pop.raceregion.neg %>% group_by(region) %>% mutate(percent = Freq/sum(Freq))
+raceregion_dist_pop_neg <- pop.hboregion.neg %>% group_by(region) %>% mutate(percent = Freq/sum(Freq))
 
 #Combine columns
 raceregion_dist <- cbind.data.frame("Race_ethnicity" = c(rep(c("Hispanic", "Black", "Other"), 3)), "WHPP" = raceregion_dist_whpp, "Neg_MSM" = as.vector(raceregion_dist_pop_neg$percent), "All_MSM" =as.vector(raceregion_dist_pop_all$percent))
 
 #Make table
 kable(raceregion_dist, col.names=c("Race/ethnicity", "WHPP sample", "HIV-negative MSM", "All MSM"), digits=c(0, 3, 3, 3), caption="Racial/ethnic distribution by region: WHPP sample and target population distributions") %>% kable_styling(full_width=F, position="center") %>% group_rows("King County", 1, 3) %>% group_rows("Other Western WA", 4, 6) %>% group_rows("Eastern WA", 7, 9)  %>% column_spec(1:4, width = "10em") 
+
+# # Make graph
+# ggplot(raceregion_dist_pop_all) + geom_col(aes(x=hbo, y=percent), fill = "purple4") + facet_grid(.~region) + plot_background_nogrid + theme_title + labs(x="Race/ethnicity", y="Percentage", title="Race/ethnicity distribution by region") + theme(axis.text = element_text(size=12, color = "black"), axis.title = element_text(size=13), strip.text = element_text(size=14, color = "black"), plot.title = element_text(size=15))
 
 ```
 
