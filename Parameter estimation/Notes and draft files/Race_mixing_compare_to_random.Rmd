@@ -1,0 +1,74 @@
+# Race mixing visualizations
+This file plots race mixing as the difference between the expected row conditional probabilities under random mixing and the observed row conditional probabilities.
+```{r, include=FALSE}
+####################################################################################
+# Setup
+####################################################################################
+#-----------------------------------------------------------------------------------
+# Load packages
+#-----------------------------------------------------------------------------------
+
+    library("tidyverse")
+    library("knitr")
+    library("kableExtra")
+    library("data.table")
+    library("survey")
+
+#-----------------------------------------------------------------------------------
+# Knitr options
+#-----------------------------------------------------------------------------------
+opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
+options(knitr.table.format = "html") 
+
+#-----------------------------------------------------------------------------------
+# Load data
+#-----------------------------------------------------------------------------------
+    load(file="Data/InternetSurveySample.Rdata")
+    load(file="Data/rate.inst.fullpop.Rdata")
+    load(file="Data/degreedists.Rdata")
+    load(file="Data/race_mixing.Rdata")
+    load(file="Data/race_mixing_inst.Rdata")
+    load(file="/homes/dpwhite/win/project/MMP_WADOH/mmp_reweighted.Rdata")
+    load(file = "Data/whpp_artnet.Rdata")
+    load(file = "/homes/dpwhite/win/project/MMP_WADOH/whpp_mmp.Rdata")
+
+#-----------------------------------------------------------------------------------
+# Plot settings
+#-----------------------------------------------------------------------------------
+plot_background <- theme(panel.background = element_rect(fill="white", colour = "black")) +
+            theme(panel.grid.major = element_line(colour = "grey90"))
+theme_title <- theme(plot.title = element_text(hjust = 0.5, size=12)) 
+
+```
+
+
+```{r}
+# Calculate expected mixing if mixing was random
+nXrace <- svytable(~hbo, whpp_artnet, Ntotal=(dim(sample)[1] + dim(mmp_rake$variables)[1]), round=FALSE)
+
+main_exp <- as.data.frame(matrix(c("HH"=(nXrace[1]*nXrace[1])/sum(nXrace), "HB" = (nXrace[1]*nXrace[2])/sum(nXrace), "HO" = (nXrace[1]*nXrace[3])/sum(nXrace), "BH" = (nXrace[2]*nXrace[1])/sum(nXrace), "BB" = (nXrace[2]*nXrace[2])/sum(nXrace), "BO" = (nXrace[2]*nXrace[3])/sum(nXrace), "OH" = (nXrace[3]*nXrace[1])/sum(nXrace), "OB" = (nXrace[3]*nXrace[2])/sum(nXrace), "OO" = (nXrace[3]*nXrace[3])/sum(nXrace)), nrow=3, ncol=3, byrow=TRUE, dimnames=list(c("Hispanic", "Black", "Other"), c("Hispanic", "Black", "Other"))))
+
+# Take row probabilities
+main_exp_prop <- rbind.data.frame(main_exp[1,]/sum(main_exp[1,]), main_exp[2,]/sum(main_exp[2,]), main_exp[3,]/sum(main_exp[3,]))
+
+main_bal_prop <- rbind.data.frame(race_mixing$racemix_main_bal[1,]/sum(race_mixing$racemix_main_bal[1,]), race_mixing$racemix_main_bal[2,]/sum(race_mixing$racemix_main_bal[2,]), race_mixing$racemix_main_bal[3,]/sum(race_mixing$racemix_main_bal[3,]))
+
+main_diff_prop <- main_bal_prop - main_exp_prop
+
+# Make it in long format to plot
+main_diff_prop_l <- cbind.data.frame("ego" = c(rep("Hispanic", 3), rep("Black", 3), rep("Other", 3)), "alter" = (rep(c("Hispanic", "Black", "Other"), 3)), "value" = c(main_diff_prop[1,1], main_diff_prop[1,2], main_diff_prop[1,3], main_diff_prop[2,1], main_diff_prop[2,2], main_diff_prop[2,3], main_diff_prop[3,1], main_diff_prop[3,2], main_diff_prop[3,3]))
+
+# Add column to indicate above or below 0
+main_diff_prop_l$sign <- ifelse(main_diff_prop_l$value >=0, "More than expected", "Less than expected")
+
+# Add a column to indicate absolute value of the difference for sizing in the plot
+main_diff_prop_l$size <- abs(main_diff_prop_l$value)
+
+# Reorder race factors
+main_diff_prop_l$ego <- factor(main_diff_prop_l$ego, levels = c("Black", "Hispanic", "Other"))
+main_diff_prop_l$alter <- factor(main_diff_prop_l$alter, levels = c("Other", "Hispanic", "Black"))
+
+# Plot
+ggplot(main_diff_prop_l, aes(x=alter, y=ego)) + geom_point(aes(size = size, colour = sign)) + scale_size_continuous(range = c(1,9)) + plot_background + theme_title
+
+```
