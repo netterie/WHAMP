@@ -1,0 +1,105 @@
+---
+output:
+  html_document:
+    toc: true
+    toc_float: true
+---
+# Network model diagnostics - balanced statistics
+
+## Load packages and model fits
+```{r, warning=FALSE}
+rm(list = ls())
+suppressMessages(library("EpiModelHIV"))
+library("latticeExtra")
+library("knitr")
+library("kableExtra")
+library("here")
+
+load(file = here("Model fits and simulations/Fit tests and debugging/est/fit.p.buildup.bal.rda"))
+load(file = here("Model fits and simulations/Fit tests and debugging/est/fit.i.buildup.bal.rda"))
+load(file = here("Model fits and simulations/Fit tests and debugging/est/fit.m.buildup.bal.rda"))
+
+```
+
+## Model terms and control settings
+The control settings for these models are:
+```{r, eval=FALSE}
+# Main and persistent
+set.control.ergm = control.ergm(MCMC.interval = 1e+5,
+                                 MCMC.samplesize = 7500,
+                                 MCMC.burnin = 1e+6,
+                                 MPLE.max.dyad.types = 1e+7,
+                                 init.method = "zeros",
+                                 MCMLE.maxit = 400,
+                                 parallel = np/2,
+                                 parallel.type="PSOCK"))
+
+# Instantaneous
+set.control.ergm =control.ergm(MCMC.interval = 1e+5,
+                                  MCMC.samplesize = 7500,
+                                  MCMC.burnin = 1e+6,
+                                  MPLE.max.dyad.types = 1e+7,
+                                  MCMLE.maxit = 400,
+                                  parallel = np/2, 
+                                  parallel.type="PSOCK"))
+```
+
+## MCMC diagnostics
+
+### Main, with 100% homophily on region
+```{r, message=FALSE, echo=FALSE}
+mcmc.diagnostics(est.m.buildup.bal[[7]]$fit)
+```
+
+### Persistent, with 80% homophily on region
+```{r, message=FALSE, echo=FALSE}
+mcmc.diagnostics(est.p.buildup.bal[[8]]$fit)
+```
+
+### Instantaneous, with 80% homophily on region
+```{r, message=FALSE, echo=FALSE}
+mcmc.diagnostics(est.i.buildup.bal[[8]]$fit)
+```
+
+## Summary of model fit
+
+### Main, with 100% homophily on region
+```{r, message=FALSE, echo=FALSE}
+summary(est.m.buildup.bal[[7]])
+```
+
+### Persistent, with 80% homophily on region
+```{r, message=FALSE, echo=FALSE}
+summary(est.p.buildup.bal[[8]])
+```
+
+### Instantaneous, with 80% homophily on region
+```{r, message=FALSE, echo=FALSE}
+summary(est.i.buildup.bal[[8]])
+```
+
+## Network diagnostics
+
+### Main, with 100% homophily on region
+```{r}
+(dx_main <- netdx(est.m.buildup.bal[[8]], nsims = 10, nsteps = 1000, ncores = 4, set.control.stergm = control.simulate.network(MCMC.burnin.min = 1e+5, MCMC.burnin.max = 1e+5)))
+plot(dx_main, type="formation")
+plot(dx_main, type="duration")
+plot(dx_main, type="dissolution")
+```
+
+### Persistent, with 80% homophily on region
+```{r}
+(dx_pers <- netdx(est.p.buildup.bal[[8]], nsims = 10, nsteps = 1000, ncores = 4, set.control.stergm = control.simulate.network(MCMC.burnin.min = 1e+6, MCMC.burnin.max = 1e+6)))
+plot(dx_pers, type="formation")
+plot(dx_pers, type="duration")
+plot(dx_pers, type="dissolution")
+```
+
+### Instantaneous, with 80% homophily on region
+```{r}
+(dx_inst <- netdx(est.i.buildup.bal[[8]], nsims = 10, nsteps = 1000, ncores = 4, set.control.ergm = control.simulate.ergm(MCMC.burnin = 1e+6, MCMC.interval = 1e+5)))
+plot(dx_inst, type="formation")
+plot(dx_inst, type="duration")
+plot(dx_inst, type="dissolution")
+```
