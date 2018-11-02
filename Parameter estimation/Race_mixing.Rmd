@@ -39,6 +39,55 @@ plot_background <- theme(panel.background = element_rect(fill="white", colour = 
             theme(panel.grid.major = element_line(colour = "grey90"))
 theme_title <- theme(plot.title = element_text(hjust = 0.5, size=12)) 
 
+
+## Function to prepare mixing matrix data for plots
+mixplot <- function(mm){
+    # Calculate alphaij terms (observed / expected cell counts)
+        nXn <- dim(mm)
+        alphaij <- matrix(rep(NA, nXn[1]*nXn[2]), nrow = nXn[1])
+        for(i in 1:nXn[1]){
+            for(j in 1:nXn[2]){
+                alphaij[i,j] <- mm[i,j] / ((sum(mm[i,])*sum(mm[,j]))/sum(mm))
+            }
+        }
+        alphaij <- as.data.frame(alphaij, row.names = rownames(mm))
+        names(alphaij) <- names(mm)
+        
+        # Convert to long format
+        alphaij <- cbind.data.frame("ego" = rownames(alphaij), alphaij)
+        alphaij_l <- melt(alphaij, id="ego")
+        alphaij_l$log_alphaij <- log(alphaij_l$value)
+        colnames(alphaij_l)[colnames(alphaij_l)=="variable"] <- "alter"
+        
+    # Observed mixing matrix as conditional row probabilities
+        probs <- data.frame(matrix(rep(NA, nXn[1]*nXn[2]), nrow = nXn[1]))
+        for(i in 1:nXn[1]){
+            probs[i,] <- mm[i,]/sum(mm[i,]) 
+        }
+        probs <- as.data.frame(probs, row.names = rownames(mm))
+        names(probs) <- names(mm)
+    
+        # Convert to long format
+        probs <- cbind.data.frame("ego" = rownames(probs), probs)
+        probs_l <- melt(probs, id="ego")
+        colnames(probs_l)[colnames(probs_l)=="variable"] <- "alter"
+        
+    # Combined object to plot
+        mm_plot <- cbind.data.frame(probs_l, alphaij = alphaij_l$value, log_alphaij = alphaij_l$log_alphaij)
+        
+        # Add column with proportion as percent to plot
+        mm_plot$label <- paste0(round(mm_plot$value*100, 1),"%")
+    
+        # Define variable outline to outline the on-diagonal points
+        mm_plot$ondiag <- ifelse(as.character(mm_plot$ego)==as.character(mm_plot$alter), 
+                                 mm_plot$value, NA)
+    
+    # Reorder levels of alter factor so on-diagonal goes from left to right
+        mm_plot$alter <- factor(mm_plot$alter, levels = rev(levels(mm_plot$ego)))
+    
+    return(mm_plot)
+}
+
 ```
 
 Data on patterns of racial/ethnic mixing are from the WHPP and the 2014 Washington Medical Monitoring Project (MMP). To align with how mixing is measured in WHPP, we restrict MMP data to the most recent partnership. The MMP sample is re-weighted to Washington demographics for men living with diagnosed with HIV who are categorized as having had male-male sex, and the WHPP sample is re-weighted to the demographic profile of Washington males after subtracting these diagnosed cases (see section \@ref(reweight)). Using these data, we take the following approach to obtain estimates of the pattern of selective mixing by race/ethnicity (see [issue #32](https://github.com/statnet/WHAMP/issues/32)):  
@@ -70,6 +119,20 @@ kable(race_mixing$racemix_main_bal, align=c("c", "c", "c"), digits=c(1, 1, 1)) %
 
 ```
 
+```{r fig.align="center"}
+# PLOT BALANCED MIXING MATRIX #
+main_bal_plot <- mixplot(race_mixing$racemix_main_bal)
+
+# Plot
+ggplot(main_bal_plot, aes(x=alter, y=ego)) + 
+    geom_point(aes(size = value), colour="steelblue2") + 
+    geom_point(aes(size = ondiag), colour = "black", shape = 1) + 
+    geom_text(aes(label = label), hjust=0.6, size=4) +
+    scale_size_continuous(range = c(1,30), guide = "none") + 
+    labs(x="Alter", y="Ego", title="Racial/ethnic mixing row conditional probabilities: Main") +
+    plot_background + theme_title 
+    
+```
 To calculate target statistics for the model, we need to scale this to the size of the network. We will define parameters for the proportion of main partnerships that are homophilous for Hispanic, black, and other race/ethnicity men from these matrices (below), and multiply each by the number of edges in the scaled network involving Hispanic, black, and other race/ethnicity men, respectively to obtain target statistics.
 
 ```{r}
@@ -94,6 +157,20 @@ Taking the average of the off-diagonal elements to balance the matrix, we get th
 
 kable(race_mixing$racemix_pers_bal, align=c("c", "c", "c"), digits=c(1, 1, 1)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, bold=T, color="black", width="2cm") %>% column_spec(2:4, width = "2cm")
 
+```
+```{r fig.align="center"}
+# PLOT BALANCED MIXING MATRIX #
+pers_bal_plot <- mixplot(race_mixing$racemix_pers_bal)
+
+# Plot
+ggplot(pers_bal_plot, aes(x=alter, y=ego)) + 
+    geom_point(aes(size = value), colour="steelblue2") + 
+    geom_point(aes(size = ondiag), colour = "black", shape = 1) + 
+    geom_text(aes(label = label), hjust=0.6, size=4) +
+    scale_size_continuous(range = c(1,30), guide = "none") + 
+    labs(x="Alter", y="Ego", title="Racial/ethnic mixing row conditional probabilities: Persistent") + 
+    plot_background + theme_title 
+    
 ```
 
 As with main partnerships, we define parameters for the proportion of persistent partnerships that are homophilous for Hispanic, black, and other race/ethnicity men from the unbalanced and balanced matrices (below), and obtain target statistics by multiplying each by the number of edges in the scaled network involving Hispanic, black, and other race/ethnicity men, respectively.
@@ -121,6 +198,19 @@ Taking the average of the off-diagonal elements to balance the matrix, we get th
 kable(race_mixing_inst$racemix_inst_bal, align=c("c", "c", "c"), digits=c(4, 4, 4)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, bold=T, color="black", width="2cm") %>% column_spec(2:4, width = "2cm")
 
 ```
+```{r fig.align="center"}
+# PLOT BALANCED MIXING MATRIX #
+inst_bal_plot <- mixplot(race_mixing_inst$racemix_inst_bal)
+# Plot
+ggplot(inst_bal_plot, aes(x=alter, y=ego)) + 
+    geom_point(aes(size = value), colour="steelblue2") + 
+    geom_point(aes(size = ondiag), colour = "black", shape = 1) + 
+    geom_text(aes(label = label), hjust=0.6, size=4) +
+    scale_size_continuous(range = c(1,30), guide = "none") + 
+    labs(x="Alter", y="Ego", title="Racial/ethnic mixing row conditional probabilities: Instantaneous") + 
+    plot_background + theme_title 
+    
+```
 
 To calculate target statistics for the model, we will define parameters for the proportion of instantaneous partnerships that are homophilous for Hispanic, black, and other race/ethnicity men from these matrices (below), and multiply each proportion by the number of edges in the scaled network involving Hispanic, black, and other race/ethnicity men, respectively.
 
@@ -141,4 +231,64 @@ kable(prop.hom.inst, align=c("l", "c", "c", "c"), digits=c(4, 4, 4)) %>% kable_s
 
 save(prop.hom.mpi, file="Data/prop.hom.mpi.Rdata")
 save(prop.hom.mpi.unbal, file="Data/prop.hom.mpi.unbal.Rdata")
+```
+
+
+```{r fig.align="center", include=FALSE}
+# Plot with mixing matrices in one pane for presentations
+
+## Combine long mixing matrix datasets
+main_bal_plot$ptype <- "Main"
+pers_bal_plot$ptype <- "Persistent"
+inst_bal_plot$ptype <- "Instantaneous"
+
+mixing_plot <- rbind.data.frame(main_bal_plot, pers_bal_plot, inst_bal_plot)
+
+mixing_plot$ptype <- factor(mixing_plot$ptype, levels = c("Main", "Persistent", "Instantaneous"))
+
+
+## Plot
+# # All the same color
+# ggplot(mixing_plot, aes(x=alter, y=ego)) + 
+#     geom_point(aes(size = value), color = "steelblue2") + 
+#     #geom_point(aes(size = value), colour = "black", shape = 1) + 
+#     geom_text(aes(label = label), hjust=0.6, size=3.5) +
+#     scale_size_continuous(range = c(1,30), guide = "none") + 
+#     facet_grid(.~ptype) +
+#     labs(x="Alter", y="Ego", title="Racial/ethnic mixing row conditional probabilities") +
+#     theme(axis.text = element_text(size=11, color="black"), axis.title = element_text(size=12,  color="black"),
+#           strip.text = element_text(size=12,  color="black"), plot.title = element_text(size=13,  color="black")) +
+#     plot_background + theme_title
+
+# Colored by log_alphaij
+ggplot(mixing_plot, aes(x=alter, y=ego)) + 
+    geom_point(aes(size = value, color = log_alphaij)) + 
+    geom_point(aes(size = value), colour = "black", shape = 1) + 
+    geom_text(aes(label = label), hjust=0.6, size=3.5) +
+    scale_size_continuous(range = c(1,30), guide = "none") + 
+    scale_colour_gradient2(low = "steelblue", mid = "white", high = "red", midpoint = 0, guide = "none") +
+    facet_grid(.~ptype) +
+    labs(x="Alter", y="Ego", title="Racial/ethnic mixing row conditional probabilities") +
+    theme(axis.text = element_text(size=11, color="black"), axis.title = element_text(size=12,  color="black"),
+          strip.text = element_text(size=12,  color="black"), plot.title = element_text(size=13,  color="black")) +
+    plot_background + theme_title
+
+
+# 
+# # Alternate plot with color by value and all the same size
+# ## Define threshold for label being white
+# mixing_plot$threshold <- ifelse(mixing_plot$value < 0.6, 1, 0)
+# 
+# ggplot(mixing_plot, aes(x=alter, y=ego)) + 
+#     geom_point(aes(color = value), size = 35) + 
+#     geom_text(aes(label = label, color = threshold), hjust=0.5, size=4) +
+#     geom_point(aes(color = outline), shape = 1, size=35) + 
+#     scale_colour_gradient(low="white", high="black") +
+#     facet_grid(.~ptype) +
+#     labs(x="Alter", y="Ego", title="Racial/ethnic mixing row conditional probabilities") +
+#     theme(axis.text = element_text(size=12, color="black"), axis.title = element_text(size=13),
+#           strip.text = element_text(size=14, color="black"), plot.title = element_text(size=15, color="black")) +
+#     plot_background + theme_title 
+
+
 ```
