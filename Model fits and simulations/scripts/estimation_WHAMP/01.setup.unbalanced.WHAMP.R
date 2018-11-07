@@ -44,7 +44,9 @@ deg.mp.B <- matrix(sumto1(c(0.4963, 0.059, 0.1026,
 deg.mp.O <- matrix(sumto1(c(0.3921, 0.0804, 0.0779, 
                             0.3393, 0.0485, 0.0619)), byrow = TRUE, nrow = 2)
 deg.m.region <- sumto1(c(0.0994, 0.6153, 0.2852)) # EW, KC, OW
-deg.p.region <- sumto1(c(0.0911, 0.6159, 0.293)) # EW, KC, OW
+prop.deg.p.EW <- c(0.1056, 0.08516667, 0.0941) # Degree 0, 1, 2+. Make sure sums to 1 by running sumto1 function on the 1st element of each of these, on the 2nd, and on the 3rd
+prop.deg.p.KC <- c(0.5561, 0.59546667, 0.6264) # Degree 0, 1, 2+
+prop.deg.p.OW <- c(0.3383, 0.31936667, 0.2795) # Degree 0, 1, 2+
 
 # Instantaneous partner rates (Mean rate (degree) of inst partnerships per day by momentary main/pers degree)
   # (order: 0 main 0 pers, 0 main 1 pers, 0 main 2+ pers, 1 main 0 pers, 1 main 1 pers, 1 main 2+ pers)
@@ -147,7 +149,9 @@ st <- calc_nwstats_msm_whamp(
   deg.mp.B = deg.mp.B,
   deg.mp.O = deg.mp.O,
   deg.m.region = deg.m.region,
-  deg.p.region = deg.p.region,
+  prop.deg.p.EW = prop.deg.p.EW,
+  prop.deg.p.KC = prop.deg.p.KC,
+  prop.deg.p.OW = prop.deg.p.OW,
   mdeg.inst = mdeg.inst,
   qnts.18to49 = qnts.18to49,
   qnts.50to59 = qnts.50to59,

@@ -251,7 +251,7 @@ save(race_mixing, file="Data/race_mixing.Rdata")
 deg.mp.adj <- deg.mp.H.adj*prop.table(svytable(~hbo, whpp_artnet, round=FALSE))[1] + deg.mp.B.adj*prop.table(svytable(~hbo, whpp_artnet, round=FALSE))[2] + deg.mp.O.adj*prop.table(svytable(~hbo, whpp_artnet, round=FALSE))[3] 
     
 # 6. Define adjusted regional degree distributions as weighted avg of balanced racial/ethnic degree dists
-pop.raceregion <- pop.totals[[4]]
+pop.raceregion <- pop.totals$pop.hboregion.all
 pop.raceregion <- pop.raceregion %>% group_by(region) %>% mutate(percent = Freq/sum(Freq))
 
 deg.mp.KC.adj <- deg.mp.H.adj*pop.raceregion$percent[1]+deg.mp.B.adj*pop.raceregion$percent[2] + deg.mp.O.adj*pop.raceregion$percent[3]
@@ -423,9 +423,9 @@ ggplot(deg.mp.adj.race, aes(x=pers, y=main)) +
 ### By region
 Since the data on HIV-positive men are from a national sample (ART-Net), we don't have data on the regional distribution within Washington of momentary degree among HIV-positives. As such, we will assume that the relative distribution of main and pesistent degree among HIV-negative men in the WHPP sample is representative of the degree distribution in the full sample. We will estimate the proportion of main and persistent degree among HIV-negative men in the re-weighted sample that are in each region, and use this proportion to calculate the target statistics in the full network. 
 
-Because balancing the racial/ethnic mixing matrices resulted in adjustments to the mean degree for each racial/ethnic group, there may be inconsistencies in the model with the implied number of partnerships by region from the observed data. To evaluate this, we define region mixing parameters using both the observed data and estimates of degree defined as weighted averages of the racial/ethnic specific degree distributions.
+Because balancing the racial/ethnic mixing matrices resulted in adjustments to the mean degree for each racial/ethnic group, there may be inconsistencies in the model with the implied number of partnerships by region from the observed data. To evaluate this, we define region-specific degree parameters using both the observed data and estimates of degree defined as weighted averages of the racial/ethnic specific degree distributions.
 
-First we will look at the full momentary degree distributions by region among HIV-negative men, using both observed and adjusted data
+First we will look at the full observed momentary degree distributions by region among HIV-negative men, and the adjusted degree distributions calculated as weighted averages of the racial/ethnic group-specific degree distributions.
 ```{r degmatrix_KC}
 
 # Add margins to degree distribution tables
@@ -475,10 +475,10 @@ num.mp.OW <- deg.mp.OW[1:2,1:3]*svytable(~region, whpp_artnet, round=FALSE)[2]
 num.mp.EW <- deg.mp.EW[1:2,1:3]*svytable(~region, whpp_artnet, round=FALSE)[3]
 num.mp.neg <- deg.mp.hivneg[1:2,1:3]*svytable(~hiv, whpp_artnet, round=FALSE)[1]
 
-num.mp.KC.adj <- deg.mp.KC.adj[1:2,1:3]*pop.totals[[3]]$total[1]
-num.mp.OW.adj <- deg.mp.OW.adj[1:2,1:3]*pop.totals[[3]]$total[2]
-num.mp.EW.adj <- deg.mp.EW.adj[1:2,1:3]*pop.totals[[3]]$total[3]
-num.mp.tot <- deg.mp.adj[1:2,1:3]*sum(pop.totals[[3]]$total)
+num.mp.KC.adj <- deg.mp.KC.adj[1:2,1:3]*pop.totals$pop.region.all$total[1]
+num.mp.OW.adj <- deg.mp.OW.adj[1:2,1:3]*pop.totals$pop.region.all$total[2]
+num.mp.EW.adj <- deg.mp.EW.adj[1:2,1:3]*pop.totals$pop.region.all$total[3]
+num.mp.tot <- deg.mp.adj[1:2,1:3]*sum(pop.totals$pop.region.all$total)
 
 ### Main degree
 main.dist.region <- cbind.data.frame(region = c("Eastern WA", "King County", "Western WA"), proportion = c(sum(num.mp.EW[2,])/sum(num.mp.neg[2,]), sum(num.mp.KC[2,])/sum(num.mp.neg[2,]), sum(num.mp.OW[2,])/sum(num.mp.neg[2,])))
@@ -489,16 +489,19 @@ kable(main.dist.region, col.names=c("Region", "Proportion"),  digits = 4, captio
 
 kable(main.dist.region.adj, col.names=c("Region", "Proportion"),  digits = 4, caption="Distribution of main degree by region - adjusted") %>% kable_styling(full_width=F, position="center") %>% column_spec(1:2, width = "4cm")
 ```
+For persistent degree, we calculate the proportion of men with 0, 1, and 2+ degree who are in each region.
 ```{r prop.pers.region}
 ### Pers degree
-pers.dist.region <- cbind.data.frame(region = c("Eastern WA", "King County", "Western WA"), proportion = c(sum(num.mp.EW[,2], 2*num.mp.EW[,3])/sum(num.mp.neg[,2], 2*num.mp.neg[,3]), sum(num.mp.KC[,2], 2*num.mp.KC[,3])/sum(num.mp.neg[,2], 2*num.mp.neg[,3]), sum(num.mp.OW[,2], 2*num.mp.OW[,3])/sum(num.mp.neg[,2], 2*num.mp.neg[,3])))
+pers.dist.region <- cbind.data.frame(degree = rep(c("0 pers", "1 pers", "2+ pers"), 3), region = c(rep("Eastern WA", 3), rep("King County",3), rep("Western WA", 3)), proportion = c(colSums(num.mp.EW)/colSums(num.mp.neg), colSums(num.mp.KC)/colSums(num.mp.neg), colSums(num.mp.OW)/colSums(num.mp.neg)))
+pers.dist.region <- arrange(pers.dist.region, degree)
 
-pers.dist.region.adj <- cbind.data.frame(region = c("Eastern WA", "King County", "Western WA"), proportion = c(sum(num.mp.EW.adj[,2], 2*num.mp.EW.adj[,3])/sum(num.mp.tot[,2], 2*num.mp.tot[,3]), sum(num.mp.KC.adj[,2], 2*num.mp.KC.adj[,3])/sum(num.mp.tot[,2], 2*num.mp.tot[,3]), sum(num.mp.OW.adj[,2], 2*num.mp.OW.adj[,3])/sum(num.mp.tot[,2], 2*num.mp.tot[,3])))
+pers.dist.region.adj <- cbind.data.frame(degree = rep(c("0 pers", "1 pers", "2+ pers"), 3), region = c(rep("Eastern WA", 3), rep("King County",3), rep("Western WA", 3)), proportion = c(colSums(num.mp.EW.adj)/colSums(num.mp.tot), colSums(num.mp.KC.adj)/colSums(num.mp.tot), colSums(num.mp.OW.adj)/colSums(num.mp.tot)))
+pers.dist.region.adj <- arrange(pers.dist.region.adj, degree)
 
-
-kable(pers.dist.region, col.names=c("Region", "Proportion"),  digits = 4, caption="Distribution of persistent degree by region - observed") %>% kable_styling(full_width=F, position="center") %>% column_spec(1:2, width = "4cm")
-
-kable(pers.dist.region.adj, col.names=c("Region", "Proportion"),  digits = 4, caption="Distribution of persistent degree by region - adjusted") %>% kable_styling(full_width=F, position="center") %>% column_spec(1:2, width = "4cm")
+    
+kable(pers.dist.region[,2:3], col.names=c("Region", "Proportion"),  digits = 4, caption="Distribution of persistent degree by region - observed") %>% kable_styling(full_width=F, position="center") %>% column_spec(1:2, width = "4cm") %>% group_rows("Degree 0",1,3) %>% group_rows("Degree 1",4,6) %>% group_rows("Degree 2+",7,9) 
+ 
+kable(pers.dist.region.adj[,2:3], col.names=c("Region", "Proportion"),  digits = 4, caption="Distribution of persistent degree by region - adjusted") %>% kable_styling(full_width=F, position="center") %>% column_spec(1:2, width = "4cm") %>% group_rows("Degree 0",1,3) %>% group_rows("Degree 1",4,6) %>% group_rows("Degree 2+",7,9) 
 
 ```
 
