@@ -4,8 +4,12 @@ output:
     toc: true
     toc_float: true
 ---
-# Instantaneous network model diagnostics - balanced statistics
-This file shows diagnostics for instantaneous network models fit using balanced racial/ethnic mixing matrices and adjusted degree terms. Here we test whether we can fit a model with only edges + nodefactor("riskg") to see if the risk group definitions are problematic independent of other terms in the model. We try fitting these using the original target statistics from the data, where the lowest groups have 0 instantaneous partnerships (model 1), and adjusting these to 0.0001 to give them a non-zero probability of partnership formation (model 2).
+# Instantaneous network model diagnostics - test risk group tersm
+This file shows diagnostics for instantaneous network models. Here we test whether we can fit a model with only edges + nodefactor("riskg") to see if the risk group definitions are problematic independent of other terms in the model. We try fitting these:
+1) using the original target statistics from the data, where the lowest groups have 0 instantaneous partnerships. This model includes the offset for role class.
+2) With a dummy network of 10,000 with four equally sized risk groups. The total number of edges corresponds to that in the data, but the target stats for `nodefactor(riskg)` are set arbitrarily and range from 0 to >80% of total degree. In this first model, the highest group is the reference level and we do not include an offset for role class.
+3) Using the dummy network and target statistics defined above but with the lowest quartile set to the reference group.
+4) Using model 2 but including the offsets for role class.
 
 ## Load packages and model fits
 ```{r, warning=FALSE}
@@ -16,15 +20,19 @@ library("knitr")
 library("kableExtra")
 library("here")
 
-load(file = here("Model fits and simulations/Fit tests and debugging/est/fit.i.testriskg.bal.rda"))
+load(file = here("Model fits and simulations/Fit tests and debugging/est/fit.i.testriskg_zeros.bal.rda"))
+load(file = here("Model fits and simulations/Fit tests and debugging/est/fit.i.testriskg_fakegroups.bal.rda"))
+
 
 ```
+## 0. Edges + offset(nodematch("role.class")) 
+This first model just includes a term for edges and an offset for role class, for comparison with the models that incorporate nodefactor terms for risk groups.
 
-## Model terms and control settings
+### Model terms and control settings
 ```{r, echo=FALSE}
-targets <- cbind.data.frame("terms" = c(est.i.testriskg.bal[[2]]$target.stats.names, "nodematch.role.class.I", "nodematch.role.class.R"), "stats.1" = round(c(est.i.testriskg.bal[[1]]$target.stats, -Inf, -Inf),1), "stats.2" = round(c(est.i.testriskg.bal[[2]]$target.stats, -Inf, -Inf),1))
+targets <- cbind.data.frame("terms" = c(est.i.testriskg_fakegroups[[4]]$target.stats.names), "stats" = round(est.i.testriskg_fakegroups[[4]]$target.stats,1))
 
-kable(targets, col.names = c("Terms", "Model 1", "Model 2"), caption="Model terms and target statistics") %>% kable_styling(full_width=F, position="center")
+kable(targets, col.names = c("Terms", "Target stats")) %>% kable_styling(full_width=F, position="center")
 ```
 
 The control settings for these models are:
@@ -38,45 +46,182 @@ set.control.ergm = control.ergm(MCMC.interval = 1e+5,
                                 parallel.type="PSOCK"))
 ```
 
-## MCMC diagnostics
-
-### Model 1
+### MCMC diagnostics
 ```{r, message=FALSE, echo=FALSE}
-mcmc.diagnostics(est.i.testriskg.bal[[1]]$fit)
+mcmc.diagnostics(est.i.testriskg_fakegroups[[4]]$fit)
 ```
 
-### Model 2
+### Summary of model fit
+```{r}
+summary(est.i.testriskg_fakegroups[[4]])
+```
+
+### Network diagnostics
+
+```{r}
+(dx0 <- netdx(est.i.testriskg_fakegroups[[4]], nsims = 10, nsteps = 1000, ncores = 4, set.control.ergm = control.simulate.ergm(MCMC.interval = 1e+5, MCMC.burnin = 1e+6)))
+plot(dx0, type="formation")
+plot(dx0, type="duration")
+plot(dx0, type="dissolution")
+```
+
+
+## 1. Edges + nodefactor("riskg") + offset(nodematch("role.class")) 
+This model uses the risk groups we want to include in the model with the target stats from the data.
+
+### Model terms and control settings
+```{r, echo=FALSE}
+targets <- cbind.data.frame("terms" = c(est.i.testriskg_zeros.bal$target.stats.names[1], "nodefactor.riskg.01", "nodefactor.riskg.02", est.i.testriskg_zeros.bal$target.stats.names[2:4], "nodefactor.riskg.Y1", est.i.testriskg_zeros.bal$target.stats.names[5], "nodematch.role.class.I", "nodematch.role.class.R"), "stats" = round(c(est.i.testriskg_zeros.bal$target.stats, -Inf, -Inf),1))
+
+kable(targets, col.names = c("Terms", "Target stats")) %>% kable_styling(full_width=F, position="center")
+```
+
+The control settings for these models are:
+```{r, eval=FALSE}
+set.control.ergm = control.ergm(MCMC.interval = 1e+5,
+                                MCMC.samplesize = 7500,
+                                MCMC.burnin = 1e+6,
+                                MPLE.max.dyad.types = 1e+7,
+                                MCMLE.maxit = 400,
+                                parallel = np/2, 
+                                parallel.type="PSOCK"))
+```
+
+### MCMC diagnostics
 ```{r, message=FALSE, echo=FALSE}
-# mcmc.diagnostics(est.i.testriskg.bal[[2]]$fit)
+mcmc.diagnostics(est.i.testriskg_zeros.bal$fit)
 ```
 
-## Summary of model fit
-
-### Model 1
+### Summary of model fit
 ```{r}
-summary(est.i.testriskg.bal[[1]])
+summary(est.i.testriskg_zeros.bal)
 ```
 
-### Model 2
+### Network diagnostics
+
 ```{r}
-# summary(est.i.testriskg.bal[[2]])
+(dx1 <- netdx(est.i.testriskg_zeros.bal, nsims = 10, nsteps = 1000, ncores = 4, set.control.ergm = control.simulate.ergm(MCMC.interval = 1e+5, MCMC.burnin = 1e+6)))
+plot(dx1, type="formation")
+plot(dx1, type="duration")
+plot(dx1, type="dissolution")
 ```
 
-## Network diagnostics
+## 2. Edges + nodefactor("group", base=4)
+This model uses the made-up four risk groups with the highest quartile set to the reference group.
 
-### Model 1
+### Model terms and control settings
+```{r, echo=FALSE}
+targets <- cbind.data.frame("terms" = c(est.i.testriskg_fakegroups[[1]]$target.stats.names), "stats" = round(est.i.testriskg_fakegroups[[1]]$target.stats,1))
+
+kable(targets, col.names = c("Terms", "Target stats")) %>% kable_styling(full_width=F, position="center")
+```
+
+The control settings for these models are:
+```{r, eval=FALSE}
+set.control.ergm = control.ergm(MCMC.interval = 1e+5,
+                                MCMC.samplesize = 7500,
+                                MCMC.burnin = 1e+6,
+                                MPLE.max.dyad.types = 1e+7,
+                                MCMLE.maxit = 400,
+                                parallel = np/2, 
+                                parallel.type="PSOCK"))
+```
+
+### MCMC diagnostics
+```{r, message=FALSE, echo=FALSE}
+mcmc.diagnostics(est.i.testriskg_fakegroups[[1]]$fit)
+```
+
+### Summary of model fit
 ```{r}
-(dx_main1 <- netdx(est.i.testriskg.bal[[1]], nsims = 10, nsteps = 1000, ncores = 4, set.control.ergm = control.simulate.ergm(MCMC.interval = 1e+5, MCMC.burnin = 1e+6)))
-plot(dx_main1, type="formation")
-plot(dx_main1, type="duration")
-plot(dx_main1, type="dissolution")
+summary(est.i.testriskg_fakegroups[[1]])
 ```
 
-### Model 2
+### Network diagnostics
+
 ```{r}
-# (dx_main2 <- netdx(est.i.testriskg.bal[[2]], nsims = 10, nsteps = 1000, ncores = 4))
-# plot(dx_main2, type="formation")
-# plot(dx_main2, type="duration")
-# plot(dx_main2, type="dissolution")
+(dx2 <- netdx(est.i.testriskg_fakegroups[[1]], nsims = 10, nsteps = 1000, ncores = 4, set.control.ergm = control.simulate.ergm(MCMC.interval = 1e+5, MCMC.burnin = 1e+6)))
+plot(dx2, type="formation")
+plot(dx2, type="duration")
+plot(dx2, type="dissolution")
 ```
 
+## 3. Edges + nodefactor("group", base=1)
+This model uses the made-up four risk groups with the lowest quartile set to the reference group.
+
+### Model terms and control settings
+```{r, echo=FALSE}
+targets <- cbind.data.frame("terms" = c(est.i.testriskg_fakegroups[[2]]$target.stats.names), "stats" = round(est.i.testriskg_fakegroups[[2]]$target.stats,1))
+
+kable(targets, col.names = c("Terms", "Target stats")) %>% kable_styling(full_width=F, position="center")
+```
+
+The control settings for these models are:
+```{r, eval=FALSE}
+set.control.ergm = control.ergm(MCMC.interval = 1e+5,
+                                MCMC.samplesize = 7500,
+                                MCMC.burnin = 1e+6,
+                                MPLE.max.dyad.types = 1e+7,
+                                MCMLE.maxit = 400,
+                                parallel = np/2, 
+                                parallel.type="PSOCK"))
+```
+
+### MCMC diagnostics
+```{r, message=FALSE, echo=FALSE}
+mcmc.diagnostics(est.i.testriskg_fakegroups[[2]]$fit)
+```
+
+### Summary of model fit
+```{r}
+summary(est.i.testriskg_fakegroups[[2]])
+```
+
+### Network diagnostics
+
+```{r}
+(dx3 <- netdx(est.i.testriskg_fakegroups[[2]], nsims = 10, nsteps = 1000, ncores = 4, set.control.ergm = control.simulate.ergm(MCMC.interval = 1e+5, MCMC.burnin = 1e+6)))
+plot(dx3, type="formation")
+plot(dx3, type="duration")
+plot(dx3, type="dissolution")
+```
+
+## 4. Edges + nodefactor("group", base=4) + offset(nodematch("role.class")) 
+This model uses the-made up four risk groups with the highest quartile set to the reference group and with the offset for role class.
+
+### Model terms and control settings
+```{r, echo=FALSE}
+targets <- cbind.data.frame("terms" = c(est.i.testriskg_fakegroups[[3]]$target.stats.names[1], "nodefactor.groups.G1", est.i.testriskg_fakegroups[[3]]$target.stats.names[2:3], "nodematch.role.class.I", "nodematch.role.class.R"), "stats" = round(c(est.i.testriskg_fakegroups[[3]]$target.stats, -Inf, -Inf),1))
+
+kable(targets, col.names = c("Terms", "Target stats")) %>% kable_styling(full_width=F, position="center")
+```
+
+The control settings for these models are:
+```{r, eval=FALSE}
+set.control.ergm = control.ergm(MCMC.interval = 1e+5,
+                                MCMC.samplesize = 7500,
+                                MCMC.burnin = 1e+6,
+                                MPLE.max.dyad.types = 1e+7,
+                                MCMLE.maxit = 400,
+                                parallel = np/2, 
+                                parallel.type="PSOCK"))
+```
+
+### MCMC diagnostics
+```{r, message=FALSE, echo=FALSE}
+mcmc.diagnostics(est.i.testriskg_fakegroups[[3]]$fit)
+```
+
+### Summary of model fit
+```{r}
+summary(est.i.testriskg_fakegroups[[3]])
+```
+
+### Network diagnostics
+
+```{r}
+(dx4 <- netdx(est.i.testriskg_fakegroups[[3]], nsims = 10, nsteps = 1000, ncores = 4, set.control.ergm = control.simulate.ergm(MCMC.interval = 1e+5, MCMC.burnin = 1e+6)))
+plot(dx4, type="formation")
+plot(dx4, type="duration")
+plot(dx4, type="dissolution")
+```
