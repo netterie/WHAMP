@@ -318,10 +318,11 @@ Other
 <div id="instantaneous-partnerships-by-region" class="section level2">
 <h2>Instantaneous partnerships by region</h2>
 <p>Since the data on HIV-positive men are from a national sample (ART-Net), we don’t have data on the regional distribution within Washington of the rate of instantaneous partnerships among HIV-positives. As such, we will assume that the relative distribution of instantaneous partnerships among HIV-negative men in the WHPP sample is representative of the distribution in the full sample. We will estimate the proportion of instantaneous degree among HIV-negative men in the re-weighted sample that is in each region, and use this proportion to calculate the target statistics in the full network.</p>
-First we will look at the rates of instantaneous partnerships by region among HIV-negative men.
+<p>Because balancing the racial/ethnic mixing matrices resulted in adjustments to the mean rate of instantaneous partnerships for each racial/ethnic group, there may be inconsistencies in the model with the implied number of partnerships by region from the observed data. To evaluate this, we define region-specific rate parameters using both the observed data and estimates of rates defined as weighted averages of the racial/ethnic-specific rates.</p>
+First we will look at the observed rates of instantaneous partnerships by region among HIV-negative men, and the adjusted rates based on weighted averages of the racial/ethnic-specific degrees.
 <table class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
 <caption>
-Mean rate of instantaneous partnerships per day by region
+Observed mean rate of instantaneous partnerships per day by region
 </caption>
 <thead>
 <tr>
@@ -360,10 +361,51 @@ Western WA
 </tr>
 </tbody>
 </table>
-<p>Next we will calculate the distribution of instantaneous degree by region.</p>
 <table class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
 <caption>
-Distribution of instantaneous degree by region
+Adjusted mean rate of instantaneous partnerships per day by region
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+Region
+</th>
+<th style="text-align:right;">
+Mean
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;width: 4cm; ">
+Eastern WA
+</td>
+<td style="text-align:right;width: 4cm; ">
+0.014267
+</td>
+</tr>
+<tr>
+<td style="text-align:left;width: 4cm; ">
+King County
+</td>
+<td style="text-align:right;width: 4cm; ">
+0.013655
+</td>
+</tr>
+<tr>
+<td style="text-align:left;width: 4cm; ">
+Western WA
+</td>
+<td style="text-align:right;width: 4cm; ">
+0.013520
+</td>
+</tr>
+</tbody>
+</table>
+Next we will calculate the distribution of instantaneous degree by region.
+<table class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<caption>
+Distribution of instantaneous degree by region - observed
 </caption>
 <thead>
 <tr>
@@ -397,6 +439,47 @@ Western WA
 </td>
 <td style="text-align:right;width: 4cm; ">
 0.2530
+</td>
+</tr>
+</tbody>
+</table>
+<table class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<caption>
+Distribution of instantaneous degree by region - adjusted
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+Region
+</th>
+<th style="text-align:right;">
+Proportion
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;width: 4cm; ">
+Eastern WA
+</td>
+<td style="text-align:right;width: 4cm; ">
+0.1054
+</td>
+</tr>
+<tr>
+<td style="text-align:left;width: 4cm; ">
+King County
+</td>
+<td style="text-align:right;width: 4cm; ">
+0.5701
+</td>
+</tr>
+<tr>
+<td style="text-align:left;width: 4cm; ">
+Western WA
+</td>
+<td style="text-align:right;width: 4cm; ">
+0.3245
 </td>
 </tr>
 </tbody>

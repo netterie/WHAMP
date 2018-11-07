@@ -21,20 +21,10 @@
     load(file="Data/InternetSurveySample.Rdata")
     load(file="Data/ARTNet_pos_wide.Rdata")
     load(file="Data/artnet_reweighted_pos_w.Rdata")
-    load(file="Data/census_agebyregion.Rdata")
-    load(file="Data/census_racebyregion.Rdata")
-    load(file="Data/census_totalbyregion.Rdata")
-    load(file="Data/wa_msm_est2013.Rdata")
-    load(file="Data/msmbyregion.Rdata")
-    load(file="Data/prop_msmbyregion.Rdata")
-    load(file="Data/plwha_age.Rdata")
-    load(file="Data/plwha_hboXregion.Rdata")
     load(file = "Data/whpp_artnet.Rdata")
     load(file = "/homes/dpwhite/win/project/MMP_WADOH/whpp_mmp.Rdata")
     load(file="/homes/dpwhite/win/project/MMP_WADOH/mmp_reweighted.Rdata")
-
-
-    
+    load(file="Data/pop.totals.Rdata")
 
 # Set options
     opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
@@ -60,68 +50,28 @@ We will define the rate of instantaneous partnerships by main/persistent degree 
     samplesvy_r <- svydesign(id=~1, data=sample_nonmiss)
 
 #-----------------------------------------------------------------------------------
-# Define "population" totals from census data and Jeremy Grey's analysis
+# Load population totals (objects defined in the "Nework_composition.Rmd file") 
 #-----------------------------------------------------------------------------------
+pop.region.all <- pop.totals$pop.region.all
+pop.region.neg <- pop.totals$pop.region.neg
+pop.region.pos <- pop.totals$pop.region.pos
 
-#Region
-    pop.region.all <- MSMbyregion %>% select(region, numMSM) %>% mutate(total = round(numMSM)) %>% select(-numMSM)
-    levels(pop.region.all$region)[levels(pop.region.all$region)=="Other Western WA"] <- "Western WA"
-    
-    #HIV-positive only
-    pop.region.pos <- plwha_hboXregion %>% group_by(region) %>% summarise("total" = sum(Freq))
-    pop.region.pos$region <- factor(pop.region.pos$region, levels = c("King County", "Western WA", "Eastern WA"))
-    pop.region.pos <- pop.region.pos %>% arrange(region)
+pop.age.all <- pop.totals$pop.age.all
+pop.age.neg <- pop.totals$pop.age.neg
+pop.age.pos <- pop.totals$pop.age.pos
 
-    #HIV-negative only
-    pop.region.neg <- cbind.data.frame(region = c("King County", "Western WA", "Eastern WA"), total = c(round(pop.region.all$total[pop.region.all$region %in% "King County"] - pop.region.pos$total[pop.region.pos$region %in% "King County"]), round(pop.region.all$total[pop.region.all$region %in% "Western WA"] - pop.region.pos$total[pop.region.pos$region %in% "Western WA"]), round(pop.region.all$total[pop.region.all$region %in% "Eastern WA"] - pop.region.pos$total[pop.region.pos$region %in% "Eastern WA"])))
-    pop.region.neg$region <- factor(pop.region.neg$region, levels = c("King County", "Western WA", "Eastern WA"))
-    pop.region.neg <- pop.region.neg %>% arrange(region)
-    
-#Race and region
-    pop.raceregion.all <- cbind.data.frame(region=c(rep("King County", 3), rep("Western WA", 3), rep("Eastern WA", 3)), hbo=c(rep(c("Hispanic", "Black", "Other"), 3)), Freq=c(wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "King County"]*pop.region.all$total[pop.region.all$region %in% "King County"], wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "King County"]*pop.region.all$total[pop.region.all$region %in% "King County"], wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "King County"]*pop.region.all$total[pop.region.all$region %in% "King County"], wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "Other Western"]*pop.region.all$total[pop.region.all$region %in% "Western WA"], wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "Other Western"]*pop.region.all$total[pop.region.all$region %in% "Western WA"], wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "Other Western"]*pop.region.all$total[pop.region.all$region %in% "Western WA"], wa_acs_racebyregion$Percent_Hispanic[wa_acs_racebyregion$region %in% "Eastern"]*pop.region.all$total[pop.region.all$region %in% "Eastern WA"], wa_acs_racebyregion$Percent_black[wa_acs_racebyregion$region %in% "Eastern"]*pop.region.all$total[pop.region.all$region %in% "Eastern WA"], wa_acs_racebyregion$Percent_other[wa_acs_racebyregion$region %in% "Eastern"]*pop.region.all$total[pop.region.all$region %in% "Eastern WA"]))
-    #Specify order of factors
-    pop.raceregion.all$hbo <- factor(pop.raceregion.all$hbo, levels = c("Hispanic", "Black", "Other"))
-    pop.raceregion.all$region <- factor(pop.raceregion.all$region, levels = c("King County", "Western WA", "Eastern WA"))
-    pop.raceregion.all <- pop.raceregion.all %>% arrange(region, hbo)
+pop.hbo.all <- pop.totals$pop.hbo.all
+pop.hbo.neg <- pop.totals$pop.hbo.neg
+pop.hbo.pos <- pop.totals$pop.hbo.pos
 
-    #HIV-positive only
-    pop.raceregion.pos <- plwha_hboXregion
-        #Specify order of factors
-        pop.raceregion.pos$hbo <- factor(pop.raceregion.pos$hbo, levels = c("Hispanic", "Black", "Other"))
-        pop.raceregion.pos$region <- factor(pop.raceregion.pos$region, levels = c("King County", "Western WA", "Eastern WA"))
-        pop.raceregion.pos <- pop.raceregion.pos %>% arrange(region, hbo)
-
-    #HIV-negative only
-    pop.raceregion.neg <- cbind.data.frame(region=c(rep("King County", 3), rep("Western WA", 3), rep("Eastern WA", 3)), hbo=c(rep(c("Hispanic", "Black", "Other"), 3)), Freq=c(round(pop.raceregion.all[1:3, 3] - pop.raceregion.pos[1:3, 3]), round(pop.raceregion.all[4:6, 3] - pop.raceregion.pos[4:6, 3]), round(pop.raceregion.all[7:9, 3] - pop.raceregion.pos[7:9, 3])))
-    
-#Race
-    pop.hbo.all <- pop.raceregion.all %>% group_by(hbo) %>% summarise(Freq=sum(Freq))
-    pop.hbo.pos <- pop.raceregion.pos %>% group_by(hbo) %>% summarise(Freq=sum(Freq))
-    pop.hbo.neg <- pop.raceregion.neg %>% group_by(hbo) %>% summarise(Freq=sum(Freq))
-         #Specify order of factors
-        pop.hbo.neg$hbo <- factor(pop.hbo.neg$hbo, levels = c("Hispanic", "Black", "Other"))
-        pop.hbo.neg <- pop.hbo.neg %>% arrange(hbo)
-
-#Age
-    #All MSM
-    wa_acs_agebyregion$age_cat_alt <- ifelse(wa_acs_agebyregion$Age_group %in% c("males.40to44", "males.45to49"), "40-49", ifelse(wa_acs_agebyregion$Age_group %in% c("males.50to54", "males.55to59"), "50-59", ifelse(wa_acs_agebyregion$Age_group %in% "males.18to24", "18-24", ifelse(wa_acs_agebyregion$Age_group %in% "males.25to29", "25-29", ifelse(wa_acs_agebyregion$Age_group %in% "males.30to34", "30-34", ifelse(wa_acs_agebyregion$Age_group %in% "males.35to39", "35-39", NA))))))
-    
-    #Apply proportion MSM in each region to get age distribution among MSM
-    wa_acs_agebyregion$numMSM <- ifelse(wa_acs_agebyregion$region %in% "Eastern", round(wa_acs_agebyregion$Frequency*propMSMbyregion$propmsm[propMSMbyregion$region %in% "Eastern WA"]), ifelse(wa_acs_agebyregion$region %in% "King County", round(wa_acs_agebyregion$Frequency*propMSMbyregion$propmsm[propMSMbyregion$region %in% "King County"]), ifelse(wa_acs_agebyregion$region %in% "Other Western", round(wa_acs_agebyregion$Frequency*propMSMbyregion$propmsm[propMSMbyregion$region %in% "Other Western WA"]), NA)))
-    
-    pop.age.all <- wa_acs_agebyregion %>% select(-Frequency) %>% group_by(age_cat_alt) %>% summarise(Freq = sum(numMSM))
-    
-    #HIV-positive only
-    pop.age.pos <- plwha_age
-    
-    #HIV-negative only
-    pop.age.neg <- cbind.data.frame(age_cat_alt = c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"), Freq = c(round(pop.age.all$Freq - pop.age.pos$Freq)))
-    
+pop.hboregion.all <- pop.totals$pop.hboregion.all
+pop.hboregion.neg <- pop.totals$pop.hboregion.neg
+pop.hboregion.pos <- pop.totals$pop.hboregion.pos
 
 #-----------------------------------------------------------------------------------
 # Rake the survey sample using population totals for all MSM
 #-----------------------------------------------------------------------------------
-    sample_rake_neg_r <- rake(samplesvy_r, list(~hbo+region, ~age_cat_alt), list(pop.raceregion.neg, pop.age.neg))
+    sample_rake_neg_r <- rake(samplesvy_r, list(~hbo+region, ~age_cat_alt), list(pop.hboregion.neg, pop.age.neg))
 
 ```
 
@@ -245,7 +195,7 @@ To capture heterogeneity in the rate of instantaneous partnerships by age, we de
 #   avg.qrtmeans.50to59[2] <- mean(sapply(qrtmeans_50to59, `[[`, 2))
 #   avg.qrtmeans.50to59[3] <- mean(sapply(qrtmeans_50to59, `[[`, 3))
 #   avg.qrtmeans.50to59[4] <- mean(sapply(qrtmeans_50to59, `[[`, 4))
-# 
+
 # #Save means
 #   save(avg.qrtmeans.18to49, file="Data/rate_inst_qrtmeans_18to49.Rdata")
 #   save(avg.qrtmeans.50to59, file="Data/rate_inst_qrtmeans_50to59.Rdata")
@@ -315,7 +265,9 @@ save(meansXhbo, file="Data/rate_inst_hbo.Rdata")
 ## Instantaneous partnerships by region
 Since the data on HIV-positive men are from a national sample (ART-Net), we don't have data on the regional distribution within Washington of the rate of instantaneous partnerships among HIV-positives. As such, we will assume that the relative distribution of instantaneous partnerships among HIV-negative men in the WHPP sample is representative of the distribution in the full sample. We will estimate the proportion of instantaneous degree among HIV-negative men in the re-weighted sample that is in each region, and use this proportion to calculate the target statistics in the full network. 
 
-First we will look at the rates of instantaneous partnerships by region among HIV-negative men.
+Because balancing the racial/ethnic mixing matrices resulted in adjustments to the mean rate of instantaneous partnerships for each racial/ethnic group, there may be inconsistencies in the model with the implied number of partnerships by region from the observed data. To evaluate this, we define region-specific rate parameters using both the observed data and estimates of rates defined as weighted averages of the racial/ethnic-specific rates.
+
+First we will look at the observed rates of instantaneous partnerships by region among HIV-negative men, and the adjusted rates based on weighted averages of the racial/ethnic-specific degrees.
 ```{r rate_instXregion}
 means.region <- svyby(~rate_inst, ~region, inst.full, svymean, na.rm=TRUE)
 meansXregion <- cbind.data.frame("Region" = means.region$region, "Mean" = round(means.region$rate_inst, 6))
@@ -325,22 +277,49 @@ meansXregion$Region <- factor(meansXregion$Region, levels = c("Eastern WA", "Kin
 meansXregion <- meansXregion %>% arrange(Region)
 
 #Make kable
-kable(meansXregion, caption="Mean rate of instantaneous partnerships per day by region", digits=c(6)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1:2, width = "4cm")
+kable(meansXregion, caption="Observed mean rate of instantaneous partnerships per day by region", digits=c(6)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1:2, width = "4cm")
+
+```
+```{r, echo=FALSE}
+# Define adjusted regional rate of inst as weighted avg of balanced rates by racial/ethnic group
+pop.raceregion <- pop.totals$pop.hboregion.all %>% group_by(region) %>% mutate(percent = Freq/sum(Freq))
+
+means.KC_adj <- meansXhbo_adj$Mean[meansXhbo_adj$Race %in% "Hispanic"]*pop.raceregion$percent[1] + meansXhbo_adj$Mean[meansXhbo_adj$Race %in% "Black"]*pop.raceregion$percent[2] + meansXhbo_adj$Mean[meansXhbo_adj$Race %in% "Other"]*pop.raceregion$percent[3]
+means.OW_adj <- meansXhbo_adj$Mean[meansXhbo_adj$Race %in% "Hispanic"]*pop.raceregion$percent[4] + meansXhbo_adj$Mean[meansXhbo_adj$Race %in% "Black"]*pop.raceregion$percent[5] + meansXhbo_adj$Mean[meansXhbo_adj$Race %in% "Other"]*pop.raceregion$percent[6]
+means.EW_adj <- meansXhbo_adj$Mean[meansXhbo_adj$Race %in% "Hispanic"]*pop.raceregion$percent[7] + meansXhbo_adj$Mean[meansXhbo_adj$Race %in% "Black"]*pop.raceregion$percent[8] + meansXhbo_adj$Mean[meansXhbo_adj$Race %in% "Other"]*pop.raceregion$percent[9]
+
+meansXregion_adj <- cbind.data.frame("Region" = c("Eastern WA", "King County", "Western WA"), "Mean" = c(means.EW_adj, means.KC_adj, means.OW_adj))
+
+#Reorder region var to alphabetical order
+meansXregion_adj$Region <- factor(meansXregion_adj$Region, levels = c("Eastern WA", "King County", "Western WA"))
+meansXregion_adj <- meansXregion_adj %>% arrange(Region)
+
+#Make kable
+kable(meansXregion_adj, caption="Adjusted mean rate of instantaneous partnerships per day by region", digits=c(6)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1:2, width = "4cm")
 
 ```
 
 Next we will calculate the distribution of instantaneous degree by region.
-
 ```{r}
 num.inst.EW <- meansXregion$Mean[1]*svytable(~region, inst.full, round=FALSE)[3]
 num.inst.KC <- meansXregion$Mean[2]*svytable(~region, inst.full, round=FALSE)[1]
 num.inst.OW <- meansXregion$Mean[3]*svytable(~region, inst.full, round=FALSE)[2]
 num.inst.neg <- svymean(~rate_inst, inst.full[inst.full$variables$hiv %in% 0], na.rm=TRUE)[[1]]*svytable(~hiv, inst.full, round=FALSE)[1]
 
+num.inst.EW.adj <- meansXregion_adj$Mean[1]*pop.totals$pop.region.all$total[3]
+num.inst.KC.adj <- meansXregion_adj$Mean[2]*pop.totals$pop.region.all$total[1]
+num.inst.OW.adj <- meansXregion_adj$Mean[3]*pop.totals$pop.region.all$total[2]
+num.inst.tot <- svymean(~rate_inst, inst.full, na.rm=TRUE)[[1]]*sum(pop.totals$pop.region.all$total)
+
 inst.dist.region <- cbind.data.frame(proportion = c(num.inst.EW/num.inst.neg, num.inst.KC/num.inst.neg, num.inst.OW/num.inst.neg))
 
-kable(inst.dist.region, col.names=c("Proportion"),  digits = 4, caption="Distribution of instantaneous degree by region") %>% kable_styling(full_width=F, position="center") %>% column_spec(1:2, width = "4cm")
+inst.dist.region_adj <- cbind.data.frame(region = c("Eastern WA", "King County", "Western WA"), proportion = c(num.inst.EW.adj/num.inst.tot, num.inst.KC.adj/num.inst.tot, num.inst.OW.adj/num.inst.tot))
+
+kable(inst.dist.region, col.names=c("Proportion"),  digits = 4, caption="Distribution of instantaneous degree by region - observed") %>% kable_styling(full_width=F, position="center") %>% column_spec(1:2, width = "4cm")
+
+kable(inst.dist.region_adj, col.names=c("Region", "Proportion"),  digits = c(0,4), caption="Distribution of instantaneous degree by region - adjusted") %>% kable_styling(full_width=F, position="center") %>% column_spec(1:2, width = "4cm")
 
 # Save
 save(inst.dist.region, file="Data/rate_inst_region.Rdata")
+save(inst.dist.region_adj, file="Data/rate_inst_region_adj.Rdata")
 ```
