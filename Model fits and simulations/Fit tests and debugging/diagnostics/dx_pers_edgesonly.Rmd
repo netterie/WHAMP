@@ -1,0 +1,40 @@
+# Test persistent model
+
+rm(list = ls())
+suppressMessages(library("EpiModelHIV"))
+library("parallel")
+np <- detectCores()
+
+# 1. Edges only ----
+# in this simple example, we don't include any mortality in the dissolution model
+# Note, with this model, if init.method="zeros", it gives the degeneracy error ("Number of edges in a simulated network exceeds that in the observed by a factor of more than 20")
+
+## Initialize the network
+n <- 10000
+nw <- network.initialize(n,directed=FALSE)
+
+# target stats
+e <- 2017.5
+dur <- 221
+time.step <- 7
+
+formation <- ~edges
+stats <- e
+
+# Fit model
+fit.p <- netest(nw, 
+                formation, 
+                stats,
+                coef.diss = dissolution_coefs(dissolution = ~offset(edges), duration = dur / time.step),
+                edapprox = TRUE,
+                set.control.ergm = control.ergm(parallel = np/2, 
+                                                parallel.type="PSOCK"))
+dx_pers <- netdx(fit.p, nsims = 10, nsteps = 1000, ncores = 4,
+                 set.control.ergm = control.simulate.ergm(MCMC.interval = 1e+5, MCMC.burnin = 1e+6),
+                 set.control.stergm = control.simulate.network(MCMC.burnin.min = 1e+6, MCMC.burnin.max = 1e+6))
+plot(dx_pers, type="formation")
+
+param <- param.net(inf.prob = 0.01)
+init <- init.net(i.num = n*0.1)
+control <- control.net(type = "SI", nsteps = 1000, nsims = 10, verbose = FALSE)
+sim <- netsim(fit.p, param, init, control)

@@ -1,0 +1,92 @@
+---
+output:
+  html_document:
+    toc: true
+    toc_float: true
+---
+# Persistent network model diagnostics - debugging fit issues
+This file shows diagnostics for an edges-only persistent network model. In this file, we test whether fit issues are due to edapprox.
+
+## Load packages and model fits
+```{r, warning=FALSE, include = FALSE}
+rm(list = ls())
+suppressMessages(library("EpiModel"))
+suppressMessages(library("EpiModelHIV"))
+library("latticeExtra")
+library("knitr")
+library("kableExtra")
+library("here")
+
+load(file = here("Model fits and simulations/Fit tests and debugging/est/fit.p.edgesonly.Rda"))
+load(file = here("Model fits and simulations/Fit tests and debugging/est/fit.p.edgesonly_longdur.rda"))
+
+
+```
+
+## 1. Edges only
+This model has edges only and no constraints based on role class or to cap degree at 2. It also does not incorporate mortality into the disssolution coefficient. It uses the target statistic for edges and duration from our data, and it sets `edapprox=TRUE`. With this model, I got the error message about degeneracy with `init.method="zeros"` ("Number of edges in a simulated network exceeds that in the observed by a factor of more than 20"), so I set `init.method` to the NULL argument. Also note that in this model, our control settings did not adjust the MCMC intervals or burnin.
+```{r, eval=FALSE}
+nw <- network.initialize(10000,directed=FALSE)
+time.step <- 7
+fit.p1 <- netest(nw, 
+                formation = ~edges, 
+                target.stats = 2017.5,
+                coef.diss = dissolution_coefs(dissolution = ~offset(edges), duration = 221 / time.step),
+                edapprox = TRUE,
+                set.control.ergm = control.ergm(MPLE.max.dyad.types = 1e9,
+                                                 MCMLE.maxit = 250))
+
+```
+
+### MCMC diagnostics
+```{r}
+mcmc.diagnostics(fit.p1$fit)
+```
+
+### Summary of model fit
+```{r}
+summary(fit.p1)
+```
+
+### Network diagnostics - MCMC burnin set to 1e+6 and using set.control.ergm
+```{r}
+(dx_pers1 <- netdx(fit.p1, nsims = 10, nsteps = 1000, ncores = 4, set.control.stergm = control.simulate.network(MCMC.burnin.min = 1e+6, MCMC.burnin.max = 1e+6), set.control.ergm = control.simulate.ergm(MCMC.interval = 1e+5, MCMC.burnin = 1e+6)))
+plot(dx_pers1, type="formation")
+plot(dx_pers1, type="duration")
+plot(dx_pers1, type="dissolution")
+```
+
+
+## 2. Edges only but duration = 100 time steps
+This model is the same as above but with duration set to 100 time steps
+```{r, eval=FALSE}
+nw <- network.initialize(10000,directed=FALSE)
+time.step <- 7
+fit.p2 <- netest(nw, 
+                formation = ~edges, 
+                target.stats = 2017.5,
+                coef.diss = dissolution_coefs(dissolution = ~offset(edges), duration = 100),
+                edapprox = TRUE,
+                set.control.ergm = control.ergm(MPLE.max.dyad.types = 1e9,
+                                                 MCMLE.maxit = 250))
+
+```
+
+### MCMC diagnostics
+```{r}
+mcmc.diagnostics(fit.p2$fit)
+```
+
+### Summary of model fit
+```{r}
+summary(fit.p2)
+```
+
+### Network diagnostics - MCMC burnin set to 1e+6
+```{r}
+(dx_pers2 <- netdx(fit.p2, nsims = 10, nsteps = 1000, ncores = 4, set.control.stergm = control.simulate.network(MCMC.burnin.min = 1e+6, MCMC.burnin.max = 1e+6), set.control.ergm = control.simulate.ergm(MCMC.interval = 1e+5, MCMC.burnin = 1e+6)))
+plot(dx_pers2, type="formation")
+plot(dx_pers2, type="duration")
+plot(dx_pers2, type="dissolution")
+```
+

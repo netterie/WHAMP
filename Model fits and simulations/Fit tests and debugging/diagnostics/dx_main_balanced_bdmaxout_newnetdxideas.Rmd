@@ -1,0 +1,62 @@
+---
+output:
+  html_document:
+    toc: true
+    toc_float: true
+---
+# Network model diagnostics - balanced statistics
+
+## Load packages and model fits
+```{r, warning=FALSE}
+rm(list = ls())
+suppressMessages(library("EpiModelHIV"))
+library("latticeExtra")
+library("knitr")
+library("kableExtra")
+library("here")
+
+load(file = here("Model fits and simulations/Fit tests and debugging/est/est.m.bal.bdmaxout.rda"))
+
+```
+
+## Main model
+This model uses balanced statistics for racial/ethnic mixing and race/ethnicity-specific degree, imposes the constraint on degree using the argument: `constraints = ~bd(maxout = 1),` and assumes 100% regional homophily.
+
+### Model terms and control settings
+```{r}
+targets <- cbind.data.frame("terms" = c(fit.m$target.stats.names, "nodematch.role.class.I", "nodematch.role.class.R", "mix.region.EW.KC", "mix.region.EW.OW", "mix.region.KC.OW"), "stats" = round(c(fit.m$target.stats, rep(-Inf, 5)),1))
+
+kable(targets, col.names = c("Terms and constraints", ""), caption="Model terms, constraints, and target statistics") %>% kable_styling(full_width=F, position="center")
+
+
+```
+
+```{r, eval=FALSE}
+set.control.ergm = control.ergm(MCMC.interval = 1e+5,
+                                 MCMC.samplesize = 7500,
+                                 MCMC.burnin = 1e+6,
+                                 MPLE.max.dyad.types = 1e+7,
+                                 init.method = "zeros",
+                                 MCMLE.maxit = 400,
+                                 parallel = np/4, 
+                                 parallel.type="PSOCK"))
+
+```
+
+### MCMC diagnostics
+```{r, message=FALSE, echo=FALSE}
+mcmc.diagnostics(fit.m$fit)
+```
+
+### Summary of model fit
+```{r, message=FALSE, echo=FALSE}
+summary(fit.m)
+```
+
+### Network diagnostics
+```{r}
+(dx_main <- netdx(fit.m, nsims = 10, nsteps = 1000, ncores = 4, set.control.stergm = control.simulate.network(MCMC.burnin.min = 1e+5, MCMC.burnin.max = 1e+5), set.control.ergm = control.simulate.ergm(MCMC.interval = 1e+5, MCMC.burnin = 1e+6)))
+plot(dx_main, type="formation")
+plot(dx_main, type="duration")
+plot(dx_main, type="dissolution")
+```

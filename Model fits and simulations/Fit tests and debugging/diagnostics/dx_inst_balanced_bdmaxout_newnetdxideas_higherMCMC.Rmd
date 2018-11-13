@@ -1,0 +1,61 @@
+---
+output:
+  html_document:
+    toc: true
+    toc_float: true
+---
+# Instantaneous network model diagnostics - balanced statistics with higher netdx MCMC interval
+
+## Load packages and model fits
+```{r, warning=FALSE}
+rm(list = ls())
+suppressMessages(library("EpiModelHIV"))
+library("latticeExtra")
+library("knitr")
+library("kableExtra")
+library("here")
+
+load(file = here("Model fits and simulations/Fit tests and debugging/est/est.i.bal.rda"))
+
+
+```
+
+## Instantaneous model
+This model uses balanced statistics for racial/ethnic mixing and race/ethnicity-specific degree and assumes 80% regional homophily.
+
+### Model terms and control settings
+
+```{r}
+targets <- cbind.data.frame("terms" = c(fit.i$target.stats.names[1:6], "nodefactor.riskg.O1", "nodefactor.riskg.O2", fit.i$target.stats.names[7:8], "nodefactor.riskg.Y1", fit.i$target.stats.names[9:19], "nodematch.role.class.I", "nodematch.role.class.R"), "stats" = round(c(fit.i$target.stats, rep(-Inf, 2)),1))
+
+kable(targets, col.names = c("Terms and constraints", ""), caption="Model terms, constraints, and target statistics") %>% kable_styling(full_width=F, position="center")
+
+
+```
+
+```{r, eval=FALSE}
+set.control.ergm = control.ergm(MCMC.interval = 1e+5,
+                                 MCMC.samplesize = 7500,
+                                 MCMC.burnin = 1e+6,
+                                 MPLE.max.dyad.types = 1e+7,
+                                 MCMLE.maxit = 400,
+                                 parallel = np/2, 
+                                 parallel.type="PSOCK"))
+
+```
+
+### MCMC diagnostics
+```{r, message=FALSE, echo=FALSE}
+mcmc.diagnostics(fit.i$fit)
+```
+
+### Summary of model fit
+```{r, message=FALSE, echo=FALSE}
+summary(fit.i)
+```
+
+### Network diagnostics
+```{r}
+(dx_inst <- netdx(fit.i, dynamic = FALSE, nsims = 100, ncores = 4, set.control.ergm = control.simulate.ergm(MCMC.interval = 1e+7, MCMC.burnin = 1e+7)))
+plot(dx_inst, type="formation")
+```

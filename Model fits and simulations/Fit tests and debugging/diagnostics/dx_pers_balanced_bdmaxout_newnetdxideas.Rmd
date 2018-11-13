@@ -1,0 +1,107 @@
+---
+output:
+  html_document:
+    toc: true
+    toc_float: true
+---
+# Network model diagnostics - balanced statistics
+
+## Load packages and model fits
+```{r, warning=FALSE}
+rm(list = ls())
+suppressMessages(library("EpiModelHIV"))
+library("latticeExtra")
+library("knitr")
+library("kableExtra")
+library("here")
+
+load(file = here("Model fits and simulations/Fit tests and debugging/est/est.p.bal.bdmaxout.rda"))
+load(file = here("Model fits and simulations/Fit tests and debugging/est/est.p.bal.bdmaxout_longdur.rda"))
+
+```
+
+## Persistent model
+This model uses balanced statistics for racial/ethnic mixing and race/ethnicity-specific degree, imposes the constraint on degree using the argument: `constraints = ~bd(maxout = 2),` and assumes 80% regional homophily.
+
+### Model terms and control settings
+Terms and constraints
+```{r, echo = FALSE}
+targets <- cbind.data.frame("terms" = c(fit.p$target.stats.names, "nodematch.role.class.I", "nodematch.role.class.R"), "stats" = round(c(fit.p$target.stats, rep(-Inf, 2)),1))
+
+kable(targets, col.names = c("Terms and constraints", "Full model"), caption="Model terms, constraints, and target statistics") %>% kable_styling(full_width=F, position="center")
+
+```
+
+Control settings
+```{r, eval=FALSE}
+set.control.ergm = control.ergm(MCMC.interval = 1e+5,
+                    MCMC.samplesize = 7500,
+                    MCMC.burnin = 1e+6,
+                    MPLE.max.dyad.types = 1e+7,
+                    init.method = "zeros",
+                    MCMLE.maxit = 400,
+                    parallel = np/2,
+                    parallel.type="PSOCK"))
+
+```
+
+### MCMC diagnostics
+```{r, message=FALSE, echo=FALSE}
+mcmc.diagnostics(fit.p$fit)
+```
+
+### Summary of model fit
+```{r, message=FALSE, echo=FALSE}
+summary(fit.p)
+```
+
+### Network diagnostics
+```{r}
+(dx_pers <- netdx(fit.p, nsims = 10, nsteps = 1000, ncores = 4, set.control.stergm = control.simulate.network(MCMC.burnin.min = 1e+5, MCMC.burnin.max = 1e+5), set.control.ergm = control.simulate.ergm(MCMC.interval = 1e+5, MCMC.burnin = 1e+6)))
+plot(dx_pers, type="formation")
+plot(dx_pers, type="duration")
+plot(dx_pers, type="dissolution")
+```
+
+## Persistent model, longer duration
+This model uses balanced statistics for racial/ethnic mixing and race/ethnicity-specific degree, imposes the constraint on degree using the argument: `constraints = ~bd(maxout = 2),` and assumes 80% regional homophily. In this model we specify a duration of 100 time steps to test whether fit issues are due to the duration being too short for edapprox.
+
+### Model terms and control settings
+Terms and constraints
+```{r, echo = FALSE}
+targets <- cbind.data.frame("terms" = c(fit.p2$target.stats.names, "nodematch.role.class.I", "nodematch.role.class.R"), "stats" = round(c(fit.p2$target.stats, rep(-Inf, 2)),1))
+
+kable(targets, col.names = c("Terms and constraints", "Full model"), caption="Model terms, constraints, and target statistics") %>% kable_styling(full_width=F, position="center")
+
+```
+Control settings
+```{r, eval=FALSE}
+set.control.ergm = control.ergm(MCMC.interval = 1e+5,
+                    MCMC.samplesize = 7500,
+                    MCMC.burnin = 1e+6,
+                    MPLE.max.dyad.types = 1e+7,
+                    init.method = "zeros",
+                    MCMLE.maxit = 400,
+                    parallel = np/2,
+                    parallel.type="PSOCK"))
+
+```
+
+### MCMC diagnostics
+```{r, message=FALSE, echo=FALSE}
+mcmc.diagnostics(fit.p2$fit)
+```
+
+### Summary of model fit
+```{r, message=FALSE, echo=FALSE}
+summary(fit.p2)
+```
+
+### Network diagnostics
+```{r}
+(dx_pers2 <- netdx(fit.p2, nsims = 10, nsteps = 1000, ncores = 4, set.control.stergm = control.simulate.network(MCMC.burnin.min = 1e+5, MCMC.burnin.max = 1e+5), set.control.ergm = control.simulate.ergm(MCMC.interval = 1e+5, MCMC.burnin = 1e+6)))
+plot(dx_pers2, type="formation")
+plot(dx_pers2, type="duration")
+plot(dx_pers2, type="dissolution")
+```
+
