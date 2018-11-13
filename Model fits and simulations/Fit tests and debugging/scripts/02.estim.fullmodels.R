@@ -75,13 +75,55 @@ fit.m <- netest(nw.main,
                                                  parallel = np/4, 
                                                  parallel.type="PSOCK"))
 if (balanced == 1) {
-  save(est.m.bal.bdmaxout, file = "/homes/dpwhite/R/GitHub Repos/WHAMP/Model fits and simulations/Fit tests and debugging/est/est.m.bal.bdmaxout.rda")
+  save(fit.m, file = "/homes/dpwhite/R/GitHub Repos/WHAMP/Model fits and simulations/Fit tests and debugging/est/est.m.bal.bdmaxout.rda")
 } else {
-  save(est.m.unbal.bdmaxout, file = "/homes/dpwhite/R/GitHub Repos/WHAMP/Model fits and simulations/Fit tests and debugging/est/est.m.unbal.bdmaxout.rda")
+  save(fit.m, file = "/homes/dpwhite/R/GitHub Repos/WHAMP/Model fits and simulations/Fit tests and debugging/est/est.m.unbal.bdmaxout.rda")
 }
 
 #############
-## PERSISTENT, using bdmaxout ----
+## PERSISTENT, using bdmaxout  ----
+#############
+
+# Formulas
+formation.p <- ~edges +
+  nodefactor("deg.main") +
+  nodefactor("race..wa", base=3) +
+  nodefactor("region", base=2) +
+  concurrent +
+  nodematch("race..wa", diff=TRUE) +
+  nodematch("region", diff=FALSE) +
+  absdiff("sqrt.age") +
+  offset(nodematch("role.class", diff = TRUE, keep = 1:2))
+
+stats.p <- st$stats.p
+
+# Fit model
+fit.p <- netest(nw.pers,
+                formation = formation.p,
+                target.stats = stats.p,
+                coef.form = c(-Inf, -Inf),
+                coef.diss = st$coef.diss.p,
+                constraints = ~bd(maxout = 2),
+                edapprox = TRUE,
+                set.control.ergm = control.ergm(MCMC.interval = 1e+5,
+                                                MCMC.samplesize = 7500,
+                                                MCMC.burnin = 1e+6,
+                                                MPLE.max.dyad.types = 1e+7,
+                                                init.method = "zeros",
+                                                MCMLE.maxit = 400,
+                                                parallel = np/2,
+                                                parallel.type="PSOCK"))
+
+if (balanced == 1) {
+  save(fit.p, file = "/homes/dpwhite/R/GitHub Repos/WHAMP/Model fits and simulations/Fit tests and debugging/est/est.p.bal.bdmaxout.rda")
+} else {
+  save(fit.p, file = "/homes/dpwhite/R/GitHub Repos/WHAMP/Model fits and simulations/Fit tests and debugging/est/est.p.unbal.bdmaxout.rda")
+}
+
+
+
+#############
+## PERSISTENT, using bdmaxout AND DURATION SET TO 100 TIME STEPS TO TEST ----
 #############
 
 # Formulas
@@ -98,11 +140,12 @@ formation.p <- ~edges +
 stats.p <- st$stats.p
 
 # Fit model
-fit.p <- netest(nw.pers,
+fit.p2 <- netest(nw.pers,
                  formation = formation.p,
                  target.stats = stats.p,
                  coef.form = c(-Inf, -Inf),
-                 coef.diss = st$coef.diss.p,
+                 #coef.diss = st$coef.diss.p,
+                  coef.diss = dissolution_coefs(dissolution = ~offset(edges), duration = 100),
                  constraints = ~bd(maxout = 2),
                  edapprox = TRUE,
                  set.control.ergm = control.ergm(MCMC.interval = 1e+5,
@@ -115,9 +158,9 @@ fit.p <- netest(nw.pers,
                                                  parallel.type="PSOCK"))
 
 if (balanced == 1) {
-  save(est.p.bal.bdmaxout, file = "/homes/dpwhite/R/GitHub Repos/WHAMP/Model fits and simulations/Fit tests and debugging/est/est.p.bal.bdmaxout.rda")
+  save(fit.p2, file = "/homes/dpwhite/R/GitHub Repos/WHAMP/Model fits and simulations/Fit tests and debugging/est/est.p.bal.bdmaxout_longdur.rda")
 } else {
-  save(est.p.unbal.bdmaxout, file = "/homes/dpwhite/R/GitHub Repos/WHAMP/Model fits and simulations/Fit tests and debugging/est/est.p.unbal.bdmaxout.rda")
+  save(fit.p2, file = "/homes/dpwhite/R/GitHub Repos/WHAMP/Model fits and simulations/Fit tests and debugging/est/est.p.unbal.bdmaxout_longdur.rda")
 }
 
 
@@ -153,8 +196,8 @@ fit.i <- netest(nw.inst,
                                                  parallel.type="PSOCK"))
 
 if (balanced == 1) {
-  save(est.i.bal.bdmaxout, file = "/homes/dpwhite/R/GitHub Repos/WHAMP/Model fits and simulations/Fit tests and debugging/est/est.i.bal.bdmaxout.rda")
+  save(fit.i, file = "/homes/dpwhite/R/GitHub Repos/WHAMP/Model fits and simulations/Fit tests and debugging/est/est.i.bal.rda")
 } else {
-  save(est.i.unbal.bdmaxout, file = "/homes/dpwhite/R/GitHub Repos/WHAMP/Model fits and simulations/Fit tests and debugging/est/est.i.unbal.bdmaxout.rda")
+  save(fit.i, file = "/homes/dpwhite/R/GitHub Repos/WHAMP/Model fits and simulations/Fit tests and debugging/est/est.i.unbal.rda")
 }
 
