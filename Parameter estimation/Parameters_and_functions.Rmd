@@ -1,4 +1,4 @@
-# Model parameters and functions {#parameters}
+# Model parameters {#parameters}
 ```{r, echo=FALSE, include=FALSE}
 
 ####################################################################################
@@ -36,17 +36,18 @@
     load(file="Data/sqrtabsdiff_agemix.Rdata")
     load(file="Data/duration.Rdata")
     load(file="Data/sexrole.Rmd")
+    load(file="Data/circumcision.Rdata")
+    load(file="Data/condoms.prob.Rdata")
+    load(file="Data/airate.Rdata")
+    load(file="Data/iti_coefs.Rdata")
 
 # Set options
     opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
     options(knitr.table.format = "html") 
-    
 
-```
-
-This section summarises the parameters defined for the model, with reference to their sources and limitations. It also lists key model functions that were modified for this project and describes the changes made.
-
-```{r parameters, warning=FALSE}
+#-----------------------------------------------------------------------------------
+# Define function
+#-----------------------------------------------------------------------------------
 # write a function to define the table structure and add a row to the table with a new parameter or attribute
 param_table <- function(table, param, description, value, alt_value, sources){
     row <- cbind.data.frame("Parameter" = param, "Description" = description, "Value" = value, "Alternate value(s)" = alt_value, "Source(s)" = sources)
@@ -60,68 +61,99 @@ param_table <- function(table, param, description, value, alt_value, sources){
     return(table)
 }
 
+
+```
+
+## Network model
+This section summarises the parameters defined for the network model, with reference to their sources and limitations.
+
+```{r newtork, warning=FALSE}
+
 # Add rows for each parameter
  #Time step
-  parameters <- param_table(NA, "time.unit", "Unit of time relative to one day", 7, NA, NA)
+  nw_params <- param_table(NA, "time.unit", "Unit of time relative to one day", 7, NA, NA)
   
  #Network composition
-  parameters <- param_table(parameters, "prop.H.KC", "Proportion of the population that lives in King County and is Hispanic", round(prop.table(pop.totals$pop.hboregion.all$Freq),4)[1], NA, "2011-2015 American Community Survey (ACS) 5-year estimates [@WA-census] and estimates of the size of the MSM population by county [@Grey2016]")
-  parameters <- param_table(parameters, "prop.B.KC", "Proportion of the population that lives in King County and is black", round(prop.table(pop.totals$pop.hboregion.all$Freq),4)[2], NA, "2011-2015 American Community Survey (ACS) 5-year estimates [@WA-census] and estimates of the size of the MSM population by county [@Grey2016]")
-  parameters <- param_table(parameters, "prop.O.KC", "Proportion of the population that lives in King County and is other race/ethnicity", round(prop.table(pop.totals$pop.hboregion.all$Freq),4)[3], NA, "2011-2015 American Community Survey (ACS) 5-year estimates [@WA-census] and estimates of the size of the MSM population by county [@Grey2016]")
-  parameters <- param_table(parameters, "prop.H.OW", "Proportion of the population that lives in other Western WA counties and is Hispanic", round(prop.table(pop.totals$pop.hboregion.all$Freq),4)[4], NA, "2011-2015 American Community Survey (ACS) 5-year estimates [@WA-census] and estimates of the size of the MSM population by county [@Grey2016]")
-  parameters <- param_table(parameters, "prop.B.OW", "Proportion of the population that lives in other Western WA counties and is black", round(prop.table(pop.totals$pop.hboregion.all$Freq),4)[5], NA, "2011-2015 American Community Survey (ACS) 5-year estimates [@WA-census] and estimates of the size of the MSM population by county [@Grey2016]")
-  parameters <- param_table(parameters, "prop.O.OW", "Proportion of the population that lives in other Western WA counties and is other race/ethnicity", round(prop.table(pop.totals$pop.hboregion.all$Freq),4)[6], NA, "2011-2015 American Community Survey (ACS) 5-year estimates [@WA-census] and estimates of the size of the MSM population by county [@Grey2016]")
-  parameters <- param_table(parameters, "prop.H.EW", "Proportion of the population that lives in Eastern WA and is Hispanic", round(prop.table(pop.totals$pop.hboregion.all$Freq),4)[7], NA, "2011-2015 American Community Survey (ACS) 5-year estimates [@WA-census] and estimates of the size of the MSM population by county [@Grey2016]")
-  parameters <- param_table(parameters, "prop.B.EW", "Proportion of the population that lives in Eastern WA and is black", round(prop.table(pop.totals$pop.hboregion.all$Freq),4)[8], NA, "2011-2015 American Community Survey (ACS) 5-year estimates [@WA-census] and estimates of the size of the MSM population by county [@Grey2016]")
-  parameters <- param_table(parameters, "prop.O.EW", "Proportion of the population that lives in Eastern WA and is other race/ethnicity", round(prop.table(pop.totals$pop.hboregion.all$Freq),4)[9], NA, "2011-2015 American Community Survey (ACS) 5-year estimates [@WA-census] and estimates of the size of the MSM population by county [@Grey2016]")
-  parameters <- param_table(parameters, "agestr", "Proportion of the population in each age group 18-24 through 55-59", paste(round(prop.table(svytable(~age_cat, sample_rake_all, round=FALSE)),4), collapse=", "), NA, "2011-2015 American Community Survey (ACS) 5-year estimates [@WA-census] and estimates of the size of the MSM population by county [@Grey2016]")
+  nw_params <- param_table(nw_params, "prop.H.KC", "Proportion of the population that lives in King County and is Hispanic", round(prop.table(pop.totals$pop.hboregion.all$Freq),4)[1], NA, "2011-2015 American Community Survey (ACS) 5-year estimates [@WA-census] and estimates of the size of the MSM population by county [@Grey2016]")
+  nw_params <- param_table(nw_params, "prop.B.KC", "Proportion of the population that lives in King County and is black", round(prop.table(pop.totals$pop.hboregion.all$Freq),4)[2], NA, "2011-2015 American Community Survey (ACS) 5-year estimates [@WA-census] and estimates of the size of the MSM population by county [@Grey2016]")
+  nw_params <- param_table(nw_params, "prop.O.KC", "Proportion of the population that lives in King County and is other race/ethnicity", round(prop.table(pop.totals$pop.hboregion.all$Freq),4)[3], NA, "2011-2015 American Community Survey (ACS) 5-year estimates [@WA-census] and estimates of the size of the MSM population by county [@Grey2016]")
+  nw_params <- param_table(nw_params, "prop.H.OW", "Proportion of the population that lives in other Western WA counties and is Hispanic", round(prop.table(pop.totals$pop.hboregion.all$Freq),4)[4], NA, "2011-2015 American Community Survey (ACS) 5-year estimates [@WA-census] and estimates of the size of the MSM population by county [@Grey2016]")
+  nw_params <- param_table(nw_params, "prop.B.OW", "Proportion of the population that lives in other Western WA counties and is black", round(prop.table(pop.totals$pop.hboregion.all$Freq),4)[5], NA, "2011-2015 American Community Survey (ACS) 5-year estimates [@WA-census] and estimates of the size of the MSM population by county [@Grey2016]")
+  nw_params <- param_table(nw_params, "prop.O.OW", "Proportion of the population that lives in other Western WA counties and is other race/ethnicity", round(prop.table(pop.totals$pop.hboregion.all$Freq),4)[6], NA, "2011-2015 American Community Survey (ACS) 5-year estimates [@WA-census] and estimates of the size of the MSM population by county [@Grey2016]")
+  nw_params <- param_table(nw_params, "prop.H.EW", "Proportion of the population that lives in Eastern WA and is Hispanic", round(prop.table(pop.totals$pop.hboregion.all$Freq),4)[7], NA, "2011-2015 American Community Survey (ACS) 5-year estimates [@WA-census] and estimates of the size of the MSM population by county [@Grey2016]")
+  nw_params <- param_table(nw_params, "prop.B.EW", "Proportion of the population that lives in Eastern WA and is black", round(prop.table(pop.totals$pop.hboregion.all$Freq),4)[8], NA, "2011-2015 American Community Survey (ACS) 5-year estimates [@WA-census] and estimates of the size of the MSM population by county [@Grey2016]")
+  nw_params <- param_table(nw_params, "prop.O.EW", "Proportion of the population that lives in Eastern WA and is other race/ethnicity", round(prop.table(pop.totals$pop.hboregion.all$Freq),4)[9], NA, "2011-2015 American Community Survey (ACS) 5-year estimates [@WA-census] and estimates of the size of the MSM population by county [@Grey2016]")
+  nw_params <- param_table(nw_params, "agestr", "Proportion of the population in each age group 18-24 through 55-59", paste(round(prop.table(svytable(~age_cat, sample_rake_all, round=FALSE)),4), collapse=", "), NA, "2011-2015 American Community Survey (ACS) 5-year estimates [@WA-census] and estimates of the size of the MSM population by county [@Grey2016]")
   
    #Age- and race-specific mortality 
-  parameters <- param_table(parameters, "asmr.ann.H", "Annual age-specific mortality rate for Hispanic men (for 18-19 and 5-yr age groups from 20 to 59)", paste(round(wa_asmr[,3]/100000, 5), collapse=", "), NA, "National Vital Statistics data, 2015")
-  parameters <- param_table(parameters, "asmr.ann.B", "Annual age-specific mortality rate for black men (for 18-19 and 5-yr age groups from 20 to 59)", paste(round(wa_asmr[,2]/100000, 5), collapse=", "), NA, "National Vital Statistics data, 2015")
-  parameters <- param_table(parameters, "asmr.ann.O", "Annual age-specific mortality rate for other men (for 18-19 and 5-yr age groups from 20 to 59)", paste(round(wa_asmr[,4]/100000, 5), collapse=", "), NA, "National Vital Statistics data, 2015")
+  nw_params <- param_table(nw_params, "asmr.ann.H", "Annual age-specific mortality rate for Hispanic men (for 18-19 and 5-yr age groups from 20 to 59)", paste(round(wa_asmr[,3]/100000, 5), collapse=", "), NA, "National Vital Statistics data, 2015")
+  nw_params <- param_table(nw_params, "asmr.ann.B", "Annual age-specific mortality rate for black men (for 18-19 and 5-yr age groups from 20 to 59)", paste(round(wa_asmr[,2]/100000, 5), collapse=", "), NA, "National Vital Statistics data, 2015")
+  nw_params <- param_table(nw_params, "asmr.ann.O", "Annual age-specific mortality rate for other men (for 18-19 and 5-yr age groups from 20 to 59)", paste(round(wa_asmr[,4]/100000, 5), collapse=", "), NA, "National Vital Statistics data, 2015")
   
   #Degree distribution by race/ethnicity, region, and age
-  parameters <- param_table(parameters, "deg.mp", "Overall degree distribution (order: 0 main 0 pers, 0 main 1 pers, 0 main 2+ pers, 1 main 0 pers, 1 main 1 pers, 1 main 2+ pers). Base values after adjustment to align with balanced mixing matrices, alternate values without adjustment", paste(as.vector(t(round(degree$deg.mp.adj[1:2,1:3], 4))), collapse=", "), paste(as.vector(t(round(degree$deg.mp[1:2,1:3], 4))), collapse=", "), "WHPP survey and national ART-Net data from HIV-positive respondents, reweighted to Washington demographics")
-  parameters <- param_table(parameters, "deg.mp.H", "Degree distribution for Hispanic men. Base values after adjustment to align with balanced mixing matrix, alternate values without adjustment", paste(as.vector(t(round(degree$deg.mp.H.adj[1:2,1:3], 4))), collapse=", "), paste(as.vector(t(round(degree$deg.mp.H[1:2,1:3], 4))), collapse=", "), "WHPP survey and national ART-Net data from HIV-positive respondents, reweighted to Washington demographics")
-  parameters <- param_table(parameters, "deg.mp.B", "Degree distribution for black men. Base values after adjustment to align with balanced mixing matrix, alternate values without adjustment", paste(as.vector(t(round(degree$deg.mp.B.adj[1:2,1:3], 4))), collapse=", "), paste(as.vector(t(round(degree$deg.mp.B[1:2,1:3], 4))), collapse=", "), "WHPP survey and national ART-Net data from HIV-positive respondents, reweighted to Washington demographics")
-  parameters <- param_table(parameters, "deg.mp.O", "Degree distribution for other race/ethnicity men.  Base values after adjustment to align with balanced mixing matrix, alternate values without adjustment", paste(as.vector(t(round(degree$deg.mp.O.adj[1:2,1:3], 4))), collapse=", "), paste(as.vector(t(round(degree$deg.mp.O[1:2,1:3], 4))), collapse=", "), "WHPP survey and national ART-Net data from HIV-positive respondents, reweighted to Washington demographics")
-  parameters <- param_table(parameters, "deg.m.region", "Main degree distribution by region (EW, KC, OW). Base values based on observed data, alternate values based on weighted avg of racial/ethnic degree.", paste(as.vector(t(round(degree$degm.region$proportion, 4))), collapse=", "), paste(as.vector(t(round(degree$degm.region.adj$proportion, 4))), collapse=", "), "WHPP survey, assumed to apply to HIV-negative and HIV-positive MSM")
-  parameters <- param_table(parameters, "prop.deg.p.EW", "Proportion of men with degree 0, 1, and 2+ who live in eastern Washington. Base values based on observed data, alternate values based on weighted avg of racial/ethnic degree.", paste(as.vector(t(round(degree$degp.region$proportion[c(1,4,7)], 4))), collapse=", "), paste(as.vector(t(round(degree$degp.region.adj$proportion[c(1,4,7)], 4))), collapse=", "), "WHPP survey, assumed to apply to HIV-negative and HIV-positive MSM")
-  parameters <- param_table(parameters, "prop.deg.p.KC", "Proportion of men with degree 0, 1, and 2+ who live in King County. Base values based on observed data, alternate values based on weighted avg of racial/ethnic degree.", paste(as.vector(t(round(degree$degp.region$proportion[c(2,5,8)], 4))), collapse=", "), paste(as.vector(t(round(degree$degp.region.adj$proportion[c(2,5,8)], 4))), collapse=", "), "WHPP survey, assumed to apply to HIV-negative and HIV-positive MSM")
-  parameters <- param_table(parameters, "prop.deg.p.OW", "Proportion of men with degree 0, 1, and 2+ who live in western Washington. Base values based on observed data, alternate values based on weighted avg of racial/ethnic degree.", paste(as.vector(t(round(degree$degp.region$proportion[c(3,6,9)], 4))), collapse=", "), paste(as.vector(t(round(degree$degp.region.adj$proportion[c(3,6,9)], 4))), collapse=", "), "WHPP survey, assumed to apply to HIV-negative and HIV-positive MSM")
+  nw_params <- param_table(nw_params, "deg.mp", "Overall degree distribution (order: 0 main 0 pers, 0 main 1 pers, 0 main 2+ pers, 1 main 0 pers, 1 main 1 pers, 1 main 2+ pers). Base values after adjustment to align with balanced mixing matrices, alternate values without adjustment", paste(as.vector(t(round(degree$deg.mp.adj[1:2,1:3], 4))), collapse=", "), paste(as.vector(t(round(degree$deg.mp[1:2,1:3], 4))), collapse=", "), "WHPP survey and national ART-Net data from HIV-positive respondents, reweighted to Washington demographics")
+  nw_params <- param_table(nw_params, "deg.mp.H", "Degree distribution for Hispanic men. Base values after adjustment to align with balanced mixing matrix, alternate values without adjustment", paste(as.vector(t(round(degree$deg.mp.H.adj[1:2,1:3], 4))), collapse=", "), paste(as.vector(t(round(degree$deg.mp.H[1:2,1:3], 4))), collapse=", "), "WHPP survey and national ART-Net data from HIV-positive respondents, reweighted to Washington demographics")
+  nw_params <- param_table(nw_params, "deg.mp.B", "Degree distribution for black men. Base values after adjustment to align with balanced mixing matrix, alternate values without adjustment", paste(as.vector(t(round(degree$deg.mp.B.adj[1:2,1:3], 4))), collapse=", "), paste(as.vector(t(round(degree$deg.mp.B[1:2,1:3], 4))), collapse=", "), "WHPP survey and national ART-Net data from HIV-positive respondents, reweighted to Washington demographics")
+  nw_params <- param_table(nw_params, "deg.mp.O", "Degree distribution for other race/ethnicity men.  Base values after adjustment to align with balanced mixing matrix, alternate values without adjustment", paste(as.vector(t(round(degree$deg.mp.O.adj[1:2,1:3], 4))), collapse=", "), paste(as.vector(t(round(degree$deg.mp.O[1:2,1:3], 4))), collapse=", "), "WHPP survey and national ART-Net data from HIV-positive respondents, reweighted to Washington demographics")
+  nw_params <- param_table(nw_params, "deg.m.region", "Main degree distribution by region (EW, KC, OW). Base values based on observed data, alternate values based on weighted avg of racial/ethnic degree.", paste(as.vector(t(round(degree$degm.region$proportion, 4))), collapse=", "), paste(as.vector(t(round(degree$degm.region.adj$proportion, 4))), collapse=", "), "WHPP survey, assumed to apply to HIV-negative and HIV-positive MSM")
+  nw_params <- param_table(nw_params, "prop.deg.p.EW", "Proportion of men with degree 0, 1, and 2+ who live in eastern Washington. Base values based on observed data, alternate values based on weighted avg of racial/ethnic degree.", paste(as.vector(t(round(degree$degp.region$proportion[c(1,4,7)], 4))), collapse=", "), paste(as.vector(t(round(degree$degp.region.adj$proportion[c(1,4,7)], 4))), collapse=", "), "WHPP survey, reweighted to Washington demographics and assumed to apply to HIV-negative and HIV-positive MSM")
+  nw_params <- param_table(nw_params, "prop.deg.p.KC", "Proportion of men with degree 0, 1, and 2+ who live in King County. Base values based on observed data, alternate values based on weighted avg of racial/ethnic degree.", paste(as.vector(t(round(degree$degp.region$proportion[c(2,5,8)], 4))), collapse=", "), paste(as.vector(t(round(degree$degp.region.adj$proportion[c(2,5,8)], 4))), collapse=", "), "WHPP survey, reweighted to Washington demographics and assumed to apply to HIV-negative and HIV-positive MSM")
+  nw_params <- param_table(nw_params, "prop.deg.p.OW", "Proportion of men with degree 0, 1, and 2+ who live in western Washington. Base values based on observed data, alternate values based on weighted avg of racial/ethnic degree.", paste(as.vector(t(round(degree$degp.region$proportion[c(3,6,9)], 4))), collapse=", "), paste(as.vector(t(round(degree$degp.region.adj$proportion[c(3,6,9)], 4))), collapse=", "), "WHPP survey, reweighted to Washington demographics and assumed to apply to HIV-negative and HIV-positive MSM")
     
   #Rate of instantaneous partnerships by degree, age, race/ethnicity, and region
-  parameters <- param_table(parameters, "mdeg.inst", "Rate of instantaneous partnerships by momentary degree (order: 0 main 0 pers, 0 main 1 pers, 0 main 2+ pers, 1 main 0 pers, 1 main 1 pers, 1 main 2+ pers)", paste(c(meansXdegmatrix[1,1], meansXdegmatrix[1,2], meansXdegmatrix[1,3], meansXdegmatrix[2,1], meansXdegmatrix[2,2], meansXdegmatrix[2,3]), collapse = ", "), NA, "WHPP survey and national ART-Net data from HIV-positive respondents, reweighted to Washington demographics")
-  parameters <- param_table(parameters, "qnts.18to49", "Mean rate of instantaneous partnerships by quartile among men aged 18 to 49. In the model, set min to 0.0001 to give all groups a non-zero probability.", paste(round(avg.qrtmeans.18to49, 6), collapse=", "), NA, "WHPP survey and national ART-Net data from HIV-positive respondents, reweighted to Washington demographics")
-  parameters <- param_table(parameters, "qnts.50to59", "Mean rate of instantaneous partnerships by quartile among men aged 50 to 59. In the model, set min to 0.0001 to give all groups a non-zero probability.",  paste(round(avg.qrtmeans.50to59, 6), collapse=", "), NA, "WHPP survey and national ART-Net data from HIV-positive respondents, reweighted to Washington demographics")
-  parameters <- param_table(parameters, "inst.bho", "Mean rate of instantaneous partnerships by race/ethnicity (B, H, O). Base values after adjustment to align with balanced mixing matrices, alternate values without adjustment",  paste(round(meansXhbo$Balanced, 6), collapse=", "), paste(round(meansXhbo$Unbalanced, 6), collapse=", "), "WHPP survey and national ART-Net data from HIV-positive respondents, reweighted to Washington demographics")
-  parameters <- param_table(parameters, "inst.region", "Distribution of instantaneous partnerships by region (EW, KC, OW). Base values based on observed data, alternate values based on weighted avg of racial/ethnic rates",  paste(round(inst.dist.region$proportion, 4), collapse=", "), paste(round(inst.dist.region_adj$proportion, 4), collapse=", "), "WHPP survey, assumed to apply to HIV-negative and HIV-positive MSM")
+  nw_params <- param_table(nw_params, "mdeg.inst", "Rate of instantaneous partnerships by momentary degree (order: 0 main 0 pers, 0 main 1 pers, 0 main 2+ pers, 1 main 0 pers, 1 main 1 pers, 1 main 2+ pers)", paste(c(meansXdegmatrix[1,1], meansXdegmatrix[1,2], meansXdegmatrix[1,3], meansXdegmatrix[2,1], meansXdegmatrix[2,2], meansXdegmatrix[2,3]), collapse = ", "), NA, "WHPP survey and national ART-Net data from HIV-positive respondents, reweighted to Washington demographics")
+  nw_params <- param_table(nw_params, "qnts.18to49", "Mean rate of instantaneous partnerships by quartile among men aged 18 to 49. In the model, set min to 0.0001 to give all groups a non-zero probability.", paste(round(avg.qrtmeans.18to49, 6), collapse=", "), NA, "WHPP survey and national ART-Net data from HIV-positive respondents, reweighted to Washington demographics")
+  nw_params <- param_table(nw_params, "qnts.50to59", "Mean rate of instantaneous partnerships by quartile among men aged 50 to 59. In the model, set min to 0.0001 to give all groups a non-zero probability.",  paste(round(avg.qrtmeans.50to59, 6), collapse=", "), NA, "WHPP survey and national ART-Net data from HIV-positive respondents, reweighted to Washington demographics")
+  nw_params <- param_table(nw_params, "inst.bho", "Mean rate of instantaneous partnerships by race/ethnicity (B, H, O). Base values after adjustment to align with balanced mixing matrices, alternate values without adjustment",  paste(round(meansXhbo$Balanced, 6), collapse=", "), paste(round(meansXhbo$Unbalanced, 6), collapse=", "), "WHPP survey and national ART-Net data from HIV-positive respondents, reweighted to Washington demographics")
+  nw_params <- param_table(nw_params, "inst.region", "Distribution of instantaneous partnerships by region (EW, KC, OW). Base values based on observed data, alternate values based on weighted avg of racial/ethnic rates",  paste(round(inst.dist.region$proportion, 4), collapse=", "), paste(round(inst.dist.region_adj$proportion, 4), collapse=", "), "WHPP survey, assumed to apply to HIV-negative and HIV-positive MSM")
  
   #Partnership duration
-  parameters <- param_table(parameters, "durs.main", "Mean duration of main partnerships in days", round(durs.mp[1]), NA, "WHPP survey and national ART-Net data from HIV-positive respondents, reweighted to Washington demographics")
-  parameters <- param_table(parameters, "durs.pers", "Mean duration of persistent partnerships in days", round(durs.mp[2]), NA, "WHPP survey and national ART-Net data from HIV-positive respondents, reweighted to Washington demographics")
+  nw_params <- param_table(nw_params, "durs.main", "Mean duration of main partnerships in days", round(durs.mp[1]), NA, "WHPP survey and national ART-Net data from HIV-positive respondents, reweighted to Washington demographics")
+  nw_params <- param_table(nw_params, "durs.pers", "Mean duration of persistent partnerships in days", round(durs.mp[2]), NA, "WHPP survey and national ART-Net data from HIV-positive respondents, reweighted to Washington demographics")
   
   # Age mixing
-  parameters <- param_table(parameters, "sqrt.adiff", "Vector of length 3 with the mean absolute differences between the square root of ego and alter ages in main, persistent, and instantaneous partnerships", paste(round(sqrtabsdiff_agemix,4), collapse=", "), NA, "WHPP and MMP surveys, reweighted to Washington demographics")
+  nw_params <- param_table(nw_params, "sqrt.adiff", "Vector of length 3 with the mean absolute differences between the square root of ego and alter ages in main, persistent, and instantaneous partnerships", paste(round(sqrtabsdiff_agemix,4), collapse=", "), NA, "WHPP and MMP surveys, reweighted to Washington demographics")
   
   # Race mixing
-  parameters <- param_table(parameters, "prop.hom.mpi.H", "A vector of length 3 for the proportion of main, casual, and instantaneous partnerships involving Hispanic MSM that are homophilous on race. Base value from the balanced mixing matrices, alternate value from the unbalanced mixing matrices.", paste(round(prop.hom.mpi$Hispanic, 4), collapse=", "), paste(round(prop.hom.mpi.unbal$Hispanic, 4), collapse=", "), "WHPP and MMP surveys, reweighted to Washington demographics")
-  parameters <- param_table(parameters, "prop.hom.mpi.B", "A vector of length 3 for the proportion of main, casual, and instantaneous partnerships involving black MSM that are homophilous on race. Base value from the balanced mixing matrices, alternate value from the unbalanced mixing matrices.", paste(round(prop.hom.mpi$Black, 4), collapse=", "), paste(round(prop.hom.mpi.unbal$Black, 4), collapse=", "), "WHPP and MMP surveys, reweighted to Washington demographics")
-  parameters <- param_table(parameters, "prop.hom.mpi.O", "A vector of length 3 for the proportion of main, casual, and instantaneous partnerships involving other race/ethnicity MSM that are homophilous on race. Base value from the balanced mixing matrices, alternate value from the unbalanced mixing matrices.", paste(round(prop.hom.mpi$Other, 4), collapse=", "), paste(round(prop.hom.mpi.unbal$Other, 4), collapse=", "), "WHPP and MMP surveys, reweighted to Washington demographics")
+  nw_params <- param_table(nw_params, "prop.hom.mpi.H", "A vector of length 3 for the proportion of main, casual, and instantaneous partnerships involving Hispanic MSM that are homophilous on race. Base value from the balanced mixing matrices, alternate value from the unbalanced mixing matrices.", paste(round(prop.hom.mpi$Hispanic, 4), collapse=", "), paste(round(prop.hom.mpi.unbal$Hispanic, 4), collapse=", "), "WHPP and MMP surveys, reweighted to Washington demographics")
+  nw_params <- param_table(nw_params, "prop.hom.mpi.B", "A vector of length 3 for the proportion of main, casual, and instantaneous partnerships involving black MSM that are homophilous on race. Base value from the balanced mixing matrices, alternate value from the unbalanced mixing matrices.", paste(round(prop.hom.mpi$Black, 4), collapse=", "), paste(round(prop.hom.mpi.unbal$Black, 4), collapse=", "), "WHPP and MMP surveys, reweighted to Washington demographics")
+  nw_params <- param_table(nw_params, "prop.hom.mpi.O", "A vector of length 3 for the proportion of main, casual, and instantaneous partnerships involving other race/ethnicity MSM that are homophilous on race. Base value from the balanced mixing matrices, alternate value from the unbalanced mixing matrices.", paste(round(prop.hom.mpi$Other, 4), collapse=", "), paste(round(prop.hom.mpi.unbal$Other, 4), collapse=", "), "WHPP and MMP surveys, reweighted to Washington demographics")
   
   # Regional mixing
-  parameters <- param_table(parameters, "prop.hom.mpi.region", "A vector of length 3 for the proportion of main, persistent, and instantaneous partnerships that are within-region", "1, 0.8, 0.8", "1, 0.6-1.0, 0.6-1.0", "Assumption/sensitivity analyses")
+  nw_params <- param_table(nw_params, "prop.hom.mpi.region", "A vector of length 3 for the proportion of main, persistent, and instantaneous partnerships that are within-region", "1, 0.8, 0.8", "1, 0.6-1.0, 0.6-1.0", "Assumption/sensitivity analyses")
   
   # Sex role
-  parameters <- param_table(parameters, "role.prob", "A vector of length 3 for the probability of sexual role as insertive, receptive, and versatile", sexrole.irv, NA, "WHPP and MMP surveys, reweighted to Washington demographics")
+  nw_params <- param_table(nw_params, "role.prob", "A vector of length 3 for the probability of sexual role as insertive, receptive, and versatile", sexrole.irv, NA, "WHPP and MMP surveys, reweighted to Washington demographics")
  
   
 # Make a kable
-rownames(parameters) <- NULL
-kable(parameters, caption="Parameter values and sources", digits=c(0, 0, 4, 4, 0)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, width = "5cm") %>% column_spec(2, width = "10cm") %>% column_spec(3, width = "5cm") %>% column_spec(4, width = "8cm") %>% column_spec(5, width = "20cm") %>% group_rows("Model specifications", 1,1) %>% group_rows("Network composition",2,11) %>% group_rows("Age-specific mortality", 12,14) %>%  group_rows("Degree distribution by nodal attribute", 15,22) %>% group_rows("Rate of instantaneous partnerships", 23,27) %>% group_rows("Partnership duration", 28,29) %>% group_rows("Age mixing", 30,30) %>% group_rows("Racial/ethnic mixing", 31,33) %>% group_rows("Regional mixing", 34,34) %>% group_rows("Sex role", 35,35)
+rownames(nw_params) <- NULL
+kable(nw_params, caption="Network model parameter values and sources", digits=c(0, 0, 4, 4, 0)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, width = "5cm") %>% column_spec(2, width = "10cm") %>% column_spec(3, width = "5cm") %>% column_spec(4, width = "8cm") %>% column_spec(5, width = "20cm") %>% group_rows("Model specifications", 1,1) %>% group_rows("Network composition",2,11) %>% group_rows("Age-specific mortality", 12,14) %>%  group_rows("Degree distribution by nodal attribute", 15,22) %>% group_rows("Rate of instantaneous partnerships", 23,27) %>% group_rows("Partnership duration", 28,29) %>% group_rows("Age mixing", 30,30) %>% group_rows("Racial/ethnic mixing", 31,33) %>% group_rows("Regional mixing", 34,34) %>% group_rows("Sex role", 35,35)
 ```
 
-```{r functions}
+## Epidemic model
+This section summarises the parameters defined for the epidemic model, with reference to their sources and limitations.
+```{r epidemic, warning=FALSE}
+# Add rows for each parameter
+ # Coital frequency
+  epi_params <- param_table(NA, "airate.main", "Expected coital frequency in main partnerships (acts per day)", round(airate$main, 4), NA, "WHPP survey and national ART-Net data from HIV-positive respondents, reweighted to Washington demographics")
+  epi_params <- param_table(epi_params, "airate.pers", "Expected coital frequency in persistent partnerships (acts per day)", round(airate$pers, 4), NA, "WHPP survey and national ART-Net data from HIV-positive respondents, reweighted to Washington demographics")
+
+ # Condom use
+  epi_params <- param_table(epi_params, "condoms.main.YY.prob", "Probability of condom use in Young-Young (18-34) dyads", round(condoms_prob$condoms_main_prob$condoms_main[condoms_prob$condoms_main_prob$dyad_age_bin %in% "Young-Young"], 4), NA, "WHPP survey, reweighted to Washington demographics for HIV-negative/undiagnosed men, restricted to HIV-neg/unknown and non-PrEP-using dyads")
+  epi_params <- param_table(epi_params, "condoms.main.other.prob", "Probability of condom use in other age dyads", round(condoms_prob$condoms_main_prob$condoms_main[condoms_prob$condoms_main_prob$dyad_age_bin %in% "Other ages"], 4), NA, "WHPP survey, reweighted to Washington demographics for HIV-negative/undiagnosed men, restricted to HIV-neg/unknown and non-PrEP-using dyads")
+  epi_params <- param_table(epi_params, "cond.pi.always.prob", "Fraction of men in persistent and/or instantaneous partnerships who always use condoms in those partnerships", round(condoms_prob$condoms_always_nonmain[1], 4), NA, "WHPP survey, reweighted to Washington demographics for HIV-negative/undiagnosed men, restricted to HIV-neg/unknown and non-PrEP-using dyads")
+  epi_params <- param_table(epi_params, "condoms.pers.prob", "Of men who are not consistent condom users, per-act probability of condom use with persistent partners", round(condoms_prob$condoms_pers_prob, 4), NA, "WHPP survey, reweighted to Washington demographics for HIV-negative/undiagnosed men, restricted to HIV-neg/unknown and non-PrEP-using dyads")
+  epi_params <- param_table(epi_params, "condoms.inst.prob", "Of men who are not consistent condom users, per-act probability of condom use with instantaneous partners", round(condoms_prob$condoms_inst_prob, 4), NA, "WHPP survey, reweighted to Washington demographics for HIV-negative/undiagnosed men, restricted to HIV-neg/unknown and non-PrEP-using dyads")
+  
+ # Circumcision
+  epi_params <- param_table(epi_params, "circ.bho", "Proportion of men circumcised by racial/ethnic group (Black, Hispanic, Other)", paste(round(circumcised$circever, 4), collapse=", "), NA, "2014 MSM4 NHBS, reweighted to Washington demographics")
+  
+  # HIV testing
+  epi_params <- param_table(epi_params, "iti.coefs", "GLM coefficients for median intertest interval (intercept, centered age, centered age squared)", paste(lm_itiXage_coefs, collapse=", "), NA, "WHPP survey, reweighted to Washington demographics for HIV-negative/undiagnosed men, restricted to PrEP non-users")
+  
+# Make a kable
+rownames(epi_params) <- NULL
+kable(epi_params, caption="Epidemic model parameter values and sources", digits=c(0, 0, 4, 4, 0)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, width = "5cm") %>% column_spec(2, width = "10cm") %>% column_spec(3, width = "5cm") %>% column_spec(4, width = "8cm") %>% column_spec(5, width = "20cm") %>% group_rows("Coital frequency", 1,2) %>% group_rows("Condom use", 3,7) %>% group_rows("Circumcision", 8,8) %>% group_rows("HIV testing", 9,9)
 
 ```
