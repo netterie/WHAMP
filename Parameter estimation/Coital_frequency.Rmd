@@ -1,0 +1,69 @@
+# Coital frequency {#airate}
+
+```{r, echo=FALSE, include=FALSE}
+####################################################################################
+# Setup
+####################################################################################
+#-----------------------------------------------------------------------------------
+# Load packages
+#-----------------------------------------------------------------------------------
+
+    library("tidyverse")
+    library("ggplot2")
+    library("survey")
+    library("knitr")
+    library("xtable")
+    library("data.table")
+    library("kableExtra")
+    library("reshape2")
+
+# Set options
+    opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
+    options(knitr.table.format = "html") 
+    
+#-----------------------------------------------------------------------------------
+# Load data
+#-----------------------------------------------------------------------------------
+    load(file="Data/InternetSurveySample.Rdata")
+    load(file="Data/whpp_artnet.Rdata")
+
+#-----------------------------------------------------------------------------------
+# Plot settings
+#-----------------------------------------------------------------------------------
+plot_background <- theme(panel.background = element_rect(fill="white", colour = "black")) +
+            theme(panel.grid.major = element_line(colour = "grey90"))
+theme_title <- theme(plot.title = element_text(hjust = 0.5, size=12)) 
+
+```
+
+To estimate coital frequency, we use data from the the combined reweighted WHPP and ART-NET samples. Exploratory analyses did not indicate differences in coital frequency by race/ethnicity or age, and while they did suggest differences by region in main partnerships, the pattern does not make intuitive sense so we will not represent it in the model. We will estimate one parameter corresponding to the mean daily rate of anal intercourse for each of main and persistent partnerships. 
+
+## Main partnerships
+
+```{r}
+# Define airate in main partnerships
+mean_airate_main <- svymean(~mrp_airate, subset(whpp_artnet, mrp_type %in% "Main"), na.rm=TRUE)
+
+airate_main <- cbind.data.frame(Indicator = c("Daily coital frequency"), N = sum(whpp_artnet$variables$mrp_type %in% "Main" & !is.na(whpp_artnet$variables$mrp_airate)), Mean = mean_airate_main[1], SE = round(SE(mean_airate_main),4))
+row.names(airate_main) <- NULL
+
+kable(airate_main, col.names=c("", "Unweighted N", "Mean", "SE"), caption="Daily coital frequency in main partnerships", digits = c(0,0,4,4)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, width = "5cm") %>% column_spec(2:4, width="3cm")
+```
+
+## Persistent partnerships
+
+```{r}
+# Define airate in persistent partnerships
+mean_airate_pers <- svymean(~mrp_airate, subset(whpp_artnet, mrp_type %in% "Pers"), na.rm=TRUE)
+
+airate_pers <- cbind.data.frame(Indicator = c("Daily coital frequency"), N = sum(whpp_artnet$variables$mrp_type %in% "Pers" & !is.na(whpp_artnet$variables$mrp_airate)), Mean = mean_airate_pers[1], SE = round(SE(mean_airate_pers),4))
+row.names(airate_pers) <- NULL
+
+kable(airate_pers, col.names=c("", "Unweighted N", "Mean", "SE"), caption="Daily coital frequency in persistent partnerships", digits = c(0,0,4,4)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, width = "5cm") %>% column_spec(2:4, width="3cm")
+```
+
+```{r}
+# Save
+airate <- list(main = mean_airate_main[1], pers = mean_airate_pers[1])
+save(airate, file="Data/airate.Rdata")
+```

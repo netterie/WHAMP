@@ -1,0 +1,113 @@
+# Condom use {#condoms}
+
+```{r, include=FALSE}
+
+####################################################################################
+# Setup
+####################################################################################
+#-----------------------------------------------------------------------------------
+# Load packages
+#-----------------------------------------------------------------------------------
+
+    library("tidyverse")
+    library("knitr")
+    library("data.table")
+    library("survey")
+    library("kableExtra")
+
+#-----------------------------------------------------------------------------------
+# Knitr options
+#-----------------------------------------------------------------------------------
+opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
+options(knitr.table.format = "html") 
+
+#-----------------------------------------------------------------------------------
+# Load data
+#-----------------------------------------------------------------------------------
+  load(file="Data/InternetSurvey_reweighted_neg.Rdata")
+  # load(file="Data/artnet_reweighted_all_w.Rdata")
+  # load(file="Data/artnet_reweighted_all_l.Rdata")
+
+#-----------------------------------------------------------------------------------
+# set plot settings 
+#-----------------------------------------------------------------------------------
+    
+    #White background and light grey lines
+    plot_background_nogrid <- theme(panel.background = element_rect(fill="white", colour = "black")) 
+    #Darken colors
+    darken_color <- scale_colour_hue(l=50)
+    #Title size to 12 and center it 
+    theme_title <- theme(plot.title = element_text(hjust = 0.5, size=12)) 
+    
+#-----------------------------------------------------------------------------------
+# Data manipulation
+#-----------------------------------------------------------------------------------
+
+  #Define indicator to use in subsetting of dyads in which the ego had not taken PrEP in the past 12 months and the alter was not taking PrEP
+    sample_rake_neg$variables$p12noprep_dyad <- ifelse(sample_rake_neg$variables$prep_use_r %in% c("Took PrEP in the past", "Never taken PrEP") & !(sample_rake_neg$variables$monthsago_lastprep %in% c(0:12)) & !(sample_rake_neg$variables$mrp_prep_r %in% 1), "No PrEP", 
+                                                  ifelse((sample_rake_neg$variables$prep_use_r %in% c("Currently taking PrEP")) | (sample_rake_neg$variables$prep_use_r %in% c("Took PrEP in the past") & (sample_rake_neg$variables$monthsago_lastprep %in% c(0:12))) | (sample_rake_neg$variables$mrp_prep_r %in% 1), "PrEP",
+                                                         NA))
+ 
+  # Define binary indicator of YY vs all other dyads
+    sample_rake_neg$variables$dyad_age_bin <- ifelse(sample_rake_neg$variables$dyad_age %in% "YY", "Young-Young", ifelse(!is.na(sample_rake_neg$variables$dyad_age), "Other ages", NA))
+```
+
+In the model, condom use is specified with base probabilities specific to dyads in which both members are negative or undiagnosed, and coefficients to indicate the change in condom use with diagnosis and disclosure. We use data from the WHPP sample, reweighted to the population totals of negative/undiagnosed men, to estimate these baseline probabilities. <span style="color:red">Because the WHPP sample includes men on PrEP and we will separtely represent changes in condom use with PrEP, we restrict this analysis to men who have not used PrEP in the past 12 months and whose partners are not using PrEP.</span>.
+
+Because we do not have Washington-specific data to estimate the change in condom use with diagnosis and disclosure, we will use data from Atlanta-area studies.
+
+## Main partnerships
+Exploratory analyses (\@ref(explore_heterogeneity)) suggest that the probability of condom use in main partnerships varies by the age of both partners, with dyads in which both partners are "young" (ages 18-34) having a higher probability of condom use than all other dyads. As such, we define separate estimates for "Young-Young" dyads and for all other dyads.
+```{r}
+# Condom use in main partnerships in which neither partner has used PrEP
+condoms_main_prob <- svyby(~condoms_main, by=~dyad_age_bin, subset(sample_rake_neg, p12noprep_dyad %in% "No PrEP"), FUN=svymean, na.rm=TRUE)
+row.names(condoms_main_prob) <- NULL
+condoms_main_prob$dyad_age_bin <- factor(condoms_main_prob$dyad_age_bin, levels = c("Young-Young", "Other ages"))
+condoms_main_prob <- arrange(condoms_main_prob, dyad_age_bin)
+
+kable(condoms_main_prob, col.names=c("Age", "Mean", "SE"), caption="Mean probability of condom use in main partnerships by age of both partners", digits = c(0,4,4)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, width = "3cm") %>% column_spec(2:3, width="2cm")
+```
+
+## Persistent partnrships
+The EpiModelHIV code is currently set up to identify men who always use condoms in persistent and instantaneous partnerships, and to define the probability of condom use in those who do not always use condoms in these partnerships. Because the WHPP data only ask detailed questions about the most recent partnership, they do not allow for estimation of condom use in the same way as has been done for previous models. However, the WHPP survey does meausure whether men reported any condomless anal sex with parnters who were not main or primary. We will use this variable to define an indicator of the proportion of men who always use condoms with persistent and/or instantaneous partnerships (unlike previous models, we will not define this separately for these two partnership types). We then calculate the probability of condom use within each partnership type among men who do not always use condoms with these partners, using data from the most recent partnership. Exploratory analyses did not indicate differences in condom use with persistent partnerships by age, race/ethnicity, or region, so these estimates are not stratified.
+
+Note, after restricting to dyads without PrEP use, the estimate of the proportion that always use condoms with persistent and/or instantaneous partnerships is based on data from `r sum(sample_rake_neg$variables$p12noprep_dyad %in% "No PrEP" & !is.na(sample_rake_neg$variables$always_condoms_nonmain_p12))` respondents. The estimated probability of condom use with persistent partners is based on data from `r sum(sample_rake_neg$variables$p12noprep_dyad %in% "No PrEP" & !(sample_rake_neg$variables$always_condoms_nonmain_p12 %in% 1) & !is.na(sample_rake_neg$variables$condoms_pers))` respondents who reported not always using condoms and reported on a most recent persistent partner.
+
+```{r}
+# proportion of men who reported any persistent or one-time partners who reported always using condoms with those partners
+condoms_always_nonmain <- svymean(~always_condoms_nonmain_p12, subset(sample_rake_neg, p12noprep_dyad %in% "No PrEP"), na.rm=TRUE)
+
+# probability of condom use among those who did not always use condoms with non-main partners
+condoms_pers_prob <- svymean(~condoms_pers, subset(sample_rake_neg, p12noprep_dyad %in% "No PrEP" & !(always_condoms_nonmain_p12 %in% 1)), na.rm=TRUE)
+
+pers_condoms <- cbind.data.frame(Indicator = c("Consistent condom users with non-main partners", "Probability of condom use if not a consistent condom user"), N = c(sum(sample_rake_neg$variables$p12noprep_dyad %in% "No PrEP" & !is.na(sample_rake_neg$variables$always_condoms_nonmain_p12)), sum(sample_rake_neg$variables$p12noprep_dyad %in% "No PrEP" & !(sample_rake_neg$variables$always_condoms_nonmain_p12 %in% 1) & !is.na(sample_rake_neg$variables$condoms_pers))), Percent = c(condoms_always_nonmain[1], condoms_pers_prob[1]), SE = c(round(SE(condoms_always_nonmain),4), round(SE(condoms_pers_prob),4)))
+row.names(pers_condoms) <- NULL
+
+kable(pers_condoms, col.names=c("", "Unweighted N", "Proportion", "SE"), caption="Condom use in persistent partnerships", digits = c(0,0,4,4)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, width = "9cm") %>% column_spec(2:4, width="2cm")
+
+
+```
+
+## Instantaneous partnrships
+As with persistent partnerships, we calculate the proportion of men who always use condoms with persistent and/or instantaneous partnerships, which is the same variable as above. We then calculate the probability of condom use with instantaneous partnerships among men who do not always use condoms with these partners, using data from the most recent partnership. Exploratory analyses did not indicate differences in condom use with instantaneous partnerships by age, race/ethnicity, or region, so these estimates are not stratified.
+
+Note, after restricting to dyads without PrEP use and to respondents who reported not always using condoms with non-main partners, the estimated probability of condom use with instantaneous partners is based on data from `r sum(sample_rake_neg$variables$p12noprep_dyad %in% "No PrEP" & !(sample_rake_neg$variables$always_condoms_nonmain_p12 %in% 1) & !is.na(sample_rake_neg$variables$condoms_inst))` respondents who reported on a most recent instantaneous partner.
+
+```{r}
+# probability of condom use among those who did not always use condoms with non-main partners
+condoms_inst_prob <- svymean(~condoms_inst, subset(sample_rake_neg, p12noprep_dyad %in% "No PrEP" & !(always_condoms_nonmain_p12 %in% 1)), na.rm=TRUE)
+
+inst_condoms <- cbind.data.frame(Indicator = c("Consistent condom users with non-main partners", "Probability of condom use if not a consistent condom user"), N = c(sum(sample_rake_neg$variables$p12noprep_dyad %in% "No PrEP" & !is.na(sample_rake_neg$variables$always_condoms_nonmain_p12)), sum(sample_rake_neg$variables$p12noprep_dyad %in% "No PrEP" & !(sample_rake_neg$variables$always_condoms_nonmain_p12 %in% 1) & !is.na(sample_rake_neg$variables$condoms_inst))), Percent = c(condoms_always_nonmain[1], condoms_inst_prob[1]), SE = c(round(SE(condoms_always_nonmain),4), round(SE(condoms_inst_prob),4)))
+row.names(inst_condoms) <- NULL
+
+kable(inst_condoms, col.names=c("", "Unweighted N", "Proportion", "SE"), caption="Condom use in instantaneous partnerships", digits = c(0,0,4,4)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, width = "9cm") %>% column_spec(2:4, width="2cm")
+
+
+```
+
+```{r}
+#Save
+condoms_prob <- list(condoms_main_prob = condoms_main_prob, condoms_always_nonmain = condoms_always_nonmain[1], condoms_pers_prob = condoms_pers_prob[1], condoms_inst_prob = condoms_inst_prob[1])
+
+save(condoms_prob, file = "Data/condoms.prob.Rdata")
+```

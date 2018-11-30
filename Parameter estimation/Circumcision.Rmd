@@ -1,0 +1,59 @@
+# Circumcision {#circumcision}
+```{r, include=FALSE}
+
+####################################################################################
+# Setup
+####################################################################################
+#-----------------------------------------------------------------------------------
+# Load packages
+#-----------------------------------------------------------------------------------
+
+    library("tidyverse")
+    library("knitr")
+    library("data.table")
+    library("survey")
+    library("kableExtra")
+
+#-----------------------------------------------------------------------------------
+# Knitr options
+#-----------------------------------------------------------------------------------
+opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
+options(knitr.table.format = "html") 
+
+#-----------------------------------------------------------------------------------
+# Load data
+#-----------------------------------------------------------------------------------
+
+# To load NHBS data, need to mount windows to access the data because this server is on Linux. Open the Terminal in RStudio, and type "winmount" It will first ask for password to mount the U drive and H drive, which I don't need, so hit enter. Then it will prompt me for a password to mount the CSDE Project (R:) directory. Enter my UW netid password. Then type cd /homes/dpwhite/win/project/MMP_WADOH The mount will expire after ~24 hours, so will need to re-mount it periodically by typing "winmount"
+
+    load(file="/homes/dpwhite/win/project/MMP_WADOH/nhbs_reweighted.Rdata")
+    load(file="/homes/dpwhite/win/project/MMP_WADOH/nhbs2014_unweighted.Rdata")
+
+  
+#-----------------------------------------------------------------------------------
+# set plot settings 
+#-----------------------------------------------------------------------------------
+    
+    #White background and light grey lines
+    plot_background_nogrid <- theme(panel.background = element_rect(fill="white", colour = "black")) 
+    #Darken colors
+    darken_color <- scale_colour_hue(l=50)
+    #Title size to 12 and center it 
+    theme_title <- theme(plot.title = element_text(hjust = 0.5, size=12)) 
+```
+
+We use data from the 2014 NHBS MSM4 survey, reweighted to the age and racial/ethnic profile of Washington MSM (\@ref(#reweight)), to estimate the prevalence of circumcision by race/ethnicity. In the unweighted NHBS sample, there were a total of `r sum(nhbs2014$hbo[nhbs2014$age %in% c(18:59) & !is.na(nhbs2014$hbo)] %in% "Hispanic")` Hispanic, `r sum(nhbs2014$hbo[nhbs2014$age %in% c(18:59) & !is.na(nhbs2014$hbo)] %in% "Black")` Black, and `r sum(nhbs2014$hbo[nhbs2014$age %in% c(18:59) & !is.na(nhbs2014$hbo)] %in% "Other")` Other race/ethnicity respondents aged 18-59.
+
+The table below shows the proportion of men reporting circumcision by racial/ethnic group.
+
+```{r}
+# Reorder race/eth variable to be in alphabetical order
+nhbs_rake_all$variables$hbo <- factor(nhbs_rake_all$variables$hbo, levels = c("Black", "Hispanic", "Other"))
+
+circumcised <- svyby(~circever, by = ~hbo, nhbs_rake_all, FUN = svymean, na.rm=TRUE)
+row.names(circumcised) <- NULL
+
+kable(circumcised, col.names=c("Race/ethnicity", "Proportion", "SE"), caption="Proportion circumcised by race/ethnicity", digits = c(0,4,4)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, width = "5cm") %>% column_spec(2:3, width="2cm")
+
+save(circumcised,  file="Data/circumcision.Rdata")
+```
