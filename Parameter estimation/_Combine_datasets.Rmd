@@ -37,8 +37,8 @@ This file contains code to merge the WHPP dataset with the ART-Net and MMP datas
                                          ifelse(neg$mrp_statuscat_now %in% c("HIV-negative", "Unknown"), 0,
                                                 NA))
     neg$mrp_type <- ifelse(neg$mrp_type_r %in% "Main", "Main", ifelse(neg$mrp_type_r %in% "Casual", "Pers", ifelse(neg$mrp_type_r %in% "One time", "Inst", NA)))
-    setnames(neg, old = "mrp_ageinyears_approx", new = "mrp_ageinyrs")
-    neg1 <- neg %>% select(pid, degree_main, degreecat_cas, region, hbo, age, hiv, mrp_type_ongoing, mrp_type, mrp_ageinyrs, mrp_hivpos, pship_age, position_cat, weight)
+    setnames(neg, old = c("mrp_ageinyears_approx", "airate"), new = c("mrp_ageinyrs", "mrp_airate"))
+    neg1 <- neg %>% select(pid, degree_main, degreecat_cas, region, hbo, age, hiv, mrp_type_ongoing, mrp_type, mrp_ageinyrs, mrp_hivpos, pship_age, position_cat, mrp_airate, weight)
 
     
     pos_wts <- cbind.data.frame("AMIS_ID" = artnet_pos_rake_w$variables$AMIS_ID, "weight" = (1/artnet_pos_rake_w$prob))
@@ -51,7 +51,7 @@ This file contains code to merge the WHPP dataset with the ART-Net and MMP datas
     pos$mrp_type_ongoing <- as.factor(pos$mrp_type_ongoing)
     pos$deg.pers_cat <- factor(pos$deg.pers_cat, levels = c(0, 1, 2), labels = c("None", "One", "Two or more"))
     setnames(pos, old = c("deg.main_cat", "deg.pers_cat", "AMIS_ID", "mrp_pship_age"), new = c("degree_main", "degreecat_cas", "pid", "pship_age"))
-    pos1 <- pos %>% select(pid, degree_main, degreecat_cas, region, hbo, age, hiv, mrp_type_ongoing, mrp_type, mrp_ageinyrs, mrp_hivpos, pship_age, position_cat, weight)
+    pos1 <- pos %>% select(pid, degree_main, degreecat_cas, region, hbo, age, hiv, mrp_type_ongoing, mrp_type, mrp_ageinyrs, mrp_hivpos, pship_age, position_cat, mrp_airate, weight)
 
     full1 <- rbind.data.frame(pos1, neg1)
     whpp_artnet <- svydesign(id=~1, data=full1, weights = ~weight) # Note this doesn't get the variance correct, but it gets the sample composition

@@ -126,18 +126,18 @@ $(document).ready(function () {
 
 <div id="combine-hiv-positive-and-hiv-negative-datasets" class="section level1">
 <h1>Combine HIV-positive and HIV-negative datasets</h1>
-<p>This file contains code to merge the WHPP dataset with the ART-Net and MMP datasets</p>
+<p>This file contains code to merge the WHPP dataset with the ART-Net and MMP datasets. The combined WHPP and ART-Net dataset used to estimate the rate of instantaneous partnerships is defined in the “Rate_of_instantaneous_pships.Rmd” file, as additional steps were required to account for missing data.</p>
 <pre class="r"><code>#-----------------------------------------------------------------------------------
 # Load packages
 #-----------------------------------------------------------------------------------
 
     library(&quot;tidyverse&quot;)</code></pre>
-<pre><code>## ── Attaching packages ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── tidyverse 1.2.1 ──</code></pre>
+<pre><code>## ── Attaching packages ──────────────────────────────────────────────────────────────── tidyverse 1.2.1 ──</code></pre>
 <pre><code>## ✔ ggplot2 2.2.1     ✔ purrr   0.2.5
 ## ✔ tibble  1.4.2     ✔ dplyr   0.7.5
 ## ✔ tidyr   0.8.1     ✔ stringr 1.3.1
 ## ✔ readr   1.1.1     ✔ forcats 0.3.0</code></pre>
-<pre><code>## ── Conflicts ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
+<pre><code>## ── Conflicts ─────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
 ## ✖ dplyr::filter() masks stats::filter()
 ## ✖ dplyr::lag()    masks stats::lag()
 ## ✖ dplyr::select() masks MASS::select()</code></pre>
@@ -192,8 +192,8 @@ $(document).ready(function () {
                                          ifelse(neg$mrp_statuscat_now %in% c(&quot;HIV-negative&quot;, &quot;Unknown&quot;), 0,
                                                 NA))
     neg$mrp_type &lt;- ifelse(neg$mrp_type_r %in% &quot;Main&quot;, &quot;Main&quot;, ifelse(neg$mrp_type_r %in% &quot;Casual&quot;, &quot;Pers&quot;, ifelse(neg$mrp_type_r %in% &quot;One time&quot;, &quot;Inst&quot;, NA)))
-    setnames(neg, old = &quot;mrp_ageinyears_approx&quot;, new = &quot;mrp_ageinyrs&quot;)
-    neg1 &lt;- neg %&gt;% select(pid, degree_main, degreecat_cas, region, hbo, age, hiv, mrp_type_ongoing, mrp_type, mrp_ageinyrs, mrp_hivpos, pship_age, position_cat, weight)
+    setnames(neg, old = c(&quot;mrp_ageinyears_approx&quot;, &quot;airate&quot;), new = c(&quot;mrp_ageinyrs&quot;, &quot;mrp_airate&quot;))
+    neg1 &lt;- neg %&gt;% select(pid, degree_main, degreecat_cas, region, hbo, age, hiv, mrp_type_ongoing, mrp_type, mrp_ageinyrs, mrp_hivpos, pship_age, position_cat, mrp_airate, weight)
 
     
     pos_wts &lt;- cbind.data.frame(&quot;AMIS_ID&quot; = artnet_pos_rake_w$variables$AMIS_ID, &quot;weight&quot; = (1/artnet_pos_rake_w$prob))
@@ -206,7 +206,7 @@ $(document).ready(function () {
     pos$mrp_type_ongoing &lt;- as.factor(pos$mrp_type_ongoing)
     pos$deg.pers_cat &lt;- factor(pos$deg.pers_cat, levels = c(0, 1, 2), labels = c(&quot;None&quot;, &quot;One&quot;, &quot;Two or more&quot;))
     setnames(pos, old = c(&quot;deg.main_cat&quot;, &quot;deg.pers_cat&quot;, &quot;AMIS_ID&quot;, &quot;mrp_pship_age&quot;), new = c(&quot;degree_main&quot;, &quot;degreecat_cas&quot;, &quot;pid&quot;, &quot;pship_age&quot;))
-    pos1 &lt;- pos %&gt;% select(pid, degree_main, degreecat_cas, region, hbo, age, hiv, mrp_type_ongoing, mrp_type, mrp_ageinyrs, mrp_hivpos, pship_age, position_cat, weight)
+    pos1 &lt;- pos %&gt;% select(pid, degree_main, degreecat_cas, region, hbo, age, hiv, mrp_type_ongoing, mrp_type, mrp_ageinyrs, mrp_hivpos, pship_age, position_cat, mrp_airate, weight)
 
     full1 &lt;- rbind.data.frame(pos1, neg1)
     whpp_artnet &lt;- svydesign(id=~1, data=full1, weights = ~weight) # Note this doesn't get the variance correct, but it gets the sample composition
