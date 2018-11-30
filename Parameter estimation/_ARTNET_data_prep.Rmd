@@ -1,4 +1,4 @@
-#ARTNET data preparation and manipulation
+# ARTNET data preparation and manipulation
 
 In this file, I changed a few things from Sam's code. Chiefly, I did not recode partners as ongoing if p_MAIN_ONG = 1 (this change assumes that if they initially said they don't know if it's ongoing or prefer not to answer but said it was main that it is ongoing), I defined partner type slightly differently (i.e. persistent includes those who had anal sex only once but say it's ongoing, recoded to instantaneous if they reported anal or oral sex more than once but the relationship started in the past 12 months and they reported anal sex only once, it is not ongoing, and not main), defined partner age as in the WHPP study if they didn't know the age but knew a range. I also defined the number of one-time partners as the minimum of the number of total anal sex partners that remain after subtracting the number of main or casual anal partners named in the partner module and the total number of oral or anal sex partners that were not ongoing.
 
@@ -733,7 +733,8 @@ d <- long %>%
     rename(mrp_pship_age = pship_age) %>%
     rename(mrp_type = p_type) %>%
     rename(mrp_ongoing = p_ONGOING) %>%
-    select(AMIS_ID, mrp_pship_age, mrp_ageinyrs, mrp_hbo_alt, mrp_hivpos, mrp_type, mrp_ongoing) %>%
+    rename(mrp_airate = p_airate) %>%
+    select(AMIS_ID, mrp_pship_age, mrp_ageinyrs, mrp_hbo_alt, mrp_hivpos, mrp_type, mrp_ongoing, mrp_airate) %>%
     right_join(d, by = "AMIS_ID")
 
 ## Remove unneeded variables
