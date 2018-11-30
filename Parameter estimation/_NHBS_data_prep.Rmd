@@ -1,0 +1,83 @@
+# 2014 MSM4 NHBS data preparation and manipulation
+
+```{r, include=FALSE}
+####################################################################################
+# Setup
+####################################################################################
+
+#-----------------------------------------------------------------------------------
+# Load packages
+#-----------------------------------------------------------------------------------
+    #install.packages("tidyverse")
+    library("tidyverse")
+
+    #install.packages("psych") #To use "describe" function for continuous vars
+    library("psych")
+
+    #install.packages("ggplot2")
+    library("ggplot2")
+    
+    #install.packages("survey")
+    library("survey")
+
+    #install.packages(mice) # To look at patterns of missing data with md.pattern function
+    library("mice")
+
+    library("data.table")
+
+    #install.packages("kableExtra")
+    library("knitr")
+    library("kableExtra")
+
+#-----------------------------------------------------------------------------------
+# Import data 
+#-----------------------------------------------------------------------------------
+    
+    # Need to mount windows to access the data because this server is on Linux. Open the Terminal in RStudio, and type "winmount" It will first ask for password to mount the U drive and H drive, which I don't need, so hit enter. Then it will prompt me for a password to mount the CSDE Project (R:) directory. Enter my UW netid password. Then type cd /homes/dpwhite/win/project/MMP_WADOH The mount will expire after ~24 hours, so will need to re-mount it periodically by typing "winmount"
+
+  nhbs2014 <- read.csv("/homes/dpwhite/win/project/MMP_WADOH/NHBS MMP4 2014/NHBS MSM4 de-identified data set with cdc weights.csv", header=TRUE, sep=",", na.strings = c("NA", "", "."))
+  
+#-----------------------------------------------------------------------------------
+# Rename and code new variables 
+#-----------------------------------------------------------------------------------
+
+# Age group variable for reweighting
+nhbs2014$age_cat_alt <- ifelse(nhbs2014$agecat5 %in% c(1:4), nhbs2014$agecat5,
+                              ifelse(nhbs2014$agecat5 %in% c(5,6), 5,
+                                     ifelse(nhbs2014$agecat5 %in% 7 & nhbs2014$age %in% c(50:59), 7,
+                                            NA)))
+nhbs2014$age_cat_alt <- factor(nhbs2014$age_cat_alt, labels = c("18-24", "25-29", "30-34", "35-39", "40-49", "50-59"))
+
+# Race/ethnicity
+  nhbs2014 <-  within(nhbs2014, {
+                hbo <- ifelse(hispanic %in% 1, "Hispanic",
+                            ifelse(racec %in% 1, "Black",
+                             ifelse((racea %in% 1 | raceb %in% 1 | raced %in% 1 | racee %in% 1), "Other", 
+                                    NA)))
+})
+
+# HIV status 
+nhbs2014$hiv_sr <- ifelse(nhbs2014$selfhiv %in% 1, "Positive",
+                          ifelse(nhbs2014$selfhiv %in% c(0,2), "Neg/unk",
+                                 NA))
+nhbs2014$hiv_lab <- ifelse(nhbs2014$hivrslt %in% "Positive", "Positive",
+                           ifelse(nhbs2014$hivrslt %in% c("Indeterminant", "Negative", "Unknown"), "Neg/unk", 
+                                  NA))
+
+nhbs2014$hiv_comb <- ifelse(nhbs2014$hiv_sr %in% "Positive" | nhbs2014$hiv_lab %in% "Positive", "Positive", 
+                            ifelse(nhbs2014$hiv_sr %in% "Neg/unk" | nhbs2014$hiv_lab %in% "Neg/unk", "Neg/unk",
+                                   NA))
+
+#-----------------------------------------------------------------------------------
+# Apply NHBS weights, restrict sample, save
+#-----------------------------------------------------------------------------------
+
+nhbs_svy <- svydesign(ids = ~Cluster, strata = ~Stratum, weights = ~Aggr_Interview_Weight, data = nhbs2014, nest=TRUE)
+
+# Restrict to those aged 18-59 and without missing race/eth. Note this means estimates of variance will not longer be accurate, but need to restrict for raking procedure
+nhbs_svy_agecap <- nhbs_svy[nhbs_svy$variables$age %in% c(18:59) & !is.na(nhbs_svy$variables$hbo),]
+
+save(nhbs2014, file="/homes/dpwhite/win/project/MMP_WADOH/nhbs2014_unweighted.Rdata")
+save(nhbs_svy_agecap, file="/homes/dpwhite/win/project/MMP_WADOH/nhbs_agecap.Rdata")
+
+```
