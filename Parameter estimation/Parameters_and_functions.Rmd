@@ -40,6 +40,7 @@
     load(file="Data/condoms.prob.Rdata")
     load(file="Data/airate.Rdata")
     load(file="Data/itiXage.Rdata")
+    load(file="Data/discl.outset.mpi.Rdata")
 
 # Set options
     opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
@@ -140,7 +141,9 @@ This section summarises the parameters defined for the epidemic model, with refe
   epi_params <- param_table(epi_params, "airate.pers", "Expected coital frequency in persistent partnerships (acts per day)", round(airate$pers, 4), NA, "WHPP survey and national ART-Net data from HIV-positive respondents, reweighted to Washington demographics")
 
  # Disclosure
-  epi_params <- param_table(epi_params, "disc.outset.main.prob", "Probability of condom use in Young-Young (18-34) dyads", round(condoms_prob$condoms_main_prob$Mean[condoms_prob$condoms_main_prob$Age %in% "Young-Young"], 4), NA, "WHPP survey, reweighted to Washington demographics for HIV-negative/undiagnosed men, restricted to HIV-neg/unknown and non-PrEP-using dyads")
+  epi_params <- param_table(epi_params, "disc.outset.main.prob", "Probability that a diagnosed HIV-positive man will disclose his status to a main partner at the start of the relationship", round(discl.outset.mpi[1],4), NA, "2014 MMP survey, reweighted to Washington demographics, restricted to discordant/unknown dyads")
+  epi_params <- param_table(epi_params, "disc.outset.pers.prob", "Probability that a diagnosed HIV-positive man will disclose his status to a persistent partner at the start of the relationship", round(discl.outset.mpi[2],4), NA, "2014 MMP survey, reweighted to Washington demographics, restricted to discordant/unknown dyads")
+  epi_params <- param_table(epi_params, "disc.inst.prob", "Probability that a diagnosed HIV-positive man will disclose his status to an instantaneous partner", round(discl.outset.mpi[3],4), NA, "2014 MMP survey, reweighted to Washington demographics, restricted to discordant/unknown dyads")
   
  # Condom use
   epi_params <- param_table(epi_params, "condoms.main.YY.prob", "Probability of condom use in Young-Young (18-34) dyads", round(condoms_prob$condoms_main_prob$Mean[condoms_prob$condoms_main_prob$Age %in% "Young-Young"], 4), NA, "WHPP survey, reweighted to Washington demographics for HIV-negative/undiagnosed men, restricted to HIV-neg/unknown and non-PrEP-using dyads")
@@ -161,6 +164,6 @@ This section summarises the parameters defined for the epidemic model, with refe
   
 # Make a kable
 rownames(epi_params) <- NULL
-kable(epi_params, caption="Epidemic model parameter values and sources", digits=c(0, 0, 4, 4, 0)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, width = "5cm") %>% column_spec(2, width = "10cm") %>% column_spec(3, width = "5cm") %>% column_spec(4, width = "8cm") %>% column_spec(5, width = "20cm") %>% group_rows("Coital frequency", 1,2) %>% group_rows("Condom use", 3,9) %>% group_rows("Circumcision", 10,10) %>% group_rows("HIV testing", 11,12)
+kable(epi_params, caption="Epidemic model parameter values and sources", digits=c(0, 0, 4, 4, 0)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, width = "5cm") %>% column_spec(2, width = "10cm") %>% column_spec(3, width = "5cm") %>% column_spec(4, width = "8cm") %>% column_spec(5, width = "20cm") %>% group_rows("Coital frequency", 1,2) %>% group_rows("Disclosure", 3,5) %>% group_rows("Condom use", 6,12) %>% group_rows("Circumcision", 13,13) %>% group_rows("HIV testing", 14,15)
 
 ```
