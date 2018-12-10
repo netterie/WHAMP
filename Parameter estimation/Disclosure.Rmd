@@ -1,0 +1,53 @@
+# Disclosure {#disclosure}
+
+```{r, echo=FALSE, include=FALSE}
+####################################################################################
+# Setup
+####################################################################################
+#-----------------------------------------------------------------------------------
+# Load packages
+#-----------------------------------------------------------------------------------
+
+    library("tidyverse")
+    library("ggplot2")
+    library("survey")
+    library("knitr")
+    library("xtable")
+    library("data.table")
+    library("kableExtra")
+    library("reshape2")
+
+# Set options
+    opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
+    options(knitr.table.format = "html") 
+    
+#-----------------------------------------------------------------------------------
+# Load data
+#-----------------------------------------------------------------------------------
+    load(file="/homes/dpwhite/win/project/MMP_WADOH/mmp_reweighted.Rdata")
+    load(file="/homes/dpwhite/win/project/MMP_WADOH/whpp_mmp.Rdata")
+    load(file="/homes/dpwhite/win/project/MMP_WADOH/mmp_reweighted_long.Rdata")
+    
+#-----------------------------------------------------------------------------------
+# Plot settings
+#-----------------------------------------------------------------------------------
+plot_background <- theme(panel.background = element_rect(fill="white", colour = "black")) +
+            theme(panel.grid.major = element_line(colour = "grey90"))
+theme_title <- theme(plot.title = element_text(hjust = 0.5, size=12)) 
+
+```
+
+To estimate the probability of disclosure at the outset of a relationship, we use data from the 2014 MMP sample, reweighted to the demographics of MSM living with diagnosed HIV/AIDS in Washington. We restrict this analysis to dyads in which the partner was HIV-negative or unknown status. Note that partner type was not explicitly measured in the MMP; we approximate it by classifying partners as main if the respondent indicated that they were committed to the partner above and beyond anyone else, as instantaneous if not and they reported anal sex only one time in the past 12 months, and otherwise as persistent.
+
+In the 2014 dataset, `r length(unique(mmp_rake_l$variables$pid[mmp_rake_l$variables$p_status %in% c("HIV-negative", "Unknown")]))` respondents reported on `r dim(mmp_rake_l$variables[mmp_rake_l$variables$p_status %in% c("HIV-negative", "Unknown"),])[1]` partnerships with HIV-negative or unknown-status men. Of these, `r dim(mmp_rake_l$variables[mmp_rake_l$variables$p_status %in% c("HIV-negative", "Unknown") & mmp_rake_l$variables$p_type %in% "Main",])[1]` were main partners, `r dim(mmp_rake_l$variables[mmp_rake_l$variables$p_status %in% c("HIV-negative", "Unknown") & mmp_rake_l$variables$p_type %in% "Persistent",])[1]` were persistent, and `dim(mmp_rake_l$variables[mmp_rake_l$variables$p_status %in% c("HIV-negative", "Unknown") & mmp_rake_l$variables$p_type %in% "Instantaneous",])[1]` were instantaneous.
+
+```{r}
+mmp_rake_l$variables$p_type <- factor(mmp_rake_l$variables$p_type, levels = c("Main", "Persistent", "Instantaneous"))
+disclosure <- prop.table(svytable(~p_disclosure + p_type, subset(mmp_rake_l, p_status %in% c("HIV-negative", "Unknown"))),2)
+
+kable(disclosure, caption="Disclosure with HIV-negative/unknown partners by partner type", digits = c(4,4,4)) %>% kable_styling(full_width=F, position="center")
+
+discl.outset.mpi <- disclosure[1,]
+save(discl.outset.mpi, file = "Data/discl.outset.mpi.Rdata")
+
+```
