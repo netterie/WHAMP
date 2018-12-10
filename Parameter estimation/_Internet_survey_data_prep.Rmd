@@ -252,9 +252,9 @@
     # With all partners
     sample_allages$always_condoms_p12 <- ifelse(sample_allages$cai_r %in% 0 & sample_allages$numanal %in% c(1:max(sample_allages$numanal, na.rm=TRUE)), 1, ifelse(sample_allages$cai_r %in% c(1, 98) & sample_allages$numanal %in% c(1:max(sample_allages$numanal, na.rm=TRUE)), 0, NA))
     
-    # With non-main/primary partners (only asked if indicated they had CAI with anyone, so set to 1 if they reported always using condoms with all partners and set to 0 if responded don't know to overall CAI question). Also require that had at least 1 non-main partner to be included in this variable
-    sample_allages$anynonmain <- ifelse(sample_allages$numcasual_r >0 | sample_allages$numonetime_r>0, 1, ifelse(sample_allages$numanal %in% c(1:max(sample_allages$numanal, na.rm=TRUE)), 0, NA)) 
-    sample_allages$always_condoms_nonmain_p12 <- ifelse(sample_allages$always_condoms_p12 %in% 1 & sample_allages$anynonmain %in% 1, 1, ifelse(sample_allages$cai_nonmain_r %in% 0 & sample_allages$anynonmain %in% 1, 1, ifelse(sample_allages$cai_r %in% 98 & sample_allages$anynonmain %in% 1, 0, ifelse(sample_allages$cai_nonmain_r %in% c(1, 98) & sample_allages$anynonmain %in% 1, 0, NA))))
+    # # With non-main/primary partners (only asked if indicated they had CAI with anyone, so set to 1 if they reported always using condoms with all partners and set to 0 if responded don't know to overall CAI question). Also require that had at least 1 non-main partner to be included in this variable. But some may have had only one non-main partner
+    # sample_allages$anynonmain <- ifelse(sample_allages$numcasual_r >0 | sample_allages$numonetime_r>0, 1, ifelse(sample_allages$numanal %in% c(1:max(sample_allages$numanal, na.rm=TRUE)), 0, NA)) 
+    # sample_allages$always_condoms_nonmain_p12 <- ifelse(sample_allages$always_condoms_p12 %in% 1 & sample_allages$anynonmain %in% 1, 1, ifelse(sample_allages$cai_nonmain_r %in% 0 & sample_allages$anynonmain %in% 1, 1, ifelse(sample_allages$cai_r %in% 98 & sample_allages$anynonmain %in% 1, 0, ifelse(sample_allages$cai_nonmain_r %in% c(1, 98) & sample_allages$anynonmain %in% 1, 0, NA))))
     
     
 #Difference in SQRT of ages
