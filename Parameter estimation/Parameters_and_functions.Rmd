@@ -39,7 +39,7 @@
     load(file="Data/circumcision.Rdata")
     load(file="Data/condoms.prob.Rdata")
     load(file="Data/airate.Rdata")
-    load(file="Data/iti_coefs.Rdata")
+    load(file="Data/itiXage.Rdata")
 
 # Set options
     opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
@@ -139,10 +139,15 @@ This section summarises the parameters defined for the epidemic model, with refe
   epi_params <- param_table(NA, "airate.main", "Expected coital frequency in main partnerships (acts per day)", round(airate$main, 4), NA, "WHPP survey and national ART-Net data from HIV-positive respondents, reweighted to Washington demographics")
   epi_params <- param_table(epi_params, "airate.pers", "Expected coital frequency in persistent partnerships (acts per day)", round(airate$pers, 4), NA, "WHPP survey and national ART-Net data from HIV-positive respondents, reweighted to Washington demographics")
 
+ # Disclosure
+  epi_params <- param_table(epi_params, "disc.outset.main.prob", "Probability of condom use in Young-Young (18-34) dyads", round(condoms_prob$condoms_main_prob$Mean[condoms_prob$condoms_main_prob$Age %in% "Young-Young"], 4), NA, "WHPP survey, reweighted to Washington demographics for HIV-negative/undiagnosed men, restricted to HIV-neg/unknown and non-PrEP-using dyads")
+  
  # Condom use
-  epi_params <- param_table(epi_params, "condoms.main.YY.prob", "Probability of condom use in Young-Young (18-34) dyads", round(condoms_prob$condoms_main_prob$condoms_main[condoms_prob$condoms_main_prob$dyad_age_bin %in% "Young-Young"], 4), NA, "WHPP survey, reweighted to Washington demographics for HIV-negative/undiagnosed men, restricted to HIV-neg/unknown and non-PrEP-using dyads")
-  epi_params <- param_table(epi_params, "condoms.main.other.prob", "Probability of condom use in other age dyads", round(condoms_prob$condoms_main_prob$condoms_main[condoms_prob$condoms_main_prob$dyad_age_bin %in% "Other ages"], 4), NA, "WHPP survey, reweighted to Washington demographics for HIV-negative/undiagnosed men, restricted to HIV-neg/unknown and non-PrEP-using dyads")
-  epi_params <- param_table(epi_params, "cond.pi.always.prob", "Fraction of men in persistent and/or instantaneous partnerships who always use condoms in those partnerships", round(condoms_prob$condoms_always_nonmain[1], 4), NA, "WHPP survey, reweighted to Washington demographics for HIV-negative/undiagnosed men, restricted to HIV-neg/unknown and non-PrEP-using dyads")
+  epi_params <- param_table(epi_params, "condoms.main.YY.prob", "Probability of condom use in Young-Young (18-34) dyads", round(condoms_prob$condoms_main_prob$Mean[condoms_prob$condoms_main_prob$Age %in% "Young-Young"], 4), NA, "WHPP survey, reweighted to Washington demographics for HIV-negative/undiagnosed men, restricted to HIV-neg/unknown and non-PrEP-using dyads")
+  epi_params <- param_table(epi_params, "condoms.main.other.prob", "Probability of condom use in other age dyads", round(condoms_prob$condoms_main_prob$Mean[condoms_prob$condoms_main_prob$Age %in% "Other ages"], 4), NA, "WHPP survey, reweighted to Washington demographics for HIV-negative/undiagnosed men, restricted to HIV-neg/unknown and non-PrEP-using dyads")
+  epi_params <- param_table(epi_params, "cond.pers.always.prob", "Fraction of men with persistent partners who always use condoms in those partnerships", round(condoms_prob$condoms_always_pers[1], 4), NA, "WHPP survey, reweighted to Washington demographics for HIV-negative/undiagnosed men, restricted to HIV-neg/unknown and non-PrEP-using dyads")
+  epi_params <- param_table(epi_params, "cond.inst.always.prob", "Fraction of men with instantaneous partners who always use condoms in those partnerships", round(condoms_prob$condoms_always_inst[1], 4), NA, "WHPP survey, reweighted to Washington demographics for HIV-negative/undiagnosed men, restricted to HIV-neg/unknown and non-PrEP-using dyads")
+  epi_params <- param_table(epi_params, "cond.always.prob.corr", "Correlation coefficient for probability of always using condoms in both persistent and instantaneous partnerships", round(condoms_prob$condoms_always_corr, 4), NA, "WHPP survey, reweighted to Washington demographics for HIV-negative/undiagnosed men, restricted to HIV-neg/unknown and non-PrEP-using dyads")
   epi_params <- param_table(epi_params, "condoms.pers.prob", "Of men who are not consistent condom users, per-act probability of condom use with persistent partners", round(condoms_prob$condoms_pers_prob, 4), NA, "WHPP survey, reweighted to Washington demographics for HIV-negative/undiagnosed men, restricted to HIV-neg/unknown and non-PrEP-using dyads")
   epi_params <- param_table(epi_params, "condoms.inst.prob", "Of men who are not consistent condom users, per-act probability of condom use with instantaneous partners", round(condoms_prob$condoms_inst_prob, 4), NA, "WHPP survey, reweighted to Washington demographics for HIV-negative/undiagnosed men, restricted to HIV-neg/unknown and non-PrEP-using dyads")
   
@@ -150,10 +155,12 @@ This section summarises the parameters defined for the epidemic model, with refe
   epi_params <- param_table(epi_params, "circ.bho", "Proportion of men circumcised by racial/ethnic group (Black, Hispanic, Other)", paste(round(circumcised$circever, 4), collapse=", "), NA, "2014 MSM4 NHBS, reweighted to Washington demographics")
   
   # HIV testing
-  epi_params <- param_table(epi_params, "iti.coefs", "GLM coefficients for median intertest interval (intercept, centered age, centered age squared)", paste(lm_itiXage_coefs, collapse=", "), NA, "WHPP survey, reweighted to Washington demographics for HIV-negative/undiagnosed men, restricted to PrEP non-users")
+  epi_params <- param_table(epi_params, "iti.coefs", "GLM coefficients for median intertest interval (intercept, centered age, centered age squared)", paste(itiXage$lm_itiXage_coefs, collapse=", "), NA, "WHPP survey, reweighted to Washington demographics for HIV-negative/undiagnosed men, restricted to PrEP non-users")
+   epi_params <- param_table(epi_params, "mean.age.iti", "Mean age from the WHPP sample, for use in calculating centered age in the model to predict the intertest interval", itiXage$mean.age.iti, NA, "WHPP survey, reweighted to Washington demographics for HIV-negative/undiagnosed men, restricted to PrEP non-users")
+  
   
 # Make a kable
 rownames(epi_params) <- NULL
-kable(epi_params, caption="Epidemic model parameter values and sources", digits=c(0, 0, 4, 4, 0)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, width = "5cm") %>% column_spec(2, width = "10cm") %>% column_spec(3, width = "5cm") %>% column_spec(4, width = "8cm") %>% column_spec(5, width = "20cm") %>% group_rows("Coital frequency", 1,2) %>% group_rows("Condom use", 3,7) %>% group_rows("Circumcision", 8,8) %>% group_rows("HIV testing", 9,9)
+kable(epi_params, caption="Epidemic model parameter values and sources", digits=c(0, 0, 4, 4, 0)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, width = "5cm") %>% column_spec(2, width = "10cm") %>% column_spec(3, width = "5cm") %>% column_spec(4, width = "8cm") %>% column_spec(5, width = "20cm") %>% group_rows("Coital frequency", 1,2) %>% group_rows("Condom use", 3,9) %>% group_rows("Circumcision", 10,10) %>% group_rows("HIV testing", 11,12)
 
 ```
