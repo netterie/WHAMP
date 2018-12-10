@@ -142,6 +142,9 @@ Mean probability of condom use in main partnerships by age of both partners
 Age
 </th>
 <th style="text-align:right;">
+Unweighted N
+</th>
+<th style="text-align:right;">
 Mean
 </th>
 <th style="text-align:right;">
@@ -154,10 +157,13 @@ SE
 <td style="text-align:left;width: 3cm; ">
 Young-Young
 </td>
-<td style="text-align:right;width: 2cm; ">
+<td style="text-align:right;width: 3cm; ">
+144
+</td>
+<td style="text-align:right;width: 3cm; ">
 0.3391
 </td>
-<td style="text-align:right;width: 2cm; ">
+<td style="text-align:right;width: 3cm; ">
 0.0359
 </td>
 </tr>
@@ -165,20 +171,24 @@ Young-Young
 <td style="text-align:left;width: 3cm; ">
 Other ages
 </td>
-<td style="text-align:right;width: 2cm; ">
+<td style="text-align:right;width: 3cm; ">
+94
+</td>
+<td style="text-align:right;width: 3cm; ">
 0.1399
 </td>
-<td style="text-align:right;width: 2cm; ">
+<td style="text-align:right;width: 3cm; ">
 0.0382
 </td>
 </tr>
 </tbody>
 </table>
 </div>
-<div id="persistent-partnrships" class="section level2">
-<h2>Persistent partnrships</h2>
-<p>The EpiModelHIV code is currently set up to identify men who always use condoms in persistent and instantaneous partnerships, and to define the probability of condom use in those who do not always use condoms in these partnerships. Because the WHPP data only ask detailed questions about the most recent partnership, they do not allow for estimation of condom use in the same way as has been done for previous models. However, the WHPP survey does meausure whether men reported any condomless anal sex with parnters who were not main or primary. We will use this variable to define an indicator of the proportion of men who always use condoms with persistent and/or instantaneous partnerships (unlike previous models, we will not define this separately for these two partnership types). We then calculate the probability of condom use within each partnership type among men who do not always use condoms with these partners, using data from the most recent partnership. Exploratory analyses did not indicate differences in condom use with persistent partnerships by age, race/ethnicity, or region, so these estimates are not stratified.</p>
-<p>Note, after restricting to dyads without PrEP use, the estimate of the proportion that always use condoms with persistent and/or instantaneous partnerships is based on data from 390 respondents. The estimated probability of condom use with persistent partners is based on data from 70 respondents who reported not always using condoms and reported on a most recent persistent partner.</p>
+<div id="persistent-partnerships" class="section level2">
+<h2>Persistent partnerships</h2>
+<p>The EpiModelHIV code is currently set up to identify men who always use condoms in persistent and instantaneous partnerships, and to define the probability of condom use in those who do not always use condoms in these partnerships. Because the WHPP data only ask detailed questions about the most recent partnership, they do not allow for estimation of condom use in the same way as has been done for previous models. However, the WHPP survey does measure whether men reported any condomless anal sex with partners who were not main/primary. We will use this variable to define indicators of the proportion of men who always use condoms with persistent and instantaneous partnerships.<br />
+- We define the proportion of men who always use condoms with persistent partners as the number of men who reported two or more persistent partners in the past 12 months and reported not having had condomless anal sex with any non-main partners over the total number of men who reported at least one persistent partner. We restrict the numerator to men who reported two or more persitent partners becuase there is not enough information from men who reported only one partner to determine if they always use condoms with persistent partners. This will likely underestimate consistent condom use, however the objective of including these consistent condom use parameters is to better describe how patterns of condom use are distributed in the population. This approach is closer to the truth than if we simulated condom use as a draw from a probability distribution for all men. - We then calculate the probability of condom use with persistent partners among men who do not always use condoms, using data from the most recent partnership. Exploratory analyses did not indicate differences in condom use with persistent partnerships by age, race/ethnicity, or region, so these estimates are not stratified.</p>
+<p>Note, after restricting to dyads without PrEP use, the estimate of the proportion that always use condoms with persistent partners is based on data from 263 respondents. The estimated probability of condom use with persistent partners is based on data from 87 respondents who reported not always using condoms and reported on a most recent persistent partner.</p>
 <table class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
 <caption>
 Condom use in persistent partnerships
@@ -200,31 +210,31 @@ SE
 </thead>
 <tbody>
 <tr>
-<td style="text-align:left;width: 9cm; ">
-Consistent condom users with non-main partners
+<td style="text-align:left;width: 10cm; ">
+Consistent condom use with persistent partners
 </td>
 <td style="text-align:right;width: 2cm; ">
-390
+263
 </td>
 <td style="text-align:right;width: 2cm; ">
-0.3249
+0.0924
 </td>
 <td style="text-align:right;width: 2cm; ">
-0.0274
+0.0214
 </td>
 </tr>
 <tr>
-<td style="text-align:left;width: 9cm; ">
+<td style="text-align:left;width: 10cm; ">
 Probability of condom use if not a consistent condom user
 </td>
 <td style="text-align:right;width: 2cm; ">
-70
+87
 </td>
 <td style="text-align:right;width: 2cm; ">
-0.2417
+0.3925
 </td>
 <td style="text-align:right;width: 2cm; ">
-0.0451
+0.0528
 </td>
 </tr>
 </tbody>
@@ -232,8 +242,8 @@ Probability of condom use if not a consistent condom user
 </div>
 <div id="instantaneous-partnrships" class="section level2">
 <h2>Instantaneous partnrships</h2>
-<p>As with persistent partnerships, we calculate the proportion of men who always use condoms with persistent and/or instantaneous partnerships, which is the same variable as above. We then calculate the probability of condom use with instantaneous partnerships among men who do not always use condoms with these partners, using data from the most recent partnership. Exploratory analyses did not indicate differences in condom use with instantaneous partnerships by age, race/ethnicity, or region, so these estimates are not stratified.</p>
-<p>Note, after restricting to dyads without PrEP use and to respondents who reported not always using condoms with non-main partners, the estimated probability of condom use with instantaneous partners is based on data from 65 respondents who reported on a most recent instantaneous partner.</p>
+<p>As with persistent partnerships, we calculate the proportion of men who always use condoms with instantaneous partnerships as the the number of men who reported two or more instantaneous partners in the past 12 months and reported not having had condomless anal sex with any non-main partners over the total number of men who reported at least one instantaneous partner. We then calculate the probability of condom use with instantaneous partnerships among men who do not always use condoms with these partners, using data from the most recent partnership. Exploratory analyses did not indicate differences in condom use with instantaneous partnerships by age, race/ethnicity, or region, so these estimates are not stratified.</p>
+<p>Note, after restricting to dyads without PrEP use, the estimate of the proportion that always use condoms with instantaneous partners is based on data from 274 respondents. The estimated probability of condom use with instantaneous partners is based on data from 87 respondents who reported not always using condoms and reported on a most recent instantaneous partner.</p>
 <table class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
 <caption>
 Condom use in instantaneous partnerships
@@ -255,35 +265,40 @@ SE
 </thead>
 <tbody>
 <tr>
-<td style="text-align:left;width: 9cm; ">
-Consistent condom users with non-main partners
+<td style="text-align:left;width: 10cm; ">
+Consistent condom use with instantaneous partners
 </td>
 <td style="text-align:right;width: 2cm; ">
-390
+274
 </td>
 <td style="text-align:right;width: 2cm; ">
-0.3249
+0.1982
 </td>
 <td style="text-align:right;width: 2cm; ">
-0.0274
+0.0277
 </td>
 </tr>
 <tr>
-<td style="text-align:left;width: 9cm; ">
+<td style="text-align:left;width: 10cm; ">
 Probability of condom use if not a consistent condom user
 </td>
 <td style="text-align:right;width: 2cm; ">
-65
+87
 </td>
 <td style="text-align:right;width: 2cm; ">
-0.2023
+0.4138
 </td>
 <td style="text-align:right;width: 2cm; ">
-0.0558
+0.0595
 </td>
 </tr>
 </tbody>
 </table>
+</div>
+<div id="correlation-between-consistent-condom-use-with-persistent-and-instantaneous-partnerships" class="section level2">
+<h2>Correlation between consistent condom use with persistent and instantaneous partnerships</h2>
+<p>Using the indicators of consistent condom use with persistent and instantaneous partnerships defined above, we calculate the correlation coefficient between consistent condom use with persistent and instantaneous partners. For this, we use data only from men who report both persistent and instantaneous partners in the past 12 months.</p>
+<pre><code>## [1] 0.600946</code></pre>
 </div>
 </div>
 
