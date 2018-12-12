@@ -33,9 +33,9 @@
 # Import data 
 #-----------------------------------------------------------------------------------
     
-    # Need to mount windows to access the data because this server is on Linux. Open the Terminal in RStudio, and type "winmount" It will first ask for password to mount the U drive and H drive, which I don't need, so hit enter. Then it will prompt me for a password to mount the CSDE Project (R:) directory. Enter my UW netid password. Then type cd /homes/dpwhite/win/project/MMP_WADOH The mount will expire after ~24 hours, so will need to re-mount it periodically by typing "winmount"
+    # Need to mount windows to access the data because this server is on Linux. Open the Terminal in RStudio, and type "winmount" It will first ask for password to mount the U drive and H drive, which I don't need, so hit enter. Then it will prompt me for a password to mount the CSDE Project (R:) directory. Enter my UW netid password. Then type cd /homes/dpwhite/win/NoBackup/WHAMP_Darcy The mount will expire after ~24 hours, so will need to re-mount it periodically by typing "winmount"
 
-  mmp2014 <- read.csv("/homes/dpwhite/win/project/MMP_WADOH/mmp14_darcy.20180905.csv",
+  mmp2014 <- read.csv("/homes/dpwhite/win/NoBackup/WHAMP_Darcy/mmp14_darcy.20180905.csv",
                          header=TRUE, sep=",", na.strings = c("NA", "", "."))
   
 #-----------------------------------------------------------------------------------
@@ -545,8 +545,8 @@ mmp_msm_l <- mmp_msm_l %>% filter(AGE %in% c(18:59))
 mmp_svy <- svydesign(ids = ~pa_clust, strata = ~pa_strat, weights = ~pa_wgt_over, data = mmp2014, nest = TRUE)
 mmp_svy_msm <- mmp_svy[mmp_svy$variables$msm %in% 1 & mmp_svy$variables$AGE %in% c(18:59),]
 
-save(mmp_svy_msm, file="/homes/dpwhite/win/project/MMP_WADOH/mmp_clean_msm.Rdata")
-save(mmp_msm_l, file="/homes/dpwhite/win/project/MMP_WADOH/mmp_msm_l.Rdata")
+save(mmp_svy_msm, file="/homes/dpwhite/win/NoBackup/WHAMP_Darcy/mmp_clean_msm.Rdata")
+save(mmp_msm_l, file="/homes/dpwhite/win/NoBackup/WHAMP_Darcy/mmp_msm_l.Rdata")
 
 ```
 

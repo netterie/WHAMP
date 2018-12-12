@@ -33,11 +33,11 @@ options(knitr.table.format = "html")
 # Load data
 #-----------------------------------------------------------------------------------
 
-# To load MMP and NHBS data, need to mount windows to access the data because this server is on Linux. Open the Terminal in RStudio, and type "winmount" It will first ask for password to mount the U drive and H drive, which I don't need, so hit enter. Then it will prompt me for a password to mount the CSDE Project (R:) directory. Enter my UW netid password. Then type cd /homes/dpwhite/win/project/MMP_WADOH The mount will expire after ~24 hours, so will need to re-mount it periodically by typing "winmount"
+# To load MMP and NHBS data, need to mount windows to access the data because this server is on Linux. Open the Terminal in RStudio, and type "winmount" It will first ask for password to mount the U drive and H drive, which I don't need, so hit enter. Then it will prompt me for a password to mount the CSDE Project (R:) directory. Enter my UW netid password. Then type cd /homes/dpwhite/win/NoBackup/WHAMP_Darcy The mount will expire after ~24 hours, so will need to re-mount it periodically by typing "winmount"
 
-    load(file="/homes/dpwhite/win/project/MMP_WADOH/mmp_clean_msm.Rdata")
-    load(file="/homes/dpwhite/win/project/MMP_WADOH/mmp_msm_l.Rdata")
-    load(file="/homes/dpwhite/win/project/MMP_WADOH/nhbs_agecap.Rdata")
+    load(file="/homes/dpwhite/win/NoBackup/WHAMP_Darcy/mmp_clean_msm.Rdata")
+    load(file="/homes/dpwhite/win/NoBackup/WHAMP_Darcy/mmp_msm_l.Rdata")
+    load(file="/homes/dpwhite/win/NoBackup/WHAMP_Darcy/nhbs_agecap.Rdata")
     load(file="Data/InternetSurveySample.Rdata")
     load(file="Data/InternetSurveySample_allages.Rdata")
     load(file="Data/ARTNet_pos_wide.Rdata")
@@ -138,13 +138,13 @@ pop.hboregion.pos <- pop.totals$pop.hboregion.pos
 #Save
      save(sample_rake_neg, file="Data/InternetSurvey_reweighted_neg.Rdata")
      save(sample_rake_all, file="Data/InternetSurvey_reweighted_all.Rdata")
-     save(mmp_rake, file="/homes/dpwhite/win/project/MMP_WADOH/mmp_reweighted.Rdata")
-     save(mmp_rake_l, file="/homes/dpwhite/win/project/MMP_WADOH/mmp_reweighted_long.Rdata")
+     save(mmp_rake, file="/homes/dpwhite/win/NoBackup/WHAMP_Darcy/mmp_reweighted.Rdata")
+     save(mmp_rake_l, file="/homes/dpwhite/win/NoBackup/WHAMP_Darcy/mmp_reweighted_long.Rdata")
      save(artnet_pos_rake_w, file="Data/artnet_reweighted_pos_w.Rdata")
      save(artnet_pos_rake_l, file="Data/artnet_reweighted_pos_l.Rdata")
      save(artnet_full_rake_w, file="Data/artnet_reweighted_all_w.Rdata")
      save(artnet_full_rake_l, file="Data/artnet_reweighted_all_l.Rdata")
-     save(nhbs_rake_all, file = "/homes/dpwhite/win/project/MMP_WADOH/nhbs_reweighted.Rdata")
+     save(nhbs_rake_all, file = "/homes/dpwhite/win/NoBackup/WHAMP_Darcy/nhbs_reweighted.Rdata")
      
 ```
 
