@@ -134,7 +134,7 @@ $(document).ready(function () {
 <th style="text-align:left;">
 </th>
 <th style="text-align:center;">
-Percent
+Proportion
 </th>
 </tr>
 </thead>
@@ -165,6 +165,17 @@ Versatile
 </tr>
 </tbody>
 </table>
+<p>We also calculate the probability of intraevent versatility, or the probability that two versatile men will have both receptive and insertive anal sex in a single act or event, given that they’re having anal sex. We calculate this from the reweighted ART-NET survey, which asked men who reported both receptive and insertive anal sex with their partner(s) whether they had “both receptive and insertive anal sex in the same sexual act or event (that is, the same day).”</p>
+<ul>
+<li>With partners whom egos reported having both receptive and insertive sex more than once, they were asked how often they have IEV with that partner on a scale from never (0) to every time (100). We take the response to this variable as the probability of IEV with this partner. Responses of don’t know/prefer not to answer (n=9) were set to missing.</li>
+<li>With partners whom egos reported receptive anal sex only once and insertive anal sex only once, they were asked if these acts occurred in the same event. For these partnerships, we calculate the probability of IEV as 0 if they said no and 1 if they said yes.</li>
+<li>If egos reported receptive anal sex only once and insertive anal sex more than once with their partner, they were asked whether they had receptive anal sex in the same sexual act or event as a time they had insertive anal sex. For these partnerships, we calculate the probability of IEV as 0 if they said no, and as 1 divided by the number of times they reported insertive anal sex (i.e., if they reported insertive anal sex 20 times and said they engaged in IEV the one time they had receptive anal sex, the IEV probability is 1/20). For partnershis where insertive anal sex was reported only once and receptive anal sex more than once, a similar approach was taken.</li>
+<li>But we also need to account for partnerships among two versatile men in which the ego did not report both RAI and IAI. Unfortunately, we do not have information on the alters’ sex role, so we assume it has the same distribution as sex role among egos and impute it randomly. If an ego reported both RAI and IAI with an alter, that alter is assumed to be versatile. For other alters, we randomly assign them to be versatile or not so that the total number of versatile alters matches the total number of versatile egos. <em>This makes the assumption that alters of versatile egos who did not engage in both RAI and IAI are equally likely to be versatile as alters of exclusively receptive or exclusively insertive egos.</em></li>
+<li>We then set the probability of IEV to 0 for all other versatile-versatile dyads in which IEV was not reported.</li>
+</ul>
+<p>The calculated mean probability of IEV in versatile-versatile dyads is shown below:</p>
+<pre><code>##             mean     SE
+## p_ievprob 23.638 1.0669</code></pre>
 </div>
 <div class="footnotes">
 <hr />
