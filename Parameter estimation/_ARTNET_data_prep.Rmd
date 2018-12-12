@@ -48,7 +48,8 @@ index.vars <- c("AMIS_ID", "age", "hbo", "hbo_alt", "hiv", "city2", "region", "c
 part.vars <- c("NAME", "AGE", "RELAGE", "RACE", "HISP", "HIV",  "ONCE", "ONGOING", "MAIN_ONG",
                "STARTYYYY", "STARTMM", "STARTYYYYDK", "MAINCASENDMM",
                "OFENDMM", "MAIN_END", "RAI", "IAI", "RAI_ONCE", "IAI_ONCE",
-               "RECAI", "UNITRAI", "INSAI", "UNITIAI", "GEOG")
+               "RECAI", "UNITRAI", "INSAI", "UNITIAI", "_IEVONCE", "_IEVRECONCE", "_IEVINSONCE",
+               "_IEVMORETHANONCE", "GEOG")
 
 ## Define subset with the variables of interest
 d.subset <- d %>% select(index.vars, paste0("PART1", part.vars), paste0("PART2", part.vars), paste0("PART3", part.vars), paste0("PART4", part.vars), paste0("PART5", part.vars))
@@ -614,12 +615,16 @@ long <- select(long, -p_iairate, -p_rairate)
     
 ## Sexual Role
 d$position_cat <- NA
-recept <- which(d$PART1RAI == 1 | d$PART2RAI == 1 |
-                d$PART3RAI == 1 | d$PART4RAI == 1 |
-                d$PART5RAI == 1)
-insert <- which(d$PART1IAI == 1 | d$PART2IAI == 1 |
-                d$PART3IAI == 1 | d$PART4IAI == 1 |
-                d$PART5IAI == 1)
+recept <- which(d$PART1RAI == 1 | d$PART1RAI_ONCE %in% 1 | 
+                d$PART2RAI == 1 | d$PART2RAI_ONCE %in% 1 |
+                d$PART3RAI == 1 | d$PART3RAI_ONCE %in% 1 |
+                d$PART4RAI == 1 | d$PART4RAI_ONCE %in% 1 |
+                d$PART5RAI == 1 | d$PART5RAI_ONCE %in% 1 )
+insert <- which(d$PART1IAI == 1 | d$PART1IAI_ONCE == 1 |
+                d$PART2IAI == 1 | d$PART2IAI_ONCE == 1 |
+                d$PART3IAI == 1 | d$PART3IAI_ONCE == 1 |
+                d$PART4IAI == 1 | d$PART4IAI_ONCE == 1 |
+                d$PART5IAI == 1 | d$PART5IAI_ONCE == 1 )
 vers <- intersect(recept, insert)
 receptonly <- setdiff(recept, vers)
 insertonly <- setdiff(insert, vers)
@@ -627,6 +632,63 @@ insertonly <- setdiff(insert, vers)
 d$position_cat[receptonly] <- "Exclusively bottom"
 d$position_cat[insertonly] <- "Exclusively top"
 d$position_cat[vers] <- "Versatile"
+
+## Intra-event versatility.
+  # This parameter indicates the probability that, in a partnership of two versatile men, they will engage in intra-event versatility ("flipping") given that they're having AI. So we need to define the denominator as partnerships where both men are versatile. We define a variable for alter position - first we code alters as versatile if the ego reported intraevent versatility with him. Then we assign the sex role variable for the remaining alters so that the total distribution matches the distribution of sex role among egos
+
+# First convert iev variables to numeric and set dont know/prefer not to answer to missing
+long$p__IEVMORETHANONCE[long$p__IEVMORETHANONCE %in% "not applicable"] <- NA
+long$p__IEVMORETHANONCE <- as.numeric(long$p__IEVMORETHANONCE)
+long$p__IEVONCE <- as.numeric(long$p__IEVONCE)
+long$p__IEVINSONCE <- as.numeric(long$p__IEVINSONCE)
+long$p__IEVRECONCE <- as.numeric(long$p__IEVRECONCE)
+long$p__IEVRECONCE[long$p__IEVRECONCE %in% 88] <- NA
+
+# If they reported insertive and receptive anal sex more than once, they reported on how often they had IEV on a scale from never (0) to every time (100). This variable (p_IEVMORETHANONCE) indicates the probability of IEV.
+long$p_iev[!is.na(long$p__IEVMORETHANONCE)] <- long$p__IEVMORETHANONCE[!is.na(long$p__IEVMORETHANONCE)]
+
+# People who either reported receptive anal sex only once or insertive anal sex only once (but the other kind of sex more than once) were asked about whether these acts occurred in the same sexual act or event. For example if they reported insertive sex only once, they are asked if they also had receptive anal sex when they had insertive anal sex. For these individuals, we will calculate the probability of IEV as 0 if they say no, and as 1 divided by the number of times they reported whichever type of sex they had more than once if they say yes (i.e. if they reported receptive anal sex 20 times, insertive anal sex only once, and said they engaged in IEV that one time, the probabilit is 1/20)
+long$p_iev[!is.na(long$p__IEVRECONCE)] <- ifelse(long$p__IEVRECONCE[!is.na(long$p__IEVRECONCE)] %in% 0, 0,
+                                                     ifelse(long$p__IEVRECONCE[!is.na(long$p__IEVRECONCE)] %in% 1, (1/long$p_iaitimes[!is.na(long$p__IEVRECONCE)]), NA))
+
+long$p_iev[!is.na(long$p__IEVINSONCE)] <- ifelse(long$p__IEVINSONCE[!is.na(long$p__IEVINSONCE)] %in% 0, 0,
+                                                     ifelse(long$p__IEVINSONCE[!is.na(long$p__IEVINSONCE)] %in% 1, (1/long$p_raitimes[!is.na(long$p__IEVINSONCE)]), NA))
+
+# People who reported receptive anal sex only once and insertive anal sex only once were asked if these acts occurred in the same event. For these respondents, we calculate the probability of IEV as 0 if they said no and 1 if they said yes.
+long$p_iev[!is.na(long$p__IEVONCE)] <- ifelse(long$p__IEVONCE[!is.na(long$p__IEVONCE)] %in% 0, 0, 
+                                                  ifelse(long$p__IEVONCE[!is.na(long$p__IEVONCE)] %in% 1, 1, 
+                                                         NA))
+
+# As indicated above, we want to restrict this to dyads in which both men are versatile. So we first need to merge the variable on position into the long dataset
+position <- d %>% select(AMIS_ID, position_cat)
+long <- merge(long, position, by= "AMIS_ID")
+
+# Then we define alter position to have the same distribution as ego position. If men are exclusively receptive, their partners cannot be exclusively receptive, and if men are exclusively versatile, their partners cannot be exclusively versatile
+long$p_position_cat[long$p_RAI %in% 1 & long$p_IAI %in% 1] <- "Versatile"
+
+  # Of the remaining alters, calculate the proportion that need to be versatile to match the dist among egos. Restrict to only alters named by egos who had non-missing data on position
+  prop.v <- (sum(long$position_cat %in% "Versatile") - sum(long$p_position_cat %in% "Versatile")) / sum(!is.na(long$position_cat) & is.na(long$p_position_cat))
+  
+  # remaining number that need to be versatile vs other position
+  positions <- c(rep("Versatile", prop.v*sum(is.na(long$p_position_cat) & !is.na(long$position_cat))), rep("Other", (1-prop.v)*sum(is.na(long$p_position_cat) & !is.na(long$position_cat))))
+  # assign versatile roles
+  set.seed(98122)
+  long$p_position_cat[is.na(long$p_position_cat) & !is.na(long$position_cat)] <- sample(positions, sum(is.na(long$p_position_cat) & !is.na(long$position_cat)), replace = FALSE)
+  # Make sure the number of "other" alters assigned to receptive egos is not greater than the expected number of insertive men, and that the number of "other" alters assigned to insertive egos is not greater than the expected number of receptive men
+  if (sum(long$p_position_cat %in% "Other" & long$position_cat %in% "Exclusively bottom") > sum(long$position_cat %in% "Exclusively top")) {
+    stop("Not enough insertive alters available to pair with receptive egos")
+  }
+
+  if (sum(long$p_position_cat %in% "Other" & long$position_cat %in% "Exclusively top") > sum(long$position_cat %in% "Exclusively bottom")) {
+    stop("Not enough insertive alters available to pair with receptive egos")
+  }
+  
+## Calculate probability of IEV among VV couples. But only among those who reported sex more than once b/c not measured for those who reported sex only once
+  long$p_ievprob <- ifelse(!is.na(long$p_iev), long$p_iev,
+                           ifelse(long$position_cat %in% "Versatile" & long$p_position_cat %in% "Versatile" & long$p_ONCE %in% 2, 0,
+                                  NA))
+  # Set to missing for 95 who reported RAI and IAI with their partner but IEV measures are missing
+  long$p_ievprob[long$p_ONCE %in% 2 & long$p_RAI %in% 1 & long$p_IAI %in% 1 & is.na(long$p__IEVONCE) & is.na(long$p__IEVMORETHANONCE) & is.na(long$p__IEVINSONCE) & is.na(long$p__IEVRECONCE)] <- NA
 
 
 ## Instantaneous partner count and rate/year
