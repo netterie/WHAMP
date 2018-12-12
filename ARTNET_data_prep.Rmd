@@ -1,0 +1,1016 @@
+# ARTNET data preparation and manipulation
+
+This file cleans and manipulates the data from the national 2017-2018 ARTNET survey to prepare it for use estimating parameters for the WADOH-funded WHAMP model. We define two dataframes from the survey data: a _wide version_ with one row for every ego, and a _long version_ with one row for every ego-alter pair. The long version <span style="color:green"> includes data on alters with which the respondent reported either anal or oral sex and completed the partner module at least through the question about whether they had sex once or more than once.</span>
+
+## Key variables
+In the wide dataset, the key variables used in the rest of this book are listed below. Variables describing ego demographics are also in the long dataset. Assumptions and decisions we made to manipulate the data are highlighted in <span style="color:green">green text</span>.
+
+- Identifier
+    - *ego*: numeric, unique ego identifier
+- Ego age  
+    - *age*: age in single years  
+    - *age_cat*: age groups (5-year groups starting at age 25)  
+- Ego race/ethnicity
+    - *race.eth*: Full race/ethnicity variable with men categorized as Hispanic regardless of race and non-Hispanic men who reported multiple races categorized as "multiple"  
+    - *hbo*: Race/ethnicity coded as Hispanic (regardless of race), non-Hispanic black (alone or in combination with another race), and all other. <span style="color:green">The "other" group as it is currently defined includes those who selected "Does not apply", or "Don't know" for race. Those who selected "I prefer not to answer" are set to missing</span>.  
+- Ego geography  
+    - *city2*: Ego's city, with categories zOther1 for other cities in census division 1 (New England), zOther2 for other in census division 2 (Middle Atlantic), zOther3 (East North Central), zOther4 (West North Central), zOther5 (South Atlantic), zOther6 (East South Central), zOther7 (West South Central), zOther8 (Mountain), zOther9 (Pacific)  
+    - *division*: US census division (New England, Middle Atlantic, East North Central, West North Central, South Atlantic, East South Central, West South Central, Mountain, Pacific)  
+    - *region*: US census region (Northeast, Midwest, South, West)  
+- Ego HIV status  
+    - *hiv*: 0 = negative, 1 = positive (DK and Prefer not to answer set to missing)  
+- Ego aggregate sexual behavior  
+    - *numanal*: Number of male anal sex partners in the past 12 months  
+    - *cuml.pnum*: Number of oral or anal male sex partners in the past 12 months
+- Sex role
+    - *position_cat*: Categorized as exclusively bottom, exclusively top, or versatile based on reported behaviors with the most recent 5 partners in the past 12 months
+    - *numinst_12mo*: Number of instantaneous partnerships in the past 12 months
+    - *rate_inst*: Daily probability of forming an instantaneous partnership, based on the estimated number of instantaneous partners in the past 12 months (see below for notes on construction of this variable)
+    - *deg.main*: Number of ongoing main partners, calculated as the sum of the number of ongoing main partners reported in the partner module. <span style="color:green">For 6 egos who did not provide data on all of their up to 5 most recent partners, this was set to missing.</span>
+    - *deg.pers*: Number of ongoing persistent partners, calculated as the sum of the number of ongoing persistent partners reported in the partner module. <span style="color:green">For 6 egos who did not provide data on all of their up to 5 most recent partners, this was set to missing.</span>
+    - *deg.main_cat*: Main degree, truncated at the value specified in the argument <span style="color:green">main.trunc</span>.
+    _ *deg.pers_cat*: Persistent degree, truncated at the value specified in the argument <span style="color:green">pers.trunc</span>.
+
+In the long dataset, the key variables used in the rest of this book are listed below:
+
+- Identifier
+    - *edge_id*: unique, numeric identifier for each partnership
+- Ongoing status
+    - *active*: Binary (0/1) indicator of whether the partnership was ongoing at the time of the survey
+- Partner age
+    - *p_ageinyears*: Partner age in years. If egos did not know the age of their partners, they indicated the approximate relative age of their partners. <span style="color:green">Partners reported to be more than 10 years older or younger were assigned an age 15 years older or younger than the ego; partners reported to be within 2-10 years were assigned an age 6 years older or younger than the ego; partners reported to be within a year of the ego age were assigned the same age as the ego.</span>
+- Partner race/ethnicity
+    - *p_race.eth*: Full race/ethnicity variable with men categorized as Hispanic regardless of race and non-Hispanic men who reported multiple races categorized as "multiple."
+- Partner HIV status
+    - *p_hivpos*: Indicator of whether the partner is HIV-positive. Responses of "I prefer not to answer" were set to missing.
+- Partner type
+    - *p_type*: Partner type coded as main (partner described as someone egos felt committed to above and beyond all others and had sex with more than once), instantaneous (had sex only once and don't expect to have sex again, <span style="color:green">including DK if will have sex again</span>), and persistent (had sex more than once or expect to have sex again and the partnership is not described as main)
+- Partnership age
+    - *edge_age_days*: Days since first sex for partnerships that are ongoing
+- Coital frequency
+    - *p_aitimes*: Number of receptive or insertive anal sex acts in the past 12 months with main and persistent partners
+    - *p_airate*: Daily rate of anal sex with main and persistent partners. <span style="color:green">This was truncated at 2 for 11 observations >2.</span>
+    - *p_oitimes*: Number of receptive or insertive oral sex acts in the past 12 months with main and persistent partners
+    - *p_oirate*: Daily rate of oral sex with main and persistent partners. <span style="color:green">This was truncated at 2 for 28 observations >2.</span>
+
+## Notes on variable construction
+- Including oral sex partners
+    - In the code below, there is an argument for whether to include partners with whom egos reported only oral sex. If `oral == TRUE`, oral sex only partnerships will be included. 
+- Partnership type  
+    - The question about having sex more than once with partners was asked with regard to oral or anal sex, so some people who reported sex more than once may have only had anal sex once. If the argument `oral` = FALSE, partners with whom the ego reported _anal_ sex only once in the past 12 months and with whom they do not expect to have sex with again are recoded as instantaneous if the partnership started within the past 12 months. This would change 76 partners from persistent to instantaneous.
+    - <span style="color:red">In Sam's code, he recoded partners as ongoing if they initially said they don't know or prefer not to answer if it's ongoing, but reported that the partnership is main. So any partner described as main was considered to be ongoing as long as the ego did _not_ report that it was definitely not ongoing. This applies to 54 alters (oral or anal sex) for whom the ego initially said they don't know if they will have sex again and 1 for whom the ego did not indicate whether it's ongoing. I coded these partnerships as ongoing.</span>
+    - I categorized partners as persistent if they said the partnership was ongoing (and did not describe it as main) even if they had sex only once. Sam coded these as instantaneous. 595 alters met these conditions.
+- Partner age
+    - As described above, I defined partner age using data on the approximate relative age of the partner. As far as I can tell, Sam's code does not incorporate the approximate relative age data.
+- One-time partner count
+    - The survey did not ask about total number of one-time partners, so Sam's RAs approximated this by subtracting the total number of main and persistnet partners named in the partner module from the total number of oral or anal sex partners reported in the past 12 months. I modified this by also taking into account data on the number of partners men reported who were ongoing. I defined the number of one-time partners as the the minimum of the number of total anal sex partners that remain after subtracting the number of main or casual anal partners named in the partner module and the total number of oral or anal sex partners that were not ongoing. This is flagged as something to change in the Washington ART-NET survey on [GitHub](https://github.com/statnet/WHAMP/issues/63).
+    - Age categorization for re-weighting: The code currently defines the age group variable to use for re-weighting by collapsing the "15-17" and "18-24" groups from the "age_cat" variable described above. It is important to check the number of respondents in each group: if any of the cells are too small, there will be instability in the estimates for that group. If any groups are too small, the "age_cat_rwt" variable should be redefined using collapsed age groups. This would need to be changed in the "Calculate_pop_totals.Rmd" file as well. 
+
+## Inclusion/exclusion criteria for the sample  
+<span style="color:red">To define the sample for analysis, ....[fill in when decisions have been made]</span>.  
+  - <span style="color:red">To set the age range for the model, modify the objects "age.min" and "age.max".</span>
+  - <span style="color:red">To include partnerships that involved oral sex only, set oral = TRUE.</span>
+
+<span style="color:green">To conduct the raking procedure to re-weight the sample, we restrict the sample to observations that have complete data on the variables used for the re-weighting (age, race/ethnicity, and region (when Washington-specific data have been collected)).</span>
+
+
+```{r, include=FALSE}
+
+####################################################################
+## Setup ## ----
+####################################################################
+
+## Load packages ##
+
+library("tidyverse")
+library("reshape2")
+library("data.table")
+library("here")
+
+## Load data ##
+
+d <- readRDS(here("Data/ART-NET/NetParams/ARTNet-vars.rda"))
+
+## Define sample inclusion/exclusion parameters ##
+  
+  # Include oral-only sex partners
+  oral <- TRUE 
+  
+  # Age range
+  age.min <- 15
+  age.max <- 65
+
+## Cut-points for truncating main and persistent degree ##
+  main.trunc <- 1
+  pers.trunc <- 2
+
+####################################################################
+## Rename and manipulate ego variables ## ----
+####################################################################
+
+# ID variable
+setnames(d, old = "AMIS_ID", new = "ego")
+  
+# Region
+d$division <- factor(d$DIVCODE, labels = c("New England", "Middle Atlantic", "East North Central", "West North Central", "South Atlantic", "East South Central", "West South Central", "Mountain", "Pacific"))
+d$region <- factor(d$REGCODE, labels = c("Northeast", "Midwest", "South", "West"))
+
+# Make age numeric
+d$age <- as.numeric(d$age)
+
+# Race/ethnicity
+  d$race_ai.an <- d$RACEA
+  d$race_asian <- d$RACEB
+  d$race_black <- d$RACEC
+  d$race_nh.pi <- d$RACED
+  d$race_white <- d$RACEE
+  d$race_prefnot <- d$RACEF
+  d$race_dna <- d$RACEG
+  d$race_dk <- d$RACEH
+  d <- select(d, -RACEA, -RACEB, -RACEC, -RACED, -RACEE, -RACEF, -RACEG, -RACEH)
+
+  d$race.mult <- ifelse((d$race_ai.an + d$race_asian + d$race_black + d$race_nh.pi + d$race_white) > 1, 1, 0)
+  
+  d$race.eth <- ifelse(d$hispan %in% 1, "Hispanic",
+                      ifelse(d$race.mult %in% 1, "Multiple",
+                      ifelse(d$race_ai.an %in% 1, "American Indian/Alaska Native",
+                      ifelse(d$race_asian %in% 1, "Asian",
+                      ifelse(d$race_black %in% 1, "Black",
+                      ifelse(d$race_nh.pi %in% 1, "Native Hawaiian/Pacific Islander",
+                      ifelse(d$race_white %in% 1, "White",
+                      ifelse(d$race_prefnot %in% 1, "Prefer not to answer",
+                      ifelse(d$race_dna %in% 1, "Does not apply",
+                      ifelse(d$race_dk %in% 1, "Don't know",
+                             NA))))))))))
+  
+  ## Hispanic, black, other race/ethnicity
+  d$hbo <- ifelse(d$hispan %in% 1, "Hispanic",
+                  ifelse(d$race_black %in% 1, "Black",
+                         ifelse(d$race_ai.an %in% 1 | d$race_asian %in% 1 | d$race_nh.pi %in% 1 | d$race_white %in% 1 | d$race_dna %in% 1 | d$race_dk %in% 1, "Other", 
+                                NA)))
+  d$hbo <- factor(d$hbo, levels = c("Black", "Hispanic", "Other"))
+
+# Rename "ai.part" variable to numanal
+setnames(d, old = "ai.part", new = "numanal")
+
+####################################################################
+## Reformat to long form ## ----
+####################################################################
+
+# Rename partner names variable so it has the same "PART#" prefix as the other partner vars
+setnames(d, old=c("PARTNN1", "PARTNN2", "PARTNN3", "PARTNN4", "PARTNN5"), new=c("PART1NAME", "PART2NAME", "PART3NAME", "PART4NAME", "PART5NAME"))
+
+# Define variables to keep
+index.vars <- c("ego", "age", "hbo", "race.eth", "hiv", "city2", "division", "region", "cuml.pnum", "numanal", "SUB_DATE")
+part.vars <- c("NAME", "AGE", "RELAGE", "RACE", "HISP", "HIV",  "ONCE", "ONGOING", "MAIN_ONG",
+               "STARTYYYY", "STARTMM", "STARTYYYYDK", "MAINCASENDMM",
+               "OFENDMM", "MAIN_END", "RAI", "IAI", "RAI_ONCE", "IAI_ONCE",
+               "RECAI", "UNITRAI", "INSAI", "UNITIAI", "ROI", "ROI_ONCE", "IOI", "IOI_ONCE", 
+               "RECOI", "UNITROI", "INSOI", "UNITIOI", "GEOG")
+
+# Define subset with the variables of interest
+d.subset <- d %>% select(index.vars, paste0("PART1", part.vars), paste0("PART2", part.vars), paste0("PART3", part.vars), paste0("PART4", part.vars), paste0("PART5", part.vars))
+
+# Melt data
+d.subset[] <- lapply(d.subset, as.character)
+d.melt <- melt(d.subset, id.vars = index.vars)
+
+# separate partner number from variable name
+d.melt <- d.melt %>% separate(variable, c("pnum", "variable"), sep="(?<=^....[[:digit:]])")
+d.melt$variable <- paste0("p_", d.melt$variable)
+
+# Cast data
+long <- dcast(d.melt, ego + age + hbo + race.eth + hiv + city2 + region + cuml.pnum + numanal + SUB_DATE + pnum ~ variable, value.var = "value")
+long <- long %>% arrange(ego)
+rm(d.melt)
+rm(d.subset)
+
+# Delete all partnerships that have an NA value for "ONCE" - our cut off for a complete partnership module
+long <- long[which(!is.na(long$p_ONCE)),]
+
+
+# Set 88 and 99 values to NA 
+
+long$p_HISP[which(long$p_HISP %in% c(88, 99))] <- NA
+long$p_RACE[which(long$p_RACE %in% c(88, 99))] <- NA
+long$p_STARTYYYYDK[which(long$p_STARTYYYYDK %in% c(88, 99))] <- NA
+long$p_STARTMM[which(long$p_STARTMM %in% c(88, 99))] <- NA
+long$p_MAINCASENDMM[which(long$p_MAINCASENDMM %in% c(88, 99))] <- NA
+long$p_OFENDMM[which(long$p_OFENDMM %in% c(88, 99))] <- NA
+
+####################################################################
+# Define new partner vars ----
+####################################################################
+
+## Edge identifer
+long$edge_id <- seq.int(nrow(long))
+
+## Partner race/ethnicity
+long$p_race.eth <- ifelse(long$p_HISP %in% 1, "Hispanic",
+                          ifelse(long$p_RACE %in% 1, "Native Hawaiian/Pacific Islander",
+                          ifelse(long$p_RACE %in% 2, "Black",
+                          ifelse(long$p_RACE %in% 3, "White",
+                          ifelse(long$p_RACE %in% 4, "American Indian/Alaska Native",
+                          ifelse(long$p_RACE %in% 5, "Asian",
+                          ifelse(long$p_RACE %in% 6, "Mixed",
+                          ifelse(long$p_RACE %in% 7, "Other",
+                                 NA))))))))
+                      
+## Make age numeric
+long$age <- as.numeric(long$age)
+
+## Partner age
+long <- within(long, {
+    p_AGE <-  as.numeric(p_AGE)
+    p_ageinyrs <- ifelse(!is.na(p_AGE) & !(p_AGE %in% 0), p_AGE,
+                            ifelse(p_RELAGE %in% 1, age - 15,
+                                   ifelse(p_RELAGE %in% 2, age - 6,
+                                          ifelse(p_RELAGE %in% 3, age,
+                                                 ifelse(p_RELAGE %in% 4, age + 6,
+                                                        ifelse(p_RELAGE %in% 5, age + 15,
+                                                               NA))))))
+})
+
+## Recode ongoing = 1 if the partnership is main and the ego indicated that he doesn't know or prefers not to answer if it is ongoing (see file "Notes_on_defining_ongoing_pships.Rmd")
+long$p_ONGOING_orig <- long$p_ONGOING
+long$p_ONGOING[which(long$p_MAIN_ONG %in% 1)] <- 1
+
+## Define binary variable "active" to indicate if the partnership is ongoing. 
+long$active <- ifelse(long$p_ONGOING %in% 88, 0,
+                             ifelse(long$p_ONGOING %in% 99 | is.na(long$p_ONGOING), NA,
+                                    long$p_ONGOING))
+
+
+## Partner type (inst = had anal sex only once and do not expect to have sex again (including if DK if will have sex again))
+
+ long$p_type <- ifelse(long$p_ONCE %in% 1 & (long$p_ONGOING %in% c(0, 88)), "Inst",
+                        ifelse((long$p_MAIN_ONG %in% 1 | long$p_MAIN_END %in% 1), "Main",
+                               ifelse((is.na(long$p_ONCE) | is.na(long$p_ONGOING) | long$p_ONGOING %in% 99 | long$p_MAIN_END %in% 99 | long$p_MAIN_ONG %in% 99), NA,
+                                      "Pers")))
+
+
+## Partner HIV status
+ long$p_hivpos <- ifelse(long$p_HIV %in% 1, 1, 
+                      ifelse(long$p_HIV %in% c(2, 3, 4, 88), 0,
+                             NA))
+ 
+## Partner location
+ long$p_GEOG <- factor(long$p_GEOG, levels = c(1, 2, 3, 88, 99), labels = c("Same neighborhood", "Same city", "Different city", "Don't know", "Prefer not to answer"))
+
+## Dates of first and last sex----
+ #' This code was written by one of Sam's RAs. I checked it all, but did not make changes. It imputes missing months by sampling from a uniform distribution and sets missing days to 15
+
+    ## SUB_DATE to date-type variable
+    long$SUB_DATE <- as.Date(long$SUB_DATE)
+    long$SUB_DATE.year <- as.numeric( substr(long$SUB_DATE, 1, 4))
+    long$SUB_DATE.month <- as.numeric(substr(long$SUB_DATE, 6, 7))
+    long$SUB_DATE.day <- as.numeric(substr(long$SUB_DATE, 9, 10))
+    long$p_STARTMM <- as.numeric(long$p_STARTMM)
+    long$p_MAINCASENDMM <- as.numeric(long$p_MAINCASENDMM)
+    long$p_OFENDMM <- as.numeric(long$p_OFENDMM)
+
+    ## end_date - ongoing
+    long$end_date <- NA
+    class(long$end_date) <- "Date"
+
+    long$end_date[which(long$p_ONGOING == 1)] <-
+      as.Date(paste(long$SUB_DATE.year[which(long$p_ONGOING == 1)],
+                    formatC(long$SUB_DATE.month[which(long$p_ONGOING == 1)],
+                            width = 2, format = "d", flag = "0"),
+                    formatC(long$SUB_DATE.day[which(long$p_ONGOING == 1)],
+                            width = 2, format = "d", flag = "0"), sep = "-"))
+
+    ## end date - main/casual and not ongoing
+    long$year_e <- NA
+
+    long$year_e <- ifelse(long$p_MAINCASENDMM <= long$SUB_DATE.month,
+                                   long$SUB_DATE.year, long$SUB_DATE.year - 1)
+
+    long$day_e <- ifelse(long$SUB_DATE.month == long$p_MAINCASENDMM &
+                                    long$SUB_DATE.year == long$year_e &
+                                    long$SUB_DATE.day <= 15, long$SUB_DATE.day, 15)
+
+    long$end_date[which(is.na(long$end_date) & long$p_MAINCASENDMM %in% c(1:12))] <-
+      as.Date(paste(long$year_e[which(is.na(long$end_date) & long$p_MAINCASENDMM %in% c(1:12))],
+                    formatC(long$p_MAINCASENDMM[which(is.na(long$end_date) & long$p_MAINCASENDMM %in% c(1:12))], width = 2, format = "d", flag = "0"),
+                    formatC(long$day_e[which(is.na(long$end_date) & long$p_MAINCASENDMM %in% c(1:12))], width = 2, format = "d", flag = "0"), sep = "-"))
+
+    ## start date - sex more than once
+    long$start_date <- NA
+    class(long$start_date) <- "Date"
+
+    long$p_STARTYYYY[which(long$p_STARTYYYY == "0001")] <- "0000"
+
+    long$day_s <- ifelse(long$SUB_DATE.month == long$p_STARTMM &
+                                    long$SUB_DATE.year == long$p_STARTYYYY &
+                                    long$SUB_DATE.day <= 15, long$SUB_DATE.day, 15)
+
+    long$start_date[which(!is.na(long$day_s) &
+                                     !is.na(long$p_STARTMM) &
+                                     !is.na(long$p_STARTYYYY) &
+                                     (long$p_STARTYYYY != "0000") &
+                                     (long$p_STARTMM %in% c(1:12)))] <-
+      as.Date(paste(long$p_STARTYYYY[which(!is.na(long$day_s) &
+                                                    !is.na(long$p_STARTMM) &
+                                                    !is.na(long$p_STARTYYYY) &
+                                                    (long$p_STARTYYYY != "0000") &
+                                                    (long$p_STARTMM %in% c(1:12)))],
+                    formatC(long$p_STARTMM[which(!is.na(long$day_s) &
+                                                          !is.na(long$p_STARTMM) &
+                                                          !is.na(long$p_STARTYYYY) &
+                                                          (long$p_STARTYYYY != "0000") &
+                                                          (long$p_STARTMM %in% c(1:12)))],
+                            width = 2, format = "d", flag = "0"),
+                    formatC(long$day_s[which(!is.na(long$day_s) &
+                                                        !is.na(long$p_STARTMM) &
+                                                        !is.na(long$p_STARTYYYY) &
+                                                        (long$p_STARTYYYY != "0000") &
+                                                        (long$p_STARTMM %in% c(1:12)))],
+                            width = 2, format = "d", flag = "0"), sep = "-"))
+
+
+    ## Combine to estimate age for those with non-missing data
+    long$duration.given <- NA
+    long$duration.given[which(!is.na(long$start_date) & !is.na(long$end_date))] <-
+      difftime(long$end_date[which(!is.na(long$start_date) & !is.na(long$end_date))],
+               long$start_date[which(!is.na(long$start_date) & !is.na(long$end_date))], units = "days")
+
+    table(long$duration.given < 0)
+
+    #long$duration.given[which(long$duration.given < 0)] <- NA
+    #table(is.na(long$duration.given))
+
+    ## one-off date
+    long$year_e <- NA
+
+    long$year_e[which(!is.na(long$p_OFENDMM) & long$p_OFENDMM %in% c(1:12) &
+                                 long$p_OFENDMM < long$SUB_DATE.month)] <-
+        long$SUB_DATE.year[which(!is.na(long$p_OFENDMM) & long$p_OFENDMM %in% c(1:12) &
+                                          long$p_OFENDMM < long$SUB_DATE.month)]
+
+    long$year_e[which(long$p_OFENDMM %in% c(1:12) &
+                                 long$p_OFENDMM >= long$SUB_DATE.month)] <-
+      long$SUB_DATE.year[which(long$p_OFENDMM %in% c(1:12) &
+                                          long$p_OFENDMM >= long$SUB_DATE.month)] - 1
+
+    long$end_date[which(long$p_OFENDMM %in% c(1:12) & long$p_ONGOING != 1 & is.na(long$p_MAINCASENDMM))] <-
+      as.Date(paste(long$year_e[which(long$p_OFENDMM %in% c(1:12) & long$p_ONGOING != 1 & is.na(long$p_MAINCASENDMM))],
+                    formatC(long$p_OFENDMM[which(long$p_OFENDMM %in% c(1:12) & long$p_ONGOING != 1 & is.na(long$p_MAINCASENDMM))],
+                            width = 2, format = "d", flag = "0"), formatC(15, width = 2, format = "d", flag = "0"), sep = "-"))
+
+
+    ## Impute missing dates
+    
+    ### one off without end_date resolved:
+    long$month_e <- NA
+    long$year_e <- NA
+  
+  long$month_e[which(!(long$p_MAINCASENDMM %in% c(1:12)) & long$p_type == "Inst")] <-
+    round(runif(long$p_MAINCASENDMM[which(!(long$p_MAINCASENDMM %in% c(1:12)) & long$p_type == "Inst")],
+                min = 1, max = 12))
+  
+  long$year_e[which(is.na(long$end_date) & long$month_e %in% c(1:12) &
+                               long$SUB_DATE.month < long$month_e)] <-
+    long$SUB_DATE.year[which(is.na(long$end_date) & long$month_e %in% c(1:12) &
+                                        long$SUB_DATE.month < long$month_e)]
+  
+  long$year_e[which(is.na(long$end_date) & long$month_e %in% c(1:12) &
+                               long$SUB_DATE.month >= long$month_e)] <-
+    long$SUB_DATE.year[which(is.na(long$end_date) & long$month_e %in% c(1:12) &
+                                        long$SUB_DATE.month >= long$month_e)] - 1
+  
+  long$year_e[which(!is.na(long$year_e) & long$year_e == long$SUB_DATE.year &
+                               long$month_e > long$SUB_DATE.month)] <-
+    long$year_e[which(!is.na(long$year_e) & long$year_e == long$SUB_DATE.year &
+                                 long$month_e > long$SUB_DATE.month)] - 1
+  
+  long$day_e <- ifelse(long$SUB_DATE.month == long$month_e &
+                                  long$SUB_DATE.year == long$year_e &
+                                  long$SUB_DATE.day <= 15, long$SUB_DATE.day, 15)
+  
+  long$end_date[which(is.na(long$end_date) & long$month_e %in% c(1:12))] <-
+    as.Date(paste(long$year_e[which(is.na(long$end_date) & long$month_e %in% c(1:12))],
+                  formatC(long$month_e[which(is.na(long$end_date) & long$month_e %in% c(1:12))],
+                          width = 2, format = "d", flag = "0"),
+                  formatC(long$day_e[which(is.na(long$end_date) & long$month_e %in% c(1:12))],
+                          width = 2, format = "d", flag = "0"), sep = "-"))
+  
+    ## main casual without end_date resolved
+    long$month_e <- NA
+    long$year_e <- NA
+    
+    #1
+    long$month_e[which(!(long$p_MAINCASENDMM %in% c(1:12)) &
+                                  long$p_type %in% c("Main", "Pers") &
+                                is.na(long$end_date) &
+                                long$p_STARTYYYY == long$SUB_DATE.year &
+                                !(long$p_STARTMM %in% c(1:12)))] <-
+    round(runif(is.na(long$month_e[which(!(long$p_MAINCASENDMM %in% c(1:12)) &
+                                              long$p_type %in% c("Main", "Pers") &
+                                              is.na(long$end_date) &
+                                              long$p_STARTYYYY == long$SUB_DATE.year &
+                                              !(long$p_STARTMM %in% c(1:12)))]),
+                min = 1, max = long$SUB_DATE.month[which(!(long$p_MAINCASENDMM %in% c(1:12)) &
+                                                                    long$p_type %in% c("Main", "Pers") &
+                                                                    is.na(long$end_date) &
+                                                                    long$p_STARTYYYY == long$SUB_DATE.year &
+                                                                    !(long$p_STARTMM %in% c(1:12)))]))
+  
+  long$month_e[which(!(long$p_MAINCASENDMM %in% c(1:12)) &
+                                long$p_type %in% c("Main", "Pers") &
+                                is.na(long$end_date) &
+                                is.na(long$month_e))] <-
+    round(runif(long$p_MAINCASENDMM[which(!(long$p_MAINCASENDMM %in% c(1:12)) &
+                                                   long$p_type %in% c("Main", "Pers") &
+                                                   is.na(long$end_date) &
+                                                   is.na(long$month_e))] , min = 1, max = 12))
+  
+  long$month_e[which(!(long$p_MAINCASENDMM %in% c(1:12))  &
+                                long$p_type %in% c("Main", "Pers") &
+                                is.na(long$end_date) &
+                                (long$month_e >= long$SUB_DATE.month |
+                                   long$month_e <= long$p_STARTMM) &
+                                long$p_STARTYYYY == long$SUB_DATE.year &
+                                long$p_STARTMM %in% c(1:12))] <-
+    round(runif(!is.na(long$month_e[which(!(long$p_MAINCASENDMM %in% c(1:12))  &
+                                              long$p_type %in% c("Main", "Pers") &
+                                              is.na(long$end_date) &
+                                              (long$month_e >= long$SUB_DATE.month |
+                                                 long$month_e <= long$p_STARTMM)  &
+                                              long$p_STARTYYYY == long$SUB_DATE.year &
+                                              long$p_STARTMM %in% c(1:12))]),
+                min = as.numeric(long$p_STARTMM[which(!(long$p_MAINCASENDMM %in% c(1:12))  &
+                                                               long$p_type %in% c("Main", "Pers") &
+                                                               is.na(long$end_date) &
+                                                               (long$month_e >= long$SUB_DATE.month |
+                                                                  long$month_e <= long$p_STARTMM) &
+                                                               long$p_STARTYYYY == long$SUB_DATE.year &
+                                                               long$p_STARTMM %in% c(1:12))]),
+                max = as.numeric(long$SUB_DATE.month[which(!(long$p_MAINCASENDMM %in% c(1:12))  &
+                                                                     long$p_type %in% c("Main", "Pers") &
+                                                                      is.na(long$end_date) &
+                                                                      (long$month_e >= long$SUB_DATE.month |
+                                                                         long$month_e <= long$p_STARTMM)  &
+                                                                      long$p_STARTYYYY == long$SUB_DATE.year &
+                                                                      long$p_STARTMM %in% c(1:12))])))
+  
+  long$year_e[which(!is.na(long$month_e) & long$SUB_DATE.month <= long$month_e)] <-
+    long$SUB_DATE.year[which(!is.na(long$month_e) & long$SUB_DATE.month <= long$month_e)]
+  
+  long$year_e[which(!is.na(long$month_e) & long$SUB_DATE.month > long$month_e)] <-
+    long$SUB_DATE.year[which(!is.na(long$month_e) & long$SUB_DATE.month > long$month_e)] - 1
+  
+  long$year_e[which(!is.na(long$start_date) & !long$p_MAINCASENDMM %in% c(1:12) &
+                               long$p_type %in% c("Main", "Pers") & is.na(long$end_date) &
+                               !is.na(long$month_e) & long$month_e < long$SUB_DATE.month &
+                               as.numeric(long$p_STARTYYYY) < long$SUB_DATE.year)] <-
+    long$SUB_DATE.year[which(!is.na(long$start_date) & !long$p_MAINCASENDMM %in% c(1:12) &
+                                        long$p_type %in% c("Main", "Pers") & is.na(long$end_date) &
+                                        !is.na(long$month_e) & long$month_e < long$SUB_DATE.month &
+                                        as.numeric(long$p_STARTYYYY) < long$SUB_DATE.year)]
+  
+  long$year_e[which(!is.na(long$year_e) & long$year_e == long$SUB_DATE.year &
+                               long$month_e > long$SUB_DATE.month)] <-
+    long$year_e[which(!is.na(long$year_e) & long$year_e == long$SUB_DATE.year &
+                                 long$month_e > long$SUB_DATE.month)] - 1
+  
+  long$year_e[which(!is.na(long$year_e) & !is.na(long$month_e) &
+                               long$SUB_DATE.year == as.numeric(long$p_STARTYYYY) &
+                               long$p_STARTMM %in% c(1:12) &
+                               long$p_STARTMM < long$SUB_DATE.month)] <-
+    long$SUB_DATE.year[which(!is.na(long$year_e) & !is.na(long$month_e) &
+                                       long$SUB_DATE.year == as.numeric(long$p_STARTYYYY) &
+                                       long$p_STARTMM %in% c(1:12) &
+                                       long$p_STARTMM < long$SUB_DATE.month)]
+
+    #2
+    long$year_e[which(!(long$p_MAINCASENDMM %in% c(1:12)) & long$month_e < long$SUB_DATE.month)] <-
+      long$SUB_DATE.year[which(!(long$p_MAINCASENDMM %in% c(1:12)) & long$month_e < long$SUB_DATE.month)]
+    
+    long$day_e <- ifelse(long$SUB_DATE.month == long$month_e &
+                                    long$SUB_DATE.year == long$year_e &
+                                    long$SUB_DATE.day <= 15, long$SUB_DATE.day, 15)
+    
+    long$end_date[which(is.na(long$end_date) & long$month_e %in% c(1:12))] <-
+      as.Date(paste(long$year_e[which(is.na(long$end_date) & long$month_e %in% c(1:12))],
+                    formatC(long$month_e[which(is.na(long$end_date) & long$month_e %in% c(1:12))],
+                            width = 2, format = "d", flag = "0"), formatC(long$day_e[which(is.na(long$end_date)
+                                                                                                & long$month_e %in% c(1:12))],
+                                                                      width = 2, format = "d", flag = "0"), sep = "-"))
+    
+    ## fixing all missing start_dates for main and casual partnernships
+    
+    #if we don't know year and are given a range, sample within this range
+    long$infer_year_s <- NA
+    long$infer_startmm <- NA
+    
+    long$infer_year_s[which((is.na(long$p_STARTYYYY) | long$p_STARTYYYY == "0000") & long$p_STARTYYYYDK == 2)] <-
+      long$SUB_DATE.year[which((is.na(long$p_STARTYYYY) | long$p_STARTYYYY == "0000") & long$p_STARTYYYYDK == 2)] -
+      round(runif(n = long$infer_year_s[which((is.na(long$p_STARTYYYY) | long$p_STARTYYYY == "0000") &
+                                                         long$p_STARTYYYYDK == 2)], min = 1, max = 2))
+    
+    long$infer_year_s[which((is.na(long$p_STARTYYYY) | long$p_STARTYYYY == "0000") & long$p_STARTYYYYDK == 3)] <-
+      long$SUB_DATE.year[which((is.na(long$p_STARTYYYY) | long$p_STARTYYYY == "0000") & long$p_STARTYYYYDK == 3)] -
+      round(runif(n = long$infer_year_s[which((is.na(long$p_STARTYYYY) | long$p_STARTYYYY == "0000") &
+                                                         long$p_STARTYYYYDK == 3)], min = 2, max = 5))
+    
+    long$infer_year_s[which((is.na(long$p_STARTYYYY) | long$p_STARTYYYY == "0000") & long$p_STARTYYYYDK == 4)] <-
+      long$SUB_DATE.year[which((is.na(long$p_STARTYYYY) | long$p_STARTYYYY == "0000") & long$p_STARTYYYYDK == 4)] -
+      round(runif(n = long$infer_year_s[which((is.na(long$p_STARTYYYY) | long$p_STARTYYYY == "0000") &
+                                                         long$p_STARTYYYYDK == 4)], min = 5, max = 10))
+    
+    
+    long$infer_startmm[which(!is.na(long$infer_year_s) & is.na(long$start_date) &
+                                  !(long$p_STARTMM %in% c(1:12)))] <-
+      round(runif(long$p_STARTMM[which(!is.na(long$infer_year_s) & is.na(long$start_date) &
+                                                !(long$p_STARTMM %in% c(1:12)))], min = 1, max = 12))
+    
+    long$endmm <- as.numeric(substr(long$end_date, 6, 7))
+    long$year_e <- as.numeric(substr(long$end_date, 1, 4))
+    long$day_e <- as.numeric(substr(long$end_date, 9, 10))
+    
+    ## when STARTYYYY == 0000 and STARTYYYYKD ==1
+    
+    #create a month for unknown STARTMM
+    long$infer_startmm[which(long$p_STARTYYYYDK == 1 &
+                                        !(long$p_STARTMM %in% c(1:12)))] <-
+      round(runif(is.na(long$infer_startmm[which(long$p_STARTYYYYDK == 1 &
+                                                            !(long$p_STARTMM %in% c(1:12)))]), min = 1, max = 12))
+    
+    #Calculate the year based on whether month is <= or > end month
+    long$infer_year_s[which(long$p_STARTYYYYDK == 1 & long$infer_startmm %in% c(1:12)
+                                     & long$endmm <= long$infer_startmm)] <-
+      long$year_e[which(long$p_STARTYYYYDK == 1 & long$infer_startmm %in% c(1:12)
+                                 & long$endmm <= long$infer_startmm)] - 1
+    
+    long$infer_year_s[which(long$p_STARTYYYYDK == 1 & long$infer_startmm %in% c(1:12)
+                                     & long$endmm > long$infer_startmm)] <-
+      long$year_e[which(long$p_STARTYYYYDK == 1 & long$infer_startmm %in% c(1:12)
+                                 & long$endmm > long$infer_startmm)]
+    
+    long$infer_year_s[which(long$p_STARTYYYYDK == 1 & long$p_STARTMM %in% c(1:12)
+                                     & long$endmm <= long$p_STARTMM)] <-
+      long$year_e[which(long$p_STARTYYYYDK == 1 & long$p_STARTMM %in% c(1:12)
+                                 & long$endmm <= long$p_STARTMM)] - 1
+    
+    long$infer_year_s[which(long$p_STARTYYYYDK == 1 & long$p_STARTMM %in% c(1:12)
+                                     & long$endmm > long$p_STARTMM)] <-
+      long$year_e[which(long$p_STARTYYYYDK == 1 & long$p_STARTMM %in% c(1:12)
+                                 & long$endmm > long$p_STARTMM)]
+    
+    
+    ## Set day
+    long$day_s <- ifelse(long$SUB_DATE.month == long$infer_startmm &
+                                    long$SUB_DATE.year == long$infer_year_s &
+                                    long$SUB_DATE.day <= 15, 1, 15)
+    
+    
+    ## Combine to get start date
+    long$start_date[which(!is.na(long$day_s) &
+                                     !is.na(long$p_STARTMM) &
+                                     !is.na(long$infer_year_s) &
+                                     is.na(long$start_date))] <-
+      as.Date(paste(long$infer_year_s[which(!is.na(long$day_s) &
+                                                       !is.na(long$p_STARTMM) &
+                                                       !is.na(long$infer_year_s) &
+                                                       is.na(long$start_date))],
+                    formatC(long$p_STARTMM[which(!is.na(long$day_s) &
+                                                            !is.na(long$p_STARTMM) &
+                                                            !is.na(long$infer_year_s) &
+                                                            is.na(long$start_date))],
+                            width = 2, format = "d", flag = "0"),
+                    formatC(long$day_s[which(!is.na(long$day_s) &
+                                                        !is.na(long$p_STARTMM) &
+                                                        !is.na(long$infer_year_s) &
+                                                        is.na(long$start_date))],
+                            width = 2, format = "d", flag = "0"), sep = "-"))
+    
+    long$start_date[which(!is.na(long$day_s) &
+                                     !is.na(long$infer_startmm) &
+                                     !is.na(long$infer_year_s) &
+                                     is.na(long$start_date))] <-
+      as.Date(paste(long$infer_year_s[which(!is.na(long$day_s) &
+                                                       !is.na(long$infer_startmm) &
+                                                       !is.na(long$infer_year_s) &
+                                                       is.na(long$start_date))],
+                    formatC(long$infer_startmm[which(!is.na(long$day_s) &
+                                                                !is.na(long$infer_startmm) &
+                                                                !is.na(long$infer_year_s) &
+                                                                is.na(long$start_date))],
+                            width = 2, format = "d", flag = "0"),
+                    formatC(long$day_s[which(!is.na(long$day_s) &
+                                                        !is.na(long$infer_startmm) &
+                                                        !is.na(long$infer_year_s) &
+                                                        is.na(long$start_date))],
+                            width = 2, format = "d", flag = "0"), sep = "-"))
+    
+    ## If start and end dates in the same month, set day to 1
+    long$day_s <- ifelse(long$p_STARTMM == long$endmm &
+                                    as.numeric(long$p_STARTYYYY) == long$year_e, 1, 15)
+    
+    ## start date when we only have the year
+    
+    long$year_e <- as.numeric(substr(long$end_date, 1, 4))
+    
+    long$infer_startmm[which(is.na(long$start_date) &
+                                        long$p_type %in% c("Main", "Pers") &
+                                        as.numeric(long$p_STARTYYYY) == long$year_e)] <-
+      round(runif(long$infer_startmm[which(is.na(long$start_date) &
+                                                      long$p_type %in% c("Main", "Pers") &
+                                                      as.numeric(long$p_STARTYYYY) == long$year_e)],
+                  min = 1, max = (long$endmm[which(is.na(long$start_date) &
+                                                              long$p_type %in% c("Main", "Pers") &
+                                                              as.numeric(long$p_STARTYYYY) == long$year_e)])))
+    
+    long$year_e <- as.numeric(substr(long$end_date, 1, 4))
+    
+    long$infer_startmm[which(is.na(long$start_date) & long$p_type %in% c("Main", "Pers") &
+                                        as.numeric(long$p_STARTYYYY) != long$year_e &
+                                        long$p_STARTYYYY != "0000")] <-
+      round(runif(long$infer_startmm[which(is.na(long$start_date) & long$p_type %in% c("Main", "Pers") &
+                                                      as.numeric(long$p_STARTYYYY) != long$year_e &
+                                                      long$p_STARTYYYY != "0000")], min = 1, max = 12))
+    
+    long$day_s <- ifelse(long$infer_startmm == long$endmm &
+                                    as.numeric(long$p_STARTYYYY) == long$year_e, 1, 15)
+    
+    long$start_date[which(is.na(long$start_date) & long$p_type %in% c("Main", "Pers") & !(long$p_STARTYYYY %in% c("", "0000")))] <-
+      as.Date(paste(long$p_STARTYYYY[which(is.na(long$start_date) & long$p_type %in% c("Main", "Pers") & !(long$p_STARTYYYY %in% c("", "0000")))],
+                    formatC(long$infer_startmm[which(is.na(long$start_date) & long$p_type %in% c("Main", "Pers") & !(long$p_STARTYYYY %in% c("", "0000")))],
+                            width = 2, format = "d", flag = "0"),
+                    formatC(long$day_s[which(is.na(long$start_date) & long$p_type %in% c("Main", "Pers") & !(long$p_STARTYYYY %in% c("", "0000")))],
+                            width = 2, format = "d", flag = "0"), sep = "-"))
+    
+    long$start_date[which(!is.na(long$day_s) &
+                                     !is.na(long$p_STARTMM) &
+                                     !is.na(long$infer_year_s) &
+                                     is.na(long$start_date))] <-
+      as.Date(paste(long$infer_year_s[which(!is.na(long$day_s) &
+                                                       !is.na(long$p_STARTMM) &
+                                                       !is.na(long$infer_year_s) &
+                                                       is.na(long$start_date))],
+                    formatC(long$p_STARTMM[which(!is.na(long$day_s) &
+                                                          !is.na(long$p_STARTMM) &
+                                                          !is.na(long$infer_year_s) &
+                                                          is.na(long$start_date))],
+                            width = 2, format = "d", flag = "0"),
+                    formatC(long$day_s[which(!is.na(long$day_s) &
+                                                        !is.na(long$p_STARTMM) &
+                                                        !is.na(long$infer_year_s) &
+                                                        is.na(long$start_date))],
+                            width = 2, format = "d", flag = "0"), sep = "-"))
+
+## Combine dates to get partnership age
+
+long$edge_age_days <- NA
+long$edge_age_days <- ifelse(long$p_ONGOING %in% 1 & long$p_ONCE %in% 2, difftime(long$SUB_DATE, long$start_date, units = "days"),
+                         ifelse(long$p_ONGOING %in% 1 & long$p_ONCE %in% 1, difftime(long$SUB_DATE, long$end_date, units = "days"),
+                                NA))
+
+## Duration of sex in the past 12 months (for use estimating AI freq)
+
+  ### Define date 1 year ago and indicator of whether relationship started > 1 year ago
+  long$dt_yrago <- long$SUB_DATE - 365
+  long$start_mtyrago <- ifelse(long$start_date <= long$dt_yrago & !is.na(long$start_date), 1,
+                               ifelse(long$start_date > long$dt_yrago & !is.na(long$start_date), 0,
+                                      NA))
+  
+  long$duration_p12 <- ifelse(long$p_ONCE %in% 2 & long$p_ONGOING %in% 1 & long$start_mtyrago %in% 1, difftime(long$SUB_DATE, long$dt_yrago, units="days"),
+                              ifelse(long$p_ONCE %in% 2 & long$p_ONGOING %in% 1, difftime(long$SUB_DATE, long$start_date, units="days"),
+                                     ifelse(long$p_ONCE %in% 2 & !(long$p_ONGOING %in% 1) & long$start_mtyrago %in% 1, difftime(long$end_date, long$dt_yrago, units="days"),
+                                            ifelse(long$p_ONCE %in% 2 & !(long$p_ONGOING %in% 1), difftime(long$end_date, long$start_date, units="days"), NA))))
+  long$duration_p12[long$duration_p12 <0 ] <- NA
+  
+
+## Anal sex frequency ----
+long$p_RAI[which(is.na(long$p_RAI))] <- long$p_RAI_ONCE[which(is.na(long$p_RAI))]
+long$p_IAI[which(is.na(long$p_IAI))] <- long$p_IAI_ONCE[which(is.na(long$p_IAI))]
+
+long$p_UNITRAI[long$p_UNITRAI %in% c("11647", "11685", "11688", "11691", "11694")] <- "month"
+long$p_UNITRAI[long$p_UNITRAI %in% c("11648", "11686", "11689", "11692", "11695")] <- "year"
+long$p_UNITRAI[long$p_UNITRAI %in% c("11646", "11684", "11687", "11690", "11693")] <- "week"
+
+long$p_UNITIAI[long$p_UNITIAI %in% c("11655", "11700", "11703", "11706", "11801")] <- "month"
+long$p_UNITIAI[long$p_UNITIAI %in% c("11656", "11701", "11704", "11707", "11802")] <- "year"
+long$p_UNITIAI[long$p_UNITIAI %in% c("11654", "11699", "11702", "11705", "11800")] <- "week"
+
+long$p_RECAI <- as.numeric(long$p_RECAI)
+long$p_raitimes[long$p_RAI %in% 0] <- 0
+long$p_raitimes[long$p_RAI_ONCE %in% 1] <- 1
+long$p_raitimes[long$p_UNITRAI %in% "year"] <- long$p_RECAI[long$p_UNITRAI %in% "year"]
+long$p_raitimes[long$p_UNITRAI %in% "month"] <- long$p_RECAI[long$p_UNITRAI %in% "month"]*long$duration_p12[long$p_UNITRAI %in% "month"]/30.4
+long$p_raitimes[long$p_UNITRAI %in% "week"] <- long$p_RECAI[long$p_UNITRAI %in% "week"]*long$duration_p12[long$p_UNITRAI %in% "week"]/7
+ #If duration in the past 12 months is calculated as less than 1 month/week, set to p_RECAI. Many have short (or zero) duration due to assumptions about start and end days
+long$p_raitimes[long$p_UNITRAI %in% "month" & long$duration_p12 %in% c(0:30.4)] <- long$p_RECAI[long$p_UNITRAI %in% "month" & long$duration_p12 %in% c(0:30.4)]
+long$p_raitimes[long$p_UNITRAI %in% "week" & long$duration_p12 %in% c(0:7)] <- long$p_RECAI[long$p_UNITRAI %in% "week" & long$duration_p12 %in% c(0:7)]
+
+long$p_INSAI <- as.numeric(long$p_INSAI)
+long$p_iaitimes[long$p_IAI %in% 0] <- 0
+long$p_iaitimes[long$p_IAI_ONCE %in% 1] <- 1
+long$p_iaitimes[long$p_UNITIAI %in% "year"] <- long$p_INSAI[long$p_UNITIAI %in% "year"]
+long$p_iaitimes[long$p_UNITIAI %in% "month"] <- long$p_INSAI[long$p_UNITIAI %in% "month"]*long$duration_p12[long$p_UNITIAI %in% "month"]/30.4
+long$p_iaitimes[long$p_UNITIAI %in% "week"] <- long$p_INSAI[long$p_UNITIAI %in% "week"]*long$duration_p12[long$p_UNITIAI %in% "week"]/7
+
+ # If duration in the past 12 months is calculated as less than 1 month/week, set to p_INSAI. Many have short (or zero) duration due to assumptions about start and end days
+long$p_iaitimes[long$p_UNITIAI %in% "month" & long$duration_p12 %in% c(0:30.4)] <- long$p_INSAI[long$p_UNITIAI %in% "month" & long$duration_p12 %in% c(0:30.4)]
+long$p_iaitimes[long$p_UNITIAI %in% "week" & long$duration_p12 %in% c(0:7)] <- long$p_INSAI[long$p_UNITIAI %in% "week" & long$duration_p12 %in% c(0:7)]
+long$p_iaitimes[long$p_iaitimes %in% 0.5] <- 1
+
+long$p_aitimes <- long$p_iaitimes + long$p_raitimes
+long$p_aitimes[is.na(long$p_iaitimes) & !is.na(long$p_raitimes)] <- long$p_raitimes[is.na(long$p_iaitimes) & !is.na(long$p_raitimes)]
+long$p_aitimes[!is.na(long$p_iaitimes) & is.na(long$p_raitimes)] <- long$p_iaitimes[!is.na(long$p_iaitimes) & is.na(long$p_raitimes)]
+long$p_aitimes <- floor(long$p_aitimes)
+
+## Define indicator of AI only once in the past 12 months
+long$p_aitimes.cat <- ifelse(long$p_aitimes %in% 1, "Once",
+                    ifelse(long$p_aitimes %in% 0, "Never",
+                        ifelse(!is.na(long$p_aitimes & long$p_aitimes > 1), "More than once",
+                               NA)))
+
+if (oral == FALSE) {
+## If had anal sex only once in the past year and the relationship is not ongoing and the relationship started within the past year, change partner type to "Inst"
+ long$p_type[long$p_ONCE %in% 2 & long$p_ONGOING %in% c(0, 88) & long$dt_yrago < long$start_date & long$p_type %in% "Pers" & long$p_aitimes.cat %in% "Once"] <- "Inst"
+}
+
+## Daily AI freq/rate
+long$p_rairate <- NA
+long$p_rairate[long$p_UNITRAI %in% "week"] <- long$p_RECAI[long$p_UNITRAI %in% "week"]/7
+long$p_rairate[long$p_UNITRAI %in% "month"] <- long$p_RECAI[long$p_UNITRAI %in% "month"]/30.4
+long$p_rairate[long$p_UNITRAI %in% "year"] <- long$p_RECAI[long$p_UNITRAI %in% "year"]/365
+
+long$p_iairate <- NA
+long$p_iairate[long$p_UNITIAI %in% "week"] <- long$p_INSAI[long$p_UNITIAI %in% "week"]/7
+long$p_iairate[long$p_UNITIAI %in% "month"] <- long$p_INSAI[long$p_UNITIAI %in% "month"]/30.4
+long$p_iairate[long$p_UNITIAI %in% "year"] <- long$p_INSAI[long$p_UNITIAI %in% "year"]/365
+
+long$p_airate <- long$p_rairate + long$p_iairate
+long$p_airate[is.na(long$p_iairate) & !is.na(long$p_rairate)] <- long$p_rairate[is.na(long$p_iairate) & !is.na(long$p_rairate)]
+long$p_airate[!is.na(long$p_iairate) & is.na(long$p_rairate)] <- long$p_iairate[!is.na(long$p_iairate) & is.na(long$p_rairate)]
+
+long <- select(long, -p_iairate, -p_rairate)
+
+    ## Truncate unreasonable values (>2) at 2 (n=11)
+    long$p_airate[long$p_airate>2] <- 2
+
+    ## Set to missing if partner type is one-time
+    long$p_airate[which(long$p_type %in% "Inst")] <- NA
+
+## Oral sex frequency ----
+long$p_ROI[which(is.na(long$p_ROI))] <- long$p_ROI_ONCE[which(is.na(long$p_ROI))]
+long$p_IOI[which(is.na(long$p_IOI))] <- long$p_IOI_ONCE[which(is.na(long$p_IOI))]
+
+long$p_UNITROI[long$p_UNITROI %in% c("11658", "11709", "11712", "11715", "11718")] <- "month"
+long$p_UNITROI[long$p_UNITROI %in% c("11659", "11710", "11713", "11716", "11719")] <- "year"
+long$p_UNITROI[long$p_UNITROI %in% c("11657", "11708", "11711", "11714", "11717")] <- "week"
+
+long$p_UNITIOI[long$p_UNITIOI %in% c("11661", "11733", "11736", "11739", "11742")] <- "month"
+long$p_UNITIOI[long$p_UNITIOI %in% c("11662", "11734", "11737", "11740", "11743")] <- "year"
+long$p_UNITIOI[long$p_UNITIOI %in% c("11660", "11732", "11735", "11738", "11741")] <- "week"
+
+long$p_RECOI <- as.numeric(long$p_RECOI)
+long$p_roitimes[long$p_ROI %in% 0] <- 0
+long$p_roitimes[long$p_ROI_ONCE %in% 1] <- 1
+long$p_roitimes[long$p_UNITROI %in% "year"] <- long$p_RECOI[long$p_UNITROI %in% "year"]
+long$p_roitimes[long$p_UNITROI %in% "month"] <- long$p_RECOI[long$p_UNITROI %in% "month"]*long$duration_p12[long$p_UNITROI %in% "month"]/30.4
+long$p_roitimes[long$p_UNITROI %in% "week"] <- long$p_RECOI[long$p_UNITROI %in% "week"]*long$duration_p12[long$p_UNITROI %in% "week"]/7
+ #If duration in the past 12 months is calculated as less than 1 month/week, set to p_RECOI. Many have short (or zero) duration due to assumptions about start and end days
+long$p_roitimes[long$p_UNITROI %in% "month" & long$duration_p12 %in% c(0:30.4)] <- long$p_RECOI[long$p_UNITROI %in% "month" & long$duration_p12 %in% c(0:30.4)]
+long$p_roitimes[long$p_UNITROI %in% "week" & long$duration_p12 %in% c(0:7)] <- long$p_RECOI[long$p_UNITROI %in% "week" & long$duration_p12 %in% c(0:7)]
+
+long$p_INSOI <- as.numeric(long$p_INSOI)
+long$p_ioitimes[long$p_IOI %in% 0] <- 0
+long$p_ioitimes[long$p_IOI_ONCE %in% 1] <- 1
+long$p_ioitimes[long$p_UNITIOI %in% "year"] <- long$p_INSOI[long$p_UNITIOI %in% "year"]
+long$p_ioitimes[long$p_UNITIOI %in% "month"] <- long$p_INSOI[long$p_UNITIOI %in% "month"]*long$duration_p12[long$p_UNITIOI %in% "month"]/30.4
+long$p_ioitimes[long$p_UNITIOI %in% "week"] <- long$p_INSOI[long$p_UNITIOI %in% "week"]*long$duration_p12[long$p_UNITIOI %in% "week"]/7
+
+ # If duration in the past 12 months is calculated as less than 1 month/week, set to p_INSOI. Many have short (or zero) duration due to assumptions about start and end days
+long$p_ioitimes[long$p_UNITIOI %in% "month" & long$duration_p12 %in% c(0:30.4)] <- long$p_INSOI[long$p_UNITIOI %in% "month" & long$duration_p12 %in% c(0:30.4)]
+long$p_ioitimes[long$p_UNITIOI %in% "week" & long$duration_p12 %in% c(0:7)] <- long$p_INSOI[long$p_UNITIOI %in% "week" & long$duration_p12 %in% c(0:7)]
+long$p_ioitimes[long$p_ioitimes %in% 0.5] <- 1
+
+long$p_oitimes <- long$p_ioitimes + long$p_roitimes
+long$p_oitimes[is.na(long$p_ioitimes) & !is.na(long$p_roitimes)] <- long$p_roitimes[is.na(long$p_ioitimes) & !is.na(long$p_roitimes)]
+long$p_oitimes[!is.na(long$p_ioitimes) & is.na(long$p_roitimes)] <- long$p_ioitimes[!is.na(long$p_ioitimes) & is.na(long$p_roitimes)]
+long$p_oitimes <- floor(long$p_oitimes)
+
+## Daily OI freq/rate
+long$p_roirate <- NA
+long$p_roirate[long$p_UNITROI %in% "week"] <- long$p_RECOI[long$p_UNITROI %in% "week"]/7
+long$p_roirate[long$p_UNITROI %in% "month"] <- long$p_RECOI[long$p_UNITROI %in% "month"]/30.4
+long$p_roirate[long$p_UNITROI %in% "year"] <- long$p_RECOI[long$p_UNITROI %in% "year"]/365
+
+long$p_ioirate <- NA
+long$p_ioirate[long$p_UNITIOI %in% "week"] <- long$p_INSOI[long$p_UNITIOI %in% "week"]/7
+long$p_ioirate[long$p_UNITIOI %in% "month"] <- long$p_INSOI[long$p_UNITIOI %in% "month"]/30.4
+long$p_ioirate[long$p_UNITIOI %in% "year"] <- long$p_INSOI[long$p_UNITIOI %in% "year"]/365
+
+long$p_oirate <- long$p_roirate + long$p_ioirate
+long$p_oirate[is.na(long$p_ioirate) & !is.na(long$p_roirate)] <- long$p_roirate[is.na(long$p_ioirate) & !is.na(long$p_roirate)]
+long$p_oirate[!is.na(long$p_ioirate) & is.na(long$p_roirate)] <- long$p_ioirate[!is.na(long$p_ioirate) & is.na(long$p_roirate)]
+
+long <- select(long, -p_ioirate, -p_roirate)
+
+    ## Truncate unreasonable values (>2) at 2 (n=28)
+    long$p_oirate[long$p_oirate>2] <- 2
+
+    ## Set to missing if partner type is one-time
+    long$p_oirate[which(long$p_type %in% "Inst")] <- NA
+
+    
+####################################################################
+# Define new ego vars ----
+####################################################################
+    
+## Sexual Role
+d$position_cat <- NA
+recept <- which(d$PART1RAI == 1 | d$PART2RAI == 1 |
+                d$PART3RAI == 1 | d$PART4RAI == 1 |
+                d$PART5RAI == 1)
+insert <- which(d$PART1IAI == 1 | d$PART2IAI == 1 |
+                d$PART3IAI == 1 | d$PART4IAI == 1 |
+                d$PART5IAI == 1)
+vers <- intersect(recept, insert)
+receptonly <- setdiff(recept, vers)
+insertonly <- setdiff(insert, vers)
+
+d$position_cat[receptonly] <- "Exclusively bottom"
+d$position_cat[insertonly] <- "Exclusively top"
+d$position_cat[vers] <- "Versatile"
+
+
+## Instantaneous partner count and rate/year
+  # Because the survey didn't ask about the total number of instantaneous partnerships in the past year, we define the intantaneous partner count/rate as the minimum of 1) the difference between the total number partners and the number of main and persistent partners named in the partner module, and 2) the difference betweeen the total number of partners and the number of partners that were described as ongoing.
+
+# Total MP partners reported on in Partner Module
+if (oral == FALSE) {
+  long$mp_ai <- ifelse(long$p_type %in% c("Main", "Pers") & (long$p_RAI %in% 1 | long$p_IAI %in% 1), 1, 0)
+  
+  d <- long %>%
+  group_by(ego) %>%
+  summarise(mp_count = sum(mp_ai)) %>%
+  right_join(d, by = "ego")
+
+  d$mp_count[d$cuml.pnum %in% 0] <- 0
+  long$mp_ai <- NULL
+}
+
+if (oral == TRUE) {
+  long$mp <- ifelse(long$p_type %in% c("Main", "Pers"), 1, 0)
+  
+  d <- long %>%
+  group_by(ego) %>%
+  summarise(mp_count = sum(mp)) %>%
+  right_join(d, by = "ego")
+
+  d$mp_count[d$cuml.pnum %in% 0] <- 0
+  long$mp <- NULL
+}
+
+
+# Total number of oral or anal sex partners that were not ongoing
+d$num_ong <- ifelse(!is.na(d$MMCONC_ONEPART), d$MMCONC_ONEPART, d$MMCONC)
+d$notongoing <- d$cuml.pnum - d$num_ong
+d$notongoing[d$cuml.pnum %in% 0] <- 0
+
+# Define number of inst partners as the total number of partners - total main/pers partners named in the partner module. But if the number of partners that were not ongoing < numinst calculated in this way, set numinst to the number not ongoing
+
+if (oral == FALSE) {
+  d$numinst_12mo <- d$numanal - d$mp_count
+  d$numinst_12mo <- pmax(0, d$numinst_12mo)
+  toobig <- which(!is.na(d$numinst_12mo) & !is.na(d$notongoing) & d$numinst_12mo > d$notongoing)
+  d$numinst_12mo[toobig] <- d$notongoing[toobig]
+}
+
+if (oral == TRUE) {
+  d$numinst_12mo <- d$cuml.pnum - d$mp_count
+  d$numinst_12mo <- pmax(0, d$numinst_12mo)
+  toobig <- which(!is.na(d$numinst_12mo) & !is.na(d$notongoing) & d$numinst_12mo > d$notongoing)
+  d$numinst_12mo[toobig] <- d$notongoing[toobig]
+}
+
+# Define rate of inst partners as total number in the past year / 365.25
+d$rate_inst <- d$numinst_12mo / 365.25
+
+## Main and persistent degree
+
+long$cuml.pnum <- as.numeric(long$cuml.pnum)
+long$numanal <- as.numeric(long$numanal)
+long$p_ONGOING <- as.numeric(long$p_ONGOING)
+
+# Identify respondents who did not report on all of their 5 or fewer most recent oral or anal sex partners
+d$nump_cat <- ifelse(!is.na(d$cuml.pnum) & d$cuml.pnum >5, 5, ifelse(d$cuml.pnum %in% c(0:5), d$cuml.pnum, NA))
+d <- long %>%
+  group_by(ego) %>%
+  count() %>%
+  rename(namedp = n) %>%
+  right_join(d, by = "ego")
+d$missingp <- ifelse(d$nump_cat %in% 0, 0,
+                     ifelse(!is.na(d$nump_cat) & ((d$nump_cat > d$namedp) | is.na(d$namedp)), 1, 0))
+
+# Define indicators for partnerships that were ongoing and main/pers
+
+if (oral == FALSE) {
+  long$main_ong <- ifelse(long$p_type %in% "Main" & (long$p_RAI %in% 1 | long$p_IAI %in% 1) & long$active %in% 1, 1, 0)
+  long$pers_ong <- ifelse(long$p_type %in% "Pers" & (long$p_RAI %in% 1 | long$p_IAI %in% 1) & long$active %in% 1, 1, 0)
+}
+if (oral == TRUE) {
+  long$main_ong <- ifelse(long$p_type %in% "Main" & long$active %in% 1, 1, 0)
+  long$pers_ong <- ifelse(long$p_type %in% "Pers" & long$active %in% 1, 1, 0)
+}
+
+# Count total number of main and persistent partnerships
+d <- long %>%
+  group_by(ego) %>%
+  summarise(deg.main = sum(main_ong)) %>%
+  right_join(d, by = "ego")
+
+d <- long %>%
+  group_by(ego) %>%
+  summarise(deg.pers = sum(pers_ong)) %>%
+  right_join(d, by = "ego")
+
+# If missingp == 1, set to missing (6 obs)
+d$deg.main[d$missingp %in% 1] <- NA
+d$deg.pers[d$missingp %in% 1] <- NA
+
+# If zero partners in the past 12 months, set degree to 0
+d$deg.main[d$cuml.pnum %in% 0] <- 0
+d$deg.pers[d$cuml.pnum %in% 0] <- 0
+
+# summary(d$deg.main)
+# summary(d$deg.pers)
+
+# md <- group_by(d, region) %>%
+#   summarise(main = mean(deg.main, na.rm=TRUE), pers = mean(deg.pers, na.rm=TRUE))
+# print(md, n = nrow(md))
+
+# recoding to truncate degree
+d$deg.pers_cat <- ifelse(!is.na(d$deg.pers) & d$deg.pers > pers.trunc, pers.trunc, d$deg.pers)
+d$deg.main_cat <- ifelse(!is.na(d$deg.main) & d$deg.main > main.trunc, main.trunc, d$deg.main)
+
+# table(d$deg.main_cat, d$deg.pers_cat)
+# round(prop.table(table(d$deg.main_cat, d$deg.pers_cat)), 3)
+
+## Remove unneeded variables
+long <- select(long, -endmm, -SUB_DATE.day, -SUB_DATE.month, -SUB_DATE.year, -p_STARTMM, -p_STARTYYYY, -p_STARTYYYYDK, -p_OFENDMM, -day_s, -day_e, -year_e, -duration.given, - month_e, -endmm, -dt_yrago, -start_mtyrago, -duration_p12, -p_raitimes, -p_iaitimes, -p_aitimes.cat, -main_ong, -pers_ong, -infer_year_s, -infer_startmm, -p_NAME, -p_RACE, -p_UNITRAI, -p_UNITIAI)
+
+####################################################################
+# Apply exclusion criteria to define sample ----
+####################################################################
+
+# Full, unrestricted samples:
+ egos <- d
+ pships <- long
+ 
+# Restrict to egos with non-missing data on race/ethnicity (necessary for re-weighting)
+ egos <- filter(egos, !is.na(hbo))
+ pships <- filter(pships, !is.na(hbo))
+
+## If oral=FALSE, set partner-specific variables to missing if the partnership did not involve anal sex
+ if (oral == FALSE) {
+  pships <- pships %>% filter(p_IAI %in% 1 | p_RAI %in% 1)
+}
+ 
+## Restrict the sample on age
+egos <- egos %>% filter(age>age.min & age<age.max)
+pships <- pships %>% filter(age>age.min & age<age.max & p_ageinyrs %in% c(age.min:age.max))
+
+## Define age groups variable
+binwidth <- 5
+if (age.min <18) {
+   agebins <- c(age.min, 17, seq(24, age.max, binwidth))
+}
+if (age.min >=20) {
+   agebins <- c(seq(age.min, age.max, binwidth))
+}
+if (max(agebins < age.max)) {
+  agebins[length(agebins)] <- age.max
+}
+ 
+egos$age_cat <- cut(egos$age, agebins, include.lowest = TRUE)
+pships$age_cat <- cut(pships$age, agebins, include.lowest = TRUE)
+
+## Define age groups variable to use for re-weighting (may be different than the above if the number of respondents in any of the age bins are too small). The cutpoints and labels would need to be adapted if changes are made. The current code defines groups 15-24, 25-29, 30-34, 35-39, 40-44, 45-49, 50-54, 55-59, 60-65.
+binwidth.rwt <- 5
+agebins.rwt <- c(age.min, seq(24, age.max, binwidth.rwt)) 
+if (max(agebins.rwt < age.max)) {
+  agebins.rwt[length(agebins.rwt)] <- age.max
+}
+egos$age_cat_rwt <- cut(egos$age, agebins.rwt, labels = c("15-24", "25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59", "60-65"), include.lowest = TRUE)
+pships$age_cat_rwt <- cut(pships$age, agebins.rwt, labels = c("15-24", "25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59", "60-65"), include.lowest = TRUE)
+                                                                
+
+# ## Restrict to those who had anal or oral sex with a man in the past 12 months
+#     egos <- egos %>% filter(cuml.pnum >0 & !is.na(cuml.pnum))
+#     pships <- pships %>% filter(cuml.pnum >0 & !is.na(cuml.pnum))
+ 
+
+####################################################################
+## Save datasets ----
+####################################################################
+
+save(egos, file= here("Data/egos.Rdata"))
+save(pships, file= here("Data/pships.Rdata"))
+
+```
