@@ -645,7 +645,7 @@ long$p__IEVRECONCE <- as.numeric(long$p__IEVRECONCE)
 long$p__IEVRECONCE[long$p__IEVRECONCE %in% 88] <- NA
 
 # If they reported insertive and receptive anal sex more than once, they reported on how often they had IEV on a scale from never (0) to every time (100). This variable (p_IEVMORETHANONCE) indicates the probability of IEV.
-long$p_iev[!is.na(long$p__IEVMORETHANONCE)] <- long$p__IEVMORETHANONCE[!is.na(long$p__IEVMORETHANONCE)]
+long$p_iev[!is.na(long$p__IEVMORETHANONCE)] <- long$p__IEVMORETHANONCE[!is.na(long$p__IEVMORETHANONCE)]/100
 
 # People who either reported receptive anal sex only once or insertive anal sex only once (but the other kind of sex more than once) were asked about whether these acts occurred in the same sexual act or event. For example if they reported insertive sex only once, they are asked if they also had receptive anal sex when they had insertive anal sex. For these individuals, we will calculate the probability of IEV as 0 if they say no, and as 1 divided by the number of times they reported whichever type of sex they had more than once if they say yes (i.e. if they reported receptive anal sex 20 times, insertive anal sex only once, and said they engaged in IEV that one time, the probabilit is 1/20)
 long$p_iev[!is.na(long$p__IEVRECONCE)] <- ifelse(long$p__IEVRECONCE[!is.na(long$p__IEVRECONCE)] %in% 0, 0,
