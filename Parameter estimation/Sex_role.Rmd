@@ -38,7 +38,6 @@ position <- as.data.frame(prop.table(svytable(~position_cat, whpp_mmp, round=FAL
 kable(position, col.names = c("", "Proportion"), digits=c(0, 3), align = c("l", "c"))  %>% column_spec(1, bold=T, color="black", width="4cm") %>% kable_styling(full_width=F, position="center")
 
 sexrole.irv <- paste(round(prop.table(svytable(~position_cat, whpp_mmp, round=FALSE)),3)[[2]], round(prop.table(svytable(~position_cat, whpp_mmp, round=FALSE)),3)[[1]], round(prop.table(svytable(~position_cat, whpp_mmp, round=FALSE)),3)[[3]], sep=", ")
-save(sexrole.irv, file="Data/sexrole.Rmd")
 ```
 
 We also calculate the probability of __intraevent versatility (IEV)__, which is the probability that two versatile men will have both receptive and insertive anal sex in a single act or event, given that they're having anal sex. We calculate this from the reweighted ART-NET survey, which asked men who reported both receptive and insertive anal sex with their partner(s) whether they had "both receptive and insertive anal sex in the same sexual act or event (that is, the same day)."  
@@ -51,5 +50,10 @@ We also calculate the probability of __intraevent versatility (IEV)__, which is 
 
 The calculated mean probability of IEV in versatile-versatile dyads is shown below:
 ```{r}
-svymean(~p_ievprob, artnet_full_rake_l, na.rm=TRUE)
+(vv.iev.prob <- svymean(~p_ievprob, artnet_full_rake_l, na.rm=TRUE))
+```
+
+```{r}
+save(sexrole.irv, file="Data/sexrole.Rdata")
+save(vv.iev.prob, file = "Data/iev.Rdata")
 ```
