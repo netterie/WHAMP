@@ -35,7 +35,8 @@
     load(file="Data/prop.hom.mpi.unbal.Rdata")
     load(file="Data/sqrtabsdiff_agemix.Rdata")
     load(file="Data/duration.Rdata")
-    load(file="Data/sexrole.Rmd")
+    load(file="Data/sexrole.Rdata")
+    load(file="Data/iev.Rdata")
     load(file="Data/circumcision.Rdata")
     load(file="Data/condoms.prob.Rdata")
     load(file="Data/airate.Rdata")
@@ -139,6 +140,9 @@ This section summarises the parameters defined for the epidemic model, with refe
  # Coital frequency
   epi_params <- param_table(NA, "airate.main", "Expected coital frequency in main partnerships (acts per day)", round(airate$main, 4), NA, "WHPP survey and national ART-Net data from HIV-positive respondents, reweighted to Washington demographics")
   epi_params <- param_table(epi_params, "airate.pers", "Expected coital frequency in persistent partnerships (acts per day)", round(airate$pers, 4), NA, "WHPP survey and national ART-Net data from HIV-positive respondents, reweighted to Washington demographics")
+  
+ # Intraevent versatility
+  epi_params <- param_table(epi_params, "vv.iev.prob", "Probability that two versatile men will engage in intra-event versatility (role flipping), given that they're having AI.", round(vv.iev.prob[1], 4), NA, "National ART-Net survey, reweighted to Washington demographics")
 
  # Disclosure
   epi_params <- param_table(epi_params, "disc.outset.main.prob", "Probability that a diagnosed HIV-positive man will disclose his status to a main partner at the start of the relationship", round(discl.outset.mpi[1],4), NA, "2014 MMP survey, reweighted to Washington demographics, restricted to discordant/unknown dyads")
@@ -164,6 +168,6 @@ This section summarises the parameters defined for the epidemic model, with refe
   
 # Make a kable
 rownames(epi_params) <- NULL
-kable(epi_params, caption="Epidemic model parameter values and sources", digits=c(0, 0, 4, 4, 0)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, width = "5cm") %>% column_spec(2, width = "10cm") %>% column_spec(3, width = "5cm") %>% column_spec(4, width = "8cm") %>% column_spec(5, width = "20cm") %>% group_rows("Coital frequency", 1,2) %>% group_rows("Disclosure", 3,5) %>% group_rows("Condom use", 6,12) %>% group_rows("Circumcision", 13,13) %>% group_rows("HIV testing", 14,15)
+kable(epi_params, caption="Epidemic model parameter values and sources", digits=c(0, 0, 4, 4, 0)) %>% kable_styling(full_width=F, position="center") %>% column_spec(1, width = "5cm") %>% column_spec(2, width = "10cm") %>% column_spec(3, width = "5cm") %>% column_spec(4, width = "8cm") %>% column_spec(5, width = "20cm") %>% group_rows("Coital frequency", 1,2) %>% group_rows("Intraevent versatility", 3,3) %>% group_rows("Disclosure", 4,6) %>% group_rows("Condom use", 7,13) %>% group_rows("Circumcision", 14,14) %>% group_rows("HIV testing", 15,16)
 
 ```
